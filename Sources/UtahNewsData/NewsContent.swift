@@ -8,7 +8,7 @@
 import Foundation
 
 /// A protocol defining the common properties and methods for news content types.
-public protocol NewsContent: Identifiable {
+public protocol NewsContent: Identifiable, Codable, Equatable, Hashable {
     var id: UUID { get set }
     var title: String { get set }
     var url: String { get set }

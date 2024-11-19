@@ -5,12 +5,10 @@
 //  Created by Mark Evans on 11/18/24.
 //
 
-import SwiftUI
-import SwiftData
+import Foundation
 
-/// A model representing an article in the news app.
-@Model
-public final class Article: NewsContent, Equatable, Hashable {
+/// A struct representing an article in the news app.
+public struct Article: NewsContent {
     public var id: UUID
     public var title: String
     public var url: String
@@ -25,7 +23,7 @@ public final class Article: NewsContent, Equatable, Hashable {
         title: String,
         url: String,
         urlToImage: String? = nil,
-        publishedAt: Date,
+        publishedAt: Date = Date(),
         textContent: String? = nil,
         author: String? = nil,
         category: String? = nil
@@ -39,16 +37,6 @@ public final class Article: NewsContent, Equatable, Hashable {
         self.author = author
         self.category = category
     }
-    
-    // MARK: - Equatable Conformance
-    public static func == (lhs: Article, rhs: Article) -> Bool {
-        return lhs.id == rhs.id
-    }
-    
-    // MARK: - Hashable Conformance
-    public func hash(into hasher: inout Hasher) {
-        hasher.combine(id)
-    }
 }
 
 public extension Article {
@@ -57,7 +45,6 @@ public extension Article {
         title: "Utah News App Launches Today: Get the Latest News, Sports, and Weather",
         url: "https://www.utahnews.com",
         urlToImage: "https://picsum.photos/800/1200",
-        publishedAt: Date(),
         textContent: """
         Utah News is a news app for Utah. Get the latest news, sports, and weather from Utah News. Stay informed about local events and stories that matter to you.
         """,

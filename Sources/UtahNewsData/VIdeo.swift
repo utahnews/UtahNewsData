@@ -5,32 +5,30 @@
 //  Created by Mark Evans on 11/18/24.
 //
 
-import SwiftUI
-import SwiftData
+import Foundation
 
-/// A model representing a video in the news app.
-@Model
-public final class Video: NewsContent, Equatable, Hashable {
+/// A struct representing a video in the news app.
+public struct Video: NewsContent {
     public var id: UUID
     public var title: String
     public var url: String
     public var urlToImage: String?
     public var publishedAt: Date
     public var textContent: String?
+    public var author: String?
     public var duration: TimeInterval
     public var resolution: String
-    public var author: String?
     
     public init(
         id: UUID = UUID(),
         title: String,
         url: String,
         urlToImage: String? = nil,
-        publishedAt: Date,
+        publishedAt: Date = Date(),
         textContent: String? = nil,
+        author: String? = nil,
         duration: TimeInterval,
-        resolution: String,
-        author: String? = nil
+        resolution: String
     ) {
         self.id = id
         self.title = title
@@ -38,19 +36,9 @@ public final class Video: NewsContent, Equatable, Hashable {
         self.urlToImage = urlToImage
         self.publishedAt = publishedAt
         self.textContent = textContent
+        self.author = author
         self.duration = duration
         self.resolution = resolution
-        self.author = author
-    }
-    
-    // MARK: - Equatable Conformance
-    public static func == (lhs: Video, rhs: Video) -> Bool {
-        return lhs.id == rhs.id
-    }
-    
-    // MARK: - Hashable Conformance
-    public func hash(into hasher: inout Hasher) {
-        hasher.combine(id)
     }
 }
 
@@ -60,10 +48,9 @@ public extension Video {
         title: "Utah News Video Highlights",
         url: "https://www.utahnews.com/video-highlights",
         urlToImage: "https://picsum.photos/800/600",
-        publishedAt: Date(),
         textContent: "Watch the latest video highlights from Utah News.",
+        author: "Mark Evans",
         duration: 300, // Duration in seconds
-        resolution: "1080p",
-        author: "Mark Evans"
+        resolution: "1080p"
     )
 }
