@@ -22,7 +22,7 @@ public struct Article: NewsContent {
         id: UUID = UUID(),
         title: String,
         url: String,
-        urlToImage: String? = nil,
+        urlToImage: String? = "https://picsum.photos/800/1200",
         publishedAt: Date = Date(),
         textContent: String? = nil,
         author: String? = nil,
