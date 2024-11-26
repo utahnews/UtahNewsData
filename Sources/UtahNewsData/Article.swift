@@ -5,6 +5,7 @@
 //  Created by Mark Evans on 11/18/24.
 //
 
+import SwiftUI
 import Foundation
 
 /// A struct representing an article in the news app.
@@ -45,7 +46,7 @@ public struct Article: NewsContent {
     
     init?(from scrapeStory: ScrapeStory, baseURL: String?) {
         // Generate a unique ID
-        self.id = UUID().uuidString
+        self.id = UUID()
 
         self.title = scrapeStory.title ?? "No Title"
         self.urlToImage = scrapeStory.urlToImage?.constructValidURL(baseURL: baseURL) ?? "https://picsum.photos/800/1200"
@@ -140,3 +141,4 @@ public struct Coordinates: Codable, Hashable, Equatable {
     public var latitude: Double
     public var longitude: Double
 }
+

@@ -26,3 +26,26 @@ public struct ScrapeStory: Codable {
     public var category: String?
     public var videoURL: String?
 }
+
+
+struct SingleStoryResponse: Codable {
+    let success: Bool
+    let data: SingleStoryData
+}
+
+// MARK: - SingleStoryData
+struct SingleStoryData: Codable {
+    let extract: ScrapeStory
+}
+
+
+// MARK: - FirecrawlResponse
+struct FirecrawlResponse: Codable {
+    let success: Bool
+    let data: FirecrawlData
+}
+
+// MARK: - FirecrawlData
+struct FirecrawlData: Codable {
+    let extract: StoryExtract
+}
