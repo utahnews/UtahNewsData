@@ -8,14 +8,14 @@
 import SwiftUI
 
 
-class Poll: AssociatedData {
-    var id: UUID
-    var relationships: [Relationship] = []
-    var question: String
-    var options: [String]
-    var responses: [PollResponse] = []
-    var dateConducted: Date
-    var source: Source
+public struct Poll: AssociatedData {
+    public var id: UUID
+    public var relationships: [Relationship] = []
+    public var question: String
+    public var options: [String]
+    public var responses: [PollResponse] = []
+    public var dateConducted: Date
+    public var source: Source
 
     init(id: UUID = UUID(), question: String, options: [String], dateConducted: Date, source: Source) {
         self.id = id
@@ -26,7 +26,7 @@ class Poll: AssociatedData {
     }
 }
 
-struct PollResponse {
-    var respondent: Person?
-    var selectedOption: String
+public struct PollResponse {
+    public var respondent: Person?
+    public var selectedOption: String
 }

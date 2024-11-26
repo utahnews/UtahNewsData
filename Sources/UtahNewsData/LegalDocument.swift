@@ -9,11 +9,11 @@ import SwiftUI
 
 
 public struct LegalDocument: AssociatedData {
-    var id: UUID
-    var relationships: [Relationship] = []
-    var title: String
-    var dateIssued: Date
-    var mediaItems: [MediaItem] = [] // Contains DocumentMedia or TextMedia
+    public var id: UUID
+    public var relationships: [Relationship] = []
+    public var title: String
+    public var dateIssued: Date
+    public var mediaItems: [MediaItem] = [] // Contains DocumentMedia or TextMedia
 
     init(id: UUID = UUID(), title: String, dateIssued: Date) {
         self.id = id
