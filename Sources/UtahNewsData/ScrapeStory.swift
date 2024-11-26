@@ -10,7 +10,7 @@ import Foundation
 
 // MARK: - StoryExtract
 public struct StoryExtract: Codable {
-    let stories: [ScrapeStory]
+    public let stories: [ScrapeStory]
 }
 
 // MARK: - ScrapeStory
