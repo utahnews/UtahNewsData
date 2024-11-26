@@ -22,27 +22,7 @@ public struct Article: NewsContent {
     public var videoURL: String?
     public var location: Location?
     
-    public init(
-        id: UUID = UUID(),
-        title: String,
-        url: String,
-        urlToImage: String? = "https://picsum.photos/800/1200",
-        publishedAt: Date = Date(),
-        textContent: String? = nil,
-        author: String? = nil,
-        category: String? = nil,
-        location: Location? = nil
-    ) {
-        self.id = id
-        self.title = title
-        self.url = url
-        self.urlToImage = urlToImage
-        self.publishedAt = publishedAt
-        self.textContent = textContent
-        self.author = author
-        self.category = category
-        self.location = location
-    }
+
     
     init?(from scrapeStory: ScrapeStory, baseURL: String?) {
         // Generate a unique ID
@@ -106,6 +86,30 @@ public struct Article: NewsContent {
         } else {
             self.publishedAt = Date()
         }
+    }
+}
+
+public extension Article {
+    init(
+        id: UUID = UUID(),
+        title: String,
+        url: String,
+        urlToImage: String? = "https://picsum.photos/800/1200",
+        publishedAt: Date = Date(),
+        textContent: String? = nil,
+        author: String? = nil,
+        category: String? = nil,
+        location: Location? = nil
+    ) {
+        self.id = id
+        self.title = title
+        self.url = url
+        self.urlToImage = urlToImage
+        self.publishedAt = publishedAt
+        self.textContent = textContent
+        self.author = author
+        self.category = category
+        self.location = location
     }
 }
 
