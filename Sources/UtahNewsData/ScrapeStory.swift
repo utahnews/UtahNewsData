@@ -28,24 +28,24 @@ public struct ScrapeStory: Codable {
 }
 
 
-struct SingleStoryResponse: Codable {
-    let success: Bool
-    let data: SingleStoryData
+public struct SingleStoryResponse: Codable {
+    public let success: Bool
+    public let data: SingleStoryData
 }
 
 // MARK: - SingleStoryData
-struct SingleStoryData: Codable {
-    let extract: ScrapeStory
+public struct SingleStoryData: Codable {
+    public let extract: ScrapeStory
 }
 
 
 // MARK: - FirecrawlResponse
-struct FirecrawlResponse: Codable {
-    let success: Bool
-    let data: FirecrawlData
+public struct FirecrawlResponse: Codable {
+    public let success: Bool
+    public let data: FirecrawlData
 }
 
 // MARK: - FirecrawlData
-struct FirecrawlData: Codable {
-    let extract: StoryExtract
+public struct FirecrawlData: Codable {
+    public let extract: StoryExtract
 }
