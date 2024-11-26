@@ -15,7 +15,7 @@ public struct Article: NewsContent {
     public var url: String
     public var urlToImage: String?
     public var additionalImages: [String]?
-    public var publishedAt: Date?
+    public var publishedAt: Date
     public var textContent: String?
     public var author: String?
     public var category: String?
@@ -100,11 +100,11 @@ public struct Article: NewsContent {
                 } else {
                     // Could not parse date; set to nil
                     print("Failed to parse publishedAt string: \(publishedAtString)")
-                    self.publishedAt = nil
+                    self.publishedAt = Date()
                 }
             }
         } else {
-            self.publishedAt = nil
+            self.publishedAt = Date()
         }
     }
 }
