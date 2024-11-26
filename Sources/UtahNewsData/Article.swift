@@ -17,6 +17,7 @@ public struct Article: NewsContent {
     public var textContent: String?
     public var author: String?
     public var category: String?
+    public var location: Location?
     
     public init(
         id: UUID = UUID(),
@@ -26,7 +27,8 @@ public struct Article: NewsContent {
         publishedAt: Date = Date(),
         textContent: String? = nil,
         author: String? = nil,
-        category: String? = nil
+        category: String? = nil,
+        location: Location? = nil
     ) {
         self.id = id
         self.title = title
@@ -36,6 +38,7 @@ public struct Article: NewsContent {
         self.textContent = textContent
         self.author = author
         self.category = category
+        self.location = location
     }
 }
 
@@ -51,4 +54,13 @@ public extension Article {
         author: "Mark Evans",
         category: "News"
     )
+}
+
+
+public struct Location: Codable, Identifiable, Hashable {
+    public var id: String
+    
+    public var latitude: Double
+    public var longitude: Double
+    public var name: String
 }
