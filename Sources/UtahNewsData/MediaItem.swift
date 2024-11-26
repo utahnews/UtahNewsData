@@ -9,9 +9,9 @@ import SwiftUI
 
 
 public protocol MediaItem: AssociatedData, Codable {
-    public var type: MediaType { get }
-    public var title: String? { get set }
-    public var dateCreated: Date { get }
+    var type: MediaType { get }
+    var title: String? { get set }
+    var dateCreated: Date { get }
 }
 
 public enum MediaType: String, Identifiable, Codable {
