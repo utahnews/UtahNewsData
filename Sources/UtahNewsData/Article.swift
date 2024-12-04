@@ -25,68 +25,45 @@ public struct Article: NewsContent {
 
     
    public init?(from scrapeStory: ScrapeStory, baseURL: String?) {
-        // Generate a unique ID
-        self.id = UUID()
+       self.id = UUID()
 
-        self.title = scrapeStory.title ?? "No Title"
-        self.urlToImage = scrapeStory.urlToImage?.constructValidURL(baseURL: baseURL) ?? "https://picsum.photos/800/1200"
-        self.textContent = scrapeStory.textContent ?? ""
-        self.author = scrapeStory.author
-        self.category = scrapeStory.category
-        self.videoURL = scrapeStory.videoURL?.constructValidURL(baseURL: baseURL)
+       guard let title = scrapeStory.title, !title.isEmpty else {
+           print("Invalid title in ScrapeStory: \(scrapeStory)")
+           return nil
+       }
+       self.title = title
 
-        // Construct valid URL for 'url'
-        if let urlString = scrapeStory.url, !urlString.isEmpty {
-            if let validURLString = urlString.constructValidURL(baseURL: baseURL) {
-                self.url = validURLString
-            } else {
-                return nil // Cannot construct valid URL
-            }
-        } else {
-            return nil // No URL
-        }
+       if let urlString = scrapeStory.url, !urlString.isEmpty {
+           if let validURLString = urlString.constructValidURL(baseURL: baseURL) {
+               self.url = validURLString
+           } else {
+               print("Invalid URL in ScrapeStory: \(scrapeStory)")
+               return nil
+           }
+       } else {
+           print("Missing URL in ScrapeStory: \(scrapeStory)")
+           return nil
+       }
 
-        // Simplified date parsing
-        if let publishedAtString = scrapeStory.publishedAt, !publishedAtString.isEmpty {
-            let isoFormatter = ISO8601DateFormatter()
-            if let date = isoFormatter.date(from: publishedAtString) {
-                self.publishedAt = date
-            } else {
-                // Attempt alternative standard formats
-                let dateFormatter = DateFormatter()
-                dateFormatter.locale = Locale(identifier: "en_US_POSIX")
-                dateFormatter.timeZone = TimeZone(secondsFromGMT: 0)
+       self.urlToImage = scrapeStory.urlToImage?.constructValidURL(baseURL: baseURL)
+       self.textContent = scrapeStory.textContent
+       self.author = scrapeStory.author
+       self.category = scrapeStory.category
+       self.videoURL = scrapeStory.videoURL?.constructValidURL(baseURL: baseURL)
 
-                // Try common date formats
-                let dateFormats = [
-                    "yyyy-MM-dd'T'HH:mm:ssZ",
-                    "yyyy-MM-dd",
-                    "MM/dd/yyyy",
-                    "MMMM d, yyyy",
-                    "d MMM yyyy"
-                ]
-
-                var parsedDate: Date? = nil
-                for format in dateFormats {
-                    dateFormatter.dateFormat = format
-                    if let date = dateFormatter.date(from: publishedAtString) {
-                        parsedDate = date
-                        break
-                    }
-                }
-
-                if let date = parsedDate {
-                    self.publishedAt = date
-                } else {
-                    // Could not parse date; set to nil
-                    print("Failed to parse publishedAt string: \(publishedAtString)")
-                    self.publishedAt = Date()
-                }
-            }
-        } else {
-            self.publishedAt = Date()
-        }
-    }
+       // Parse date
+       if let publishedAtString = scrapeStory.publishedAt {
+           let isoFormatter = ISO8601DateFormatter()
+           if let date = isoFormatter.date(from: publishedAtString) {
+               self.publishedAt = date
+           } else {
+               print("Invalid date format in ScrapeStory: \(scrapeStory)")
+               self.publishedAt = Date()
+           }
+       } else {
+           self.publishedAt = Date()
+       }
+   }
 }
 
 public extension Article {
