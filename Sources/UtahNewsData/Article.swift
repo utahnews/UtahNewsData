@@ -24,7 +24,7 @@ public struct Article: NewsContent {
     
 
     
-    init?(from scrapeStory: ScrapeStory, baseURL: String?) {
+   public init?(from scrapeStory: ScrapeStory, baseURL: String?) {
         // Generate a unique ID
         self.id = UUID()
 
