@@ -9,7 +9,7 @@ import SwiftUI
 import Foundation
 
 /// A struct representing an article in the news app.
-public struct Article: NewsContent {
+public struct Article: NewsContent, Identifiable {
     public var id: UUID
     public var title: String
     public var url: String
