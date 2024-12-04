@@ -14,7 +14,7 @@ public struct StoryExtract: Codable {
 }
 
 // MARK: - ScrapeStory
-public struct ScrapeStory: Codable {
+public struct ScrapeStory: Codable, Sendable {
 //    var id: String
     public var title: String?
     public var textContent: String?
