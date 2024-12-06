@@ -106,8 +106,8 @@ public extension Article {
 
 
 
-struct MapResponse: Codable {
-    let success: Bool
-    let links: [String]
+public struct MapResponse: Codable {
+    public let success: Bool
+    public let links: [String]
 }
 
