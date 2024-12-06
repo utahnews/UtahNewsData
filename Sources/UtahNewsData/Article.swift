@@ -106,3 +106,8 @@ public extension Article {
 
 
 
+struct MapResponse: Codable {
+    let success: Bool
+    let links: [String]
+}
+
