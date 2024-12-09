@@ -14,6 +14,7 @@ public struct Source: AssociatedData {
     public var name: String
     public var url: URL?
     public var credibilityRating: Int? // Scale of 1-5
+    public var siteMapURL: URL?
 
     init(id: UUID = UUID(), name: String) {
         self.id = id
