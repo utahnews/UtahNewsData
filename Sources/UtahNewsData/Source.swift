@@ -8,7 +8,7 @@
 import SwiftUI
 
 
-public struct Source: AssociatedData {
+public struct Source: AssociatedData, Codable {
     public var id: UUID
     public var relationships: [Relationship] = []
     public var name: String
