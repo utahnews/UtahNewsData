@@ -13,7 +13,7 @@ public enum JurisdictionType: String, Codable, CaseIterable {
     case county
     case state
 
-    var label: String {
+    public var label: String {
         switch self {
         case .city: return "City"
         case .county: return "County"
