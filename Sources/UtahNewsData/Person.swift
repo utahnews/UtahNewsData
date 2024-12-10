@@ -25,7 +25,9 @@ public struct Person: AssociatedData {
 }
 
 public struct ContactInfo {
+    public var name: String?
     public var email: String?
+    public var website: String?
     public var phone: String?
     public var address: String?
     public var socialMediaHandles: [String: String]? // e.g., ["Twitter": "@username"]

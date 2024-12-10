@@ -12,8 +12,8 @@ public struct Organization: AssociatedData {
     public var relationships: [Relationship] = []
     public var name: String
     public var description: String?
-    public var contactInfo: ContactInfo?
-    public var mediaItems: [MediaItem] = [] // For logos, promotional videos, etc.
+    public var contactInfo: [ContactInfo]? = []
+    public var mediaItems: [MediaItem]? = []
 
     init(id: String = UUID().uuidString, name: String) {
         self.id = id
