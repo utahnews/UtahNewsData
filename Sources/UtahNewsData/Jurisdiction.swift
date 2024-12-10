@@ -29,6 +29,7 @@ public struct Jurisdiction: AssociatedData, Identifiable, Codable {
     public var type: JurisdictionType
     public var name: String
     public var location: Location?
+    public var website: String?
     
     public init(id: String = UUID().uuidString, type: JurisdictionType, name: String, location: Location? = nil) {
         self.id = id
