@@ -20,6 +20,12 @@ public struct Relationship: Codable, Hashable {
     public let id: String
     public let type: AssociatedDataType
     public var displayName: String?
+    
+    public init(id: String, type: AssociatedDataType, displayName: String?) {
+        self.id = id
+        self.type = type
+        self.displayName = displayName
+    }
 }
 
 public enum AssociatedDataType: String, Codable {
