@@ -30,7 +30,7 @@ public struct Jurisdiction: AssociatedData, Identifiable, Codable {
     public var name: String
     public var location: Location?
     
-    init(id: String = UUID().uuidString, type: JurisdictionType, name: String, location: Location? = nil) {
+    public init(id: String = UUID().uuidString, type: JurisdictionType, name: String, location: Location? = nil) {
         self.id = id
         self.type = type
         self.name = name
