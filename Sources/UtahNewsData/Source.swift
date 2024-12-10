@@ -27,18 +27,18 @@ public struct Source: AssociatedData, Codable, Identifiable { // Adding Identifi
     public var JSONSchema: JSONSchema?                  // Matches NewsSource
 
     // If needed, a custom initializer to create a Source from a NewsSource instance:
-//    init(from newsSource: NewsSource, credibilityRating: Int? = nil, relationships: [Relationship] = []) {
-//        self.id = newsSource.id
-//        self.name = newsSource.name
-//        self.url = newsSource.url
-//        self.category = newsSource.category
-//        self.subCategory = newsSource.subCategory
-//        self.description = newsSource.description
-//        self.JSONSchema = newsSource.JSONSchema
-//        self.siteMapURL = newsSource.siteMapURL
-//        self.credibilityRating = credibilityRating
-//        self.relationships = relationships
-//    }
+    init(from newsSource: NewsSource, credibilityRating: Int? = nil, relationships: [Relationship] = []) {
+        self.id = newsSource.id
+        self.name = newsSource.name
+        self.url = newsSource.url
+        self.category = newsSource.category
+        self.subCategory = newsSource.subCategory
+        self.description = newsSource.description
+        self.JSONSchema = newsSource.JSONSchema
+        self.siteMapURL = newsSource.siteMapURL
+        self.credibilityRating = credibilityRating
+        self.relationships = relationships
+    }
 
     // If you do not have a direct use for the old initializer, you can remove it,
     // or provide a default one that suits your Firestore decode scenario.
@@ -163,5 +163,35 @@ public enum NewsSourceSubcategory: String, CaseIterable, Codable {
         case .events:
             return "Events"
         }
+    }
+}
+
+
+public struct NewsSource: Codable, Identifiable {
+    public var id: String
+    public var name: String
+    public var url: String
+    public var category: NewsSourceCategory
+    public var subCategory: NewsSourceSubcategory?
+    public var description: String?
+    public var JSONSchema: JSONSchema?
+    public var siteMapURL: URL?
+
+    init(
+        id: String = UUID().uuidString,
+        name: String = "",
+        url: String = "",
+        category: NewsSourceCategory = .general,
+        subCategory: NewsSourceSubcategory? = nil,
+        description: String? = nil,
+        JSONSchema: JSONSchema? = nil
+    ) {
+        self.id = id
+        self.name = name
+        self.url = url
+        self.category = category
+        self.subCategory = subCategory
+        self.description = description
+        self.JSONSchema = JSONSchema
     }
 }
