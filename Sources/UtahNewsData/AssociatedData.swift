@@ -19,6 +19,7 @@ public protocol AssociatedData {
 public struct Relationship: Codable, Hashable {
     public let id: String
     public let type: AssociatedDataType
+    public var displayName: String?
 }
 
 public enum AssociatedDataType: String, Codable {
