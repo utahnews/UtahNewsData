@@ -14,7 +14,7 @@ import SwiftUI
 // of UUID, and adding category, subCategory, description, JSONSchema, etc.) so that
 // they match what's stored in your Firestore "sources" collection.
 
-public struct Source: AssociatedData, Codable, Identifiable, Hashable { // Adding Identifiable for convenience
+public struct Source: AssociatedData, Codable, Identifiable, Hashable, Equatable { // Adding Identifiable for convenience
     public var id: String
     public var relationships: [Relationship] = []
     public var name: String
