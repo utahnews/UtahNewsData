@@ -27,7 +27,7 @@ public struct Source: AssociatedData, Codable, Identifiable { // Adding Identifi
     public var JSONSchema: JSONSchema?                  // Matches NewsSource
 
     // If needed, a custom initializer to create a Source from a NewsSource instance:
-    init(from newsSource: NewsSource, credibilityRating: Int? = nil, relationships: [Relationship] = []) {
+    init(newsSource: NewsSource, credibilityRating: Int? = nil, relationships: [Relationship] = []) {
         self.id = newsSource.id
         self.name = newsSource.name
         self.url = newsSource.url
