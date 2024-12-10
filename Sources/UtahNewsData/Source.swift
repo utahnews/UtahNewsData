@@ -15,16 +15,16 @@ import SwiftUI
 // they match what's stored in your Firestore "sources" collection.
 
 public struct Source: AssociatedData, Codable, Identifiable { // Adding Identifiable for convenience
-    public var id: String                               // Updated to String to match Firestore doc ID
+    public var id: String
     public var relationships: [Relationship] = []
     public var name: String
-    public var url: String                              // Storing as String since Firestore often stores URLs as strings
-    public var credibilityRating: Int?                  // If you still need this field, leave it, otherwise remove
-    public var siteMapURL: URL?                         // This can decode from a string if Firestore stores it correctly
-    public var category: NewsSourceCategory             // Matches NewsSource
-    public var subCategory: NewsSourceSubcategory?      // Matches NewsSource
-    public var description: String?                     // Matches NewsSource
-    public var JSONSchema: JSONSchema?                  // Matches NewsSource
+    public var url: String
+    public var credibilityRating: Int?
+    public var siteMapURL: URL?
+    public var category: NewsSourceCategory
+    public var subCategory: NewsSourceSubcategory?
+    public var description: String?
+    public var JSONSchema: JSONSchema?
 
     // If needed, a custom initializer to create a Source from a NewsSource instance:
     public init(
@@ -46,7 +46,7 @@ public struct Source: AssociatedData, Codable, Identifiable { // Adding Identifi
 
     // If you do not have a direct use for the old initializer, you can remove it,
     // or provide a default one that suits your Firestore decode scenario.
-    init(
+    public init(
         id: String = UUID().uuidString,
         name: String,
         url: String,
