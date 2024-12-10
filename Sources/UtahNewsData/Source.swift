@@ -78,7 +78,7 @@ public enum JSONSchema: String, CaseIterable, Codable {
     case schema2
     // Add more schemas as needed
 
-    var label: String {
+   private var label: String {
         switch self {
         case .schema1:
             return "Schema 1"
