@@ -9,14 +9,14 @@ import SwiftUI
 
 
 public struct ExpertAnalysis: AssociatedData {
-    public var id: UUID
+    public var id: String
     public var relationships: [Relationship] = []
     public var expert: Person
     public var date: Date
     public var mediaItems: [MediaItem] = []
     public var topics: [Category] = []
 
-    init(id: UUID = UUID(), expert: Person, date: Date) {
+    init(id: String = UUID().uuidString, expert: Person, date: Date) {
         self.id = id
         self.expert = expert
         self.date = date

@@ -11,11 +11,11 @@ import SwiftUI
 
 
 public struct Category: AssociatedData {
-    public var id: UUID
+    public var id: String
     public var relationships: [Relationship] = []
     public var name: String
 
-    init(id: UUID = UUID(), name: String) {
+    init(id: String = UUID().uuidString, name: String) {
         self.id = id
         self.name = name
     }

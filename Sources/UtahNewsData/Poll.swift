@@ -9,7 +9,7 @@ import SwiftUI
 
 
 public struct Poll: AssociatedData {
-    public var id: UUID
+    public var id: String
     public var relationships: [Relationship] = []
     public var question: String
     public var options: [String]
@@ -17,7 +17,7 @@ public struct Poll: AssociatedData {
     public var dateConducted: Date
     public var source: Source
 
-    init(id: UUID = UUID(), question: String, options: [String], dateConducted: Date, source: Source) {
+    init(id: String = UUID().uuidString, question: String, options: [String], dateConducted: Date, source: Source) {
         self.id = id
         self.question = question
         self.options = options

@@ -9,14 +9,14 @@ import SwiftUI
 
 
 public struct NewsAlert: AssociatedData {
-    public var id: UUID
+    public var id: String
     public var relationships: [Relationship] = []
     public var title: String
     public var message: String
     public var dateIssued: Date
     public var level: AlertLevel
 
-    init(id: UUID = UUID(), title: String, message: String, dateIssued: Date, level: AlertLevel) {
+    init(id: String = UUID().uuidString, title: String, message: String, dateIssued: Date, level: AlertLevel) {
         self.id = id
         self.title = title
         self.message = message

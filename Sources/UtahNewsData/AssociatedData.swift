@@ -12,12 +12,12 @@ import SwiftUI
 import Foundation
 
 public protocol AssociatedData {
-    var id: UUID { get }
+    var id: String { get }
     var relationships: [Relationship] { get set }
 }
 
 public struct Relationship: Codable, Hashable {
-    public let id: UUID
+    public let id: String
     public let type: AssociatedDataType
 }
 

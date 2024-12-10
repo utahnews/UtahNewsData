@@ -25,14 +25,14 @@ public enum MediaType: String, Identifiable, Codable {
 }
 
 public struct TextMedia: MediaItem {
-    public var id: UUID
+    public var id: String
     public var relationships: [Relationship] = []
     public var type: MediaType = .text
     public var title: String?
     public var dateCreated: Date
     public var text: String
 
-    init(id: UUID = UUID(), title: String? = nil, text: String, dateCreated: Date = Date()) {
+    init(id: String = UUID().uuidString, title: String? = nil, text: String, dateCreated: Date = Date()) {
         self.id = id
         self.title = title
         self.text = text
@@ -41,7 +41,7 @@ public struct TextMedia: MediaItem {
 }
 
 public struct ImageMedia: MediaItem {
-    public var id: UUID
+    public var id: String
     public var relationships: [Relationship] = []
     public var type: MediaType = .image
     public var title: String?
@@ -50,7 +50,7 @@ public struct ImageMedia: MediaItem {
     public var caption: String?
     public var credit: String?
 
-    init(id: UUID = UUID(), title: String? = nil, imageURL: URL, caption: String? = nil, credit: String? = nil, dateCreated: Date = Date()) {
+    init(id: String = UUID().uuidString, title: String? = nil, imageURL: URL, caption: String? = nil, credit: String? = nil, dateCreated: Date = Date()) {
         self.id = id
         self.title = title
         self.imageURL = imageURL
@@ -62,7 +62,7 @@ public struct ImageMedia: MediaItem {
 
 
 public struct VideoMedia: MediaItem {
-    public var id: UUID
+    public var id: String
     public var relationships: [Relationship] = []
     public var type: MediaType = .video
     public var title: String?
@@ -71,7 +71,7 @@ public struct VideoMedia: MediaItem {
     public var duration: TimeInterval?
     public var thumbnailURL: URL?
 
-    init(id: UUID = UUID(), title: String? = nil, videoURL: URL, duration: TimeInterval? = nil, thumbnailURL: URL? = nil, dateCreated: Date = Date()) {
+    init(id: String = UUID().uuidString, title: String? = nil, videoURL: URL, duration: TimeInterval? = nil, thumbnailURL: URL? = nil, dateCreated: Date = Date()) {
         self.id = id
         self.title = title
         self.videoURL = videoURL
@@ -83,7 +83,7 @@ public struct VideoMedia: MediaItem {
 
 
 public struct AudioMedia: MediaItem {
-    public var id: UUID
+    public var id: String
     public var relationships: [Relationship] = []
     public var type: MediaType = .audio
     public var title: String?
@@ -91,7 +91,7 @@ public struct AudioMedia: MediaItem {
     public var audioURL: URL
     public var duration: TimeInterval?
 
-    init(id: UUID = UUID(), title: String? = nil, audioURL: URL, duration: TimeInterval? = nil, dateCreated: Date = Date()) {
+    init(id: String = UUID().uuidString, title: String? = nil, audioURL: URL, duration: TimeInterval? = nil, dateCreated: Date = Date()) {
         self.id = id
         self.title = title
         self.audioURL = audioURL
@@ -102,7 +102,7 @@ public struct AudioMedia: MediaItem {
 
 
 public struct DocumentMedia: MediaItem {
-    public var id: UUID
+    public var id: String
     public var relationships: [Relationship] = []
     public var type: MediaType = .document
     public var title: String?
@@ -110,7 +110,7 @@ public struct DocumentMedia: MediaItem {
     public var documentURL: URL
     public var fileType: String // e.g., "pdf", "docx"
 
-    init(id: UUID = UUID(), title: String? = nil, documentURL: URL, fileType: String, dateCreated: Date = Date()) {
+    init(id: String = UUID().uuidString, title: String? = nil, documentURL: URL, fileType: String, dateCreated: Date = Date()) {
         self.id = id
         self.title = title
         self.documentURL = documentURL

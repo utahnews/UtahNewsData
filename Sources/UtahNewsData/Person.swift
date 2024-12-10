@@ -10,7 +10,7 @@ import SwiftUI
 
 
 public struct Person: AssociatedData {
-    public var id: UUID
+    public var id: String
     public var relationships: [Relationship] = []
     public var name: String
     public var bio: String?
@@ -18,7 +18,7 @@ public struct Person: AssociatedData {
     public var contactInfo: ContactInfo?
     public var mediaItems: [MediaItem] = [] // For profile images, audio interviews, etc.
 
-    init(id: UUID = UUID(), name: String) {
+    init(id: String = UUID().uuidString, name: String) {
         self.id = id
         self.name = name
     }

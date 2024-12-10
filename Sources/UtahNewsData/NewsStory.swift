@@ -8,7 +8,7 @@
 import SwiftUI
 
 public struct NewsStory: AssociatedData {
-    public var id: UUID
+    public var id: String
     public var relationships: [Relationship] = []
     public var headline: String
     public var author: Person
@@ -17,7 +17,7 @@ public struct NewsStory: AssociatedData {
     public var categories: [Category] = []
     public var sources: [Source] = []
 
-    init(id: UUID = UUID(), headline: String, author: Person, publishedDate: Date) {
+    init(id: String = UUID().uuidString, headline: String, author: Person, publishedDate: Date) {
         self.id = id
         self.headline = headline
         self.author = author
