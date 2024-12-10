@@ -106,7 +106,7 @@ public enum NewsSourceCategory: String, CaseIterable, Codable {
     case communityVoicesAndOpinions
     case general
 
-    var label: String {
+   public var label: String {
         switch self {
         case .localGovernmentAndPolitics:
             return "Local Government and Politics"
@@ -152,7 +152,7 @@ public enum NewsSourceSubcategory: String, CaseIterable, Codable {
     case reports
     case events
 
-    var label: String {
+    public var label: String {
         switch self {
         case .none:
             return "None"
