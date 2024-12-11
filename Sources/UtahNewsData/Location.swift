@@ -14,7 +14,7 @@ public struct Location: AssociatedData, Codable, Hashable, Equatable {
     public var address: String?
     public var coordinates: Coordinates?
 
-    init(id: String = UUID().uuidString, name: String) {
+    public init(id: String = UUID().uuidString, name: String) {
         self.id = id
         self.name = name
     }
