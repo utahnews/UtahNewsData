@@ -106,6 +106,7 @@ public enum NewsSourceCategory: String, CaseIterable, Codable {
     case communityVoicesAndOpinions
     case general
     case newsNoticesEventsAndAnnouncements
+    case religion
 
    public var label: String {
         switch self {
@@ -143,6 +144,8 @@ public enum NewsSourceCategory: String, CaseIterable, Codable {
             return "General"
         case .newsNoticesEventsAndAnnouncements:
             return "News, Notices, Events, and Announcements"
+        case .religion:
+            return "Religion"
         }
     }
 }
