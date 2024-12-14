@@ -16,8 +16,9 @@ public struct Organization: AssociatedData {
     public var mediaItems: [MediaItem]? = []
     public var website: String?
 
-    public init(id: String = UUID().uuidString, name: String) {
+    public init(id: String = UUID().uuidString, name: String, website: String? = nil) {
         self.id = id
         self.name = name
+        self.website = website
     }
 }
