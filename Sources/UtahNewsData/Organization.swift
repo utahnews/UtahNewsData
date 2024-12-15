@@ -7,13 +7,12 @@
 
 import SwiftUI
 
-public struct Organization: AssociatedData {
+public struct Organization: AssociatedData, Codable, Identifiable, Hashable {
     public var id: String
     public var relationships: [Relationship] = []
     public var name: String
     public var description: String?
     public var contactInfo: [ContactInfo]? = []
-    public var mediaItems: [MediaItem]? = []
     public var website: String?
 
     public init(id: String = UUID().uuidString, name: String, website: String? = nil) {

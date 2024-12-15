@@ -13,7 +13,6 @@ public struct LegalDocument: AssociatedData {
     public var relationships: [Relationship] = []
     public var title: String
     public var dateIssued: Date
-    public var mediaItems: [MediaItem] = [] // Contains DocumentMedia or TextMedia
 
     init(id: String = UUID().uuidString, title: String, dateIssued: Date) {
         self.id = id

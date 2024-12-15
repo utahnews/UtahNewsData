@@ -14,7 +14,6 @@ public struct NewsEvent: AssociatedData {
     public var relationships: [Relationship] = []
     public var title: String
     public var date: Date
-    public var mediaItems: [MediaItem] = []
     public var quotes: [Quote] = []
     public var facts: [Fact] = []
     public var statisticalData: [StatisticalData] = []

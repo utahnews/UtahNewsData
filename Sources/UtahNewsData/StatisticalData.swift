@@ -24,7 +24,7 @@ public struct StatisticalData: AssociatedData {
     }
 }
 
-public struct DataPoint {
+public struct DataPoint: Codable {
     public var label: String
     public var value: Double
 }

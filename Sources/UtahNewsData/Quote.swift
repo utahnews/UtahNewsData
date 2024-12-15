@@ -13,7 +13,6 @@ public struct Quote: AssociatedData {
     public var relationships: [Relationship] = []
     public var author: Person
     public var date: Date?
-    public var mediaItems: [MediaItem] = [] // Typically contains TextMedia
 
     init(id: String = UUID().uuidString, author: Person, date: Date? = nil) {
         self.id = id

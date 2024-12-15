@@ -13,7 +13,6 @@ public struct ExpertAnalysis: AssociatedData {
     public var relationships: [Relationship] = []
     public var expert: Person
     public var date: Date
-    public var mediaItems: [MediaItem] = []
     public var topics: [Category] = []
 
     init(id: String = UUID().uuidString, expert: Person, date: Date) {

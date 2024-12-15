@@ -13,7 +13,6 @@ public struct NewsStory: AssociatedData {
     public var headline: String
     public var author: Person
     public var publishedDate: Date
-    public var mediaItems: [MediaItem] = []
     public var categories: [Category] = []
     public var sources: [Source] = []
 

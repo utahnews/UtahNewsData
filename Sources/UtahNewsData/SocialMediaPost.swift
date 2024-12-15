@@ -15,7 +15,6 @@ public struct SocialMediaPost: AssociatedData {
     public var platform: String
     public var datePosted: Date
     public var url: URL?
-    public var mediaItems: [MediaItem] = [] // Could include TextMedia, ImageMedia, etc.
 
     init(id: String = UUID().uuidString, author: Person, platform: String, datePosted: Date) {
         self.id = id
