@@ -21,6 +21,7 @@ public struct Article: NewsContent, Identifiable {
     public var category: String?
     public var videoURL: String?
     public var location: Location?
+    // public var sourceTrace: SourceTrace?
     
 
     

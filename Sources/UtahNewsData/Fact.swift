@@ -22,3 +22,10 @@ public struct Fact: AssociatedData {
         self.dateVerified = dateVerified
     }
 }
+
+
+public enum Verification: String, CaseIterable {
+    case none = "None"
+    case human = "Human"
+    case ai = "AI"
+}
