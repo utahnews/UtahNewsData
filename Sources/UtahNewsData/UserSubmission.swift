@@ -21,7 +21,7 @@ public struct UserSubmission: AssociatedData, Codable, Identifiable, Hashable {
     public var audio: [AudioMedia]
     public var documents: [DocumentMedia]
     
-    init(
+    public init(
         id: String,
         relationships: [Relationship],
         title: String,
