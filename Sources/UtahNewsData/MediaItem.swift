@@ -4,19 +4,28 @@
 //
 //  Created by Mark Evans on 10/25/24.
 //
+//  Updated so each media struct defines custom `==` and `hash(into:)`
+//  based solely on the `id` property. This prevents duplicated Set entries
+//  when other properties (e.g. title, caption) change.
+//
+//  Copy & Paste this file in place of your existing MediaItem.swift.
+//
 
 import SwiftUI
 
-
-
-public struct TextMedia: Identifiable, Codable, Hashable {
+public struct TextMedia: Identifiable, Codable {
     public var id: String
     public var relationships: [Relationship] = []
     public var title: String?
     public var dateCreated: Date
     public var text: String
 
-    public init(id: String = UUID().uuidString, title: String? = nil, text: String, dateCreated: Date = Date()) {
+    public init(
+        id: String = UUID().uuidString,
+        title: String? = nil,
+        text: String,
+        dateCreated: Date = Date()
+    ) {
         self.id = id
         self.title = title
         self.text = text
@@ -24,7 +33,17 @@ public struct TextMedia: Identifiable, Codable, Hashable {
     }
 }
 
-public struct ImageMedia: Identifiable, Codable, Hashable {
+extension TextMedia: Equatable, Hashable {
+    public static func == (lhs: TextMedia, rhs: TextMedia) -> Bool {
+        lhs.id == rhs.id
+    }
+    
+    public func hash(into hasher: inout Hasher) {
+        hasher.combine(id)
+    }
+}
+
+public struct ImageMedia: Identifiable, Codable {
     public var id: String
     public var relationships: [Relationship] = []
     public var title: String?
@@ -33,7 +52,14 @@ public struct ImageMedia: Identifiable, Codable, Hashable {
     public var caption: String?
     public var credit: String?
 
-    public init(id: String = UUID().uuidString, title: String? = nil, imageURL: URL, caption: String? = nil, credit: String? = nil, dateCreated: Date = Date()) {
+    public init(
+        id: String = UUID().uuidString,
+        title: String? = nil,
+        imageURL: URL,
+        caption: String? = nil,
+        credit: String? = nil,
+        dateCreated: Date = Date()
+    ) {
         self.id = id
         self.title = title
         self.imageURL = imageURL
@@ -43,8 +69,17 @@ public struct ImageMedia: Identifiable, Codable, Hashable {
     }
 }
 
+extension ImageMedia: Equatable, Hashable {
+    public static func == (lhs: ImageMedia, rhs: ImageMedia) -> Bool {
+        lhs.id == rhs.id
+    }
+    
+    public func hash(into hasher: inout Hasher) {
+        hasher.combine(id)
+    }
+}
 
-public struct VideoMedia: Identifiable, Codable, Hashable {
+public struct VideoMedia: Identifiable, Codable {
     public var id: String
     public var relationships: [Relationship] = []
     public var title: String?
@@ -53,7 +88,14 @@ public struct VideoMedia: Identifiable, Codable, Hashable {
     public var duration: TimeInterval?
     public var thumbnailURL: URL?
 
-    public init(id: String = UUID().uuidString, title: String? = nil, videoURL: URL, duration: TimeInterval? = nil, thumbnailURL: URL? = nil, dateCreated: Date = Date()) {
+    public init(
+        id: String = UUID().uuidString,
+        title: String? = nil,
+        videoURL: URL,
+        duration: TimeInterval? = nil,
+        thumbnailURL: URL? = nil,
+        dateCreated: Date = Date()
+    ) {
         self.id = id
         self.title = title
         self.videoURL = videoURL
@@ -63,8 +105,17 @@ public struct VideoMedia: Identifiable, Codable, Hashable {
     }
 }
 
+extension VideoMedia: Equatable, Hashable {
+    public static func == (lhs: VideoMedia, rhs: VideoMedia) -> Bool {
+        lhs.id == rhs.id
+    }
+    
+    public func hash(into hasher: inout Hasher) {
+        hasher.combine(id)
+    }
+}
 
-public struct AudioMedia: Identifiable, Codable, Hashable {
+public struct AudioMedia: Identifiable, Codable {
     public var id: String
     public var relationships: [Relationship] = []
     public var title: String?
@@ -72,7 +123,13 @@ public struct AudioMedia: Identifiable, Codable, Hashable {
     public var audioURL: URL
     public var duration: TimeInterval?
 
-    public init(id: String = UUID().uuidString, title: String? = nil, audioURL: URL, duration: TimeInterval? = nil, dateCreated: Date = Date()) {
+    public init(
+        id: String = UUID().uuidString,
+        title: String? = nil,
+        audioURL: URL,
+        duration: TimeInterval? = nil,
+        dateCreated: Date = Date()
+    ) {
         self.id = id
         self.title = title
         self.audioURL = audioURL
@@ -81,8 +138,17 @@ public struct AudioMedia: Identifiable, Codable, Hashable {
     }
 }
 
+extension AudioMedia: Equatable, Hashable {
+    public static func == (lhs: AudioMedia, rhs: AudioMedia) -> Bool {
+        lhs.id == rhs.id
+    }
+    
+    public func hash(into hasher: inout Hasher) {
+        hasher.combine(id)
+    }
+}
 
-public struct DocumentMedia: Identifiable, Codable, Hashable {
+public struct DocumentMedia: Identifiable, Codable {
     public var id: String
     public var relationships: [Relationship] = []
     public var title: String?
@@ -90,11 +156,27 @@ public struct DocumentMedia: Identifiable, Codable, Hashable {
     public var documentURL: URL
     public var fileType: String // e.g., "pdf", "docx"
 
- public init(id: String = UUID().uuidString, title: String? = nil, documentURL: URL, fileType: String, dateCreated: Date = Date()) {
+    public init(
+        id: String = UUID().uuidString,
+        title: String? = nil,
+        documentURL: URL,
+        fileType: String,
+        dateCreated: Date = Date()
+    ) {
         self.id = id
         self.title = title
         self.documentURL = documentURL
         self.fileType = fileType
         self.dateCreated = dateCreated
+    }
+}
+
+extension DocumentMedia: Equatable, Hashable {
+    public static func == (lhs: DocumentMedia, rhs: DocumentMedia) -> Bool {
+        lhs.id == rhs.id
+    }
+    
+    public func hash(into hasher: inout Hasher) {
+        hasher.combine(id)
     }
 }
