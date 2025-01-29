@@ -18,7 +18,7 @@ public struct Person: AssociatedData, Codable, Identifiable, Hashable {
     public var contactInfo: ContactInfo?
  // For profile images, audio interviews, etc.
 
-    init(id: String = UUID().uuidString, name: String) {
+    public init(id: String = UUID().uuidString, name: String) {
         self.id = id
         self.name = name
     }
