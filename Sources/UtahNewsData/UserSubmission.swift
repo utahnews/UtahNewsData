@@ -8,7 +8,7 @@
 import Foundation
 
 
-public struct UserSubmission: AssociatedData {
+public struct UserSubmission: AssociatedData, Codable, Identifiable, Hashable {
     public var id: String
     public var relationships: [Relationship] = []
     public var title: String
@@ -19,7 +19,7 @@ public struct UserSubmission: AssociatedData {
     public var images: [ImageMedia]
     public var videos: [VideoMedia]
     public var audio: [AudioMedia]
-    public var documents: [LegalDocument]
+    public var documents: [DocumentMedia]
     
     init(
         id: String,
@@ -32,7 +32,7 @@ public struct UserSubmission: AssociatedData {
         images: [ImageMedia] = [],
         videos: [VideoMedia] = [],
         audio: [AudioMedia] = [],
-        documents: [LegalDocument] = []
+        documents: [DocumentMedia] = []
     ) {
         self.id = id
         self.relationships = relationships

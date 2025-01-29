@@ -44,7 +44,7 @@ public struct ImageMedia: Identifiable, Codable, Hashable {
 }
 
 
-public struct VideoMedia: Hashable {
+public struct VideoMedia: Identifiable, Codable, Hashable {
     public var id: String
     public var relationships: [Relationship] = []
     public var title: String?
