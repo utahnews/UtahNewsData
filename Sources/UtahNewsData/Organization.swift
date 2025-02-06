@@ -15,9 +15,17 @@ public struct Organization: AssociatedData, Codable, Identifiable, Hashable {
     public var contactInfo: [ContactInfo]? = []
     public var website: String?
 
-    public init(id: String = UUID().uuidString, name: String, website: String? = nil) {
+    public init(
+        id: String = UUID().uuidString,
+        name: String,
+        description: String? = nil,
+        contactInfo: [ContactInfo]? = nil,
+        website: String? = nil
+    ) {
         self.id = id
         self.name = name
+        self.description = description
+        self.contactInfo = contactInfo
         self.website = website
     }
 }
