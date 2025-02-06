@@ -26,10 +26,10 @@ public struct Person: AssociatedData, Codable, Identifiable, Hashable {
 
 public struct ContactInfo: Codable, Identifiable, Hashable, Equatable {
     public var id: String = UUID().uuidString
-    public var name: String?
-    public var email: String?
-    public var website: String?
-    public var phone: String?
-    public var address: String?
-    public var socialMediaHandles: [String: String]? // e.g., ["Twitter": "@username"]
+    public var name: String? = nil
+    public var email: String? = nil
+    public var website: String? = nil
+    public var phone: String? = nil
+    public var address: String? = nil
+    public var socialMediaHandles: [String: String]? = [:]  // e.g., ["Twitter": "@username"]
 }
