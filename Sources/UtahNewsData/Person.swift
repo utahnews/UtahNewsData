@@ -1,45 +1,46 @@
 //
 //  Person.swift
-//  NewsCapture
+//  UtahNewsData
 //
-//  Created by Mark Evans on 10/25/24.
+//  Created by Mark Evans on [date].
 //
 
 import SwiftUI
 
-
-
 public struct Person: AssociatedData, Codable, Identifiable, Hashable {
+    
     public var id: String
     public var relationships: [Relationship] = []
     public var name: String
-    public var bio: String?
-    public var birthDate: Date?
-    public var contactInfo: ContactInfo?
- // For profile images, audio interviews, etc.
+    public var details: String
 
-    public init(id: String = UUID().uuidString, name: String) {
+    public init(
+        id: String = UUID().uuidString,
+        relationships: [Relationship] = [],
+        name: String,
+        details: String
+    ) {
         self.id = id
+        self.relationships = relationships
         self.name = name
+        self.details = details
     }
-}
-
-public struct ContactInfo: Codable, Identifiable, Hashable, Equatable {
-    public var id: String = UUID().uuidString
-    public var name: String? = nil
-    public var email: String? = nil
-    public var website: String? = nil
-    public var phone: String? = nil
-    public var address: String? = nil
-    public var socialMediaHandles: [String: String]? = [:]  // e.g., ["Twitter": "@username"]
     
-    public init( name: String? = nil, email: String? = nil, website: String? = nil, phone: String? = nil, address: String? = nil, socialMediaHandles: [String: String]? = [:]) {
-        self.name = name
-        self.email = email
-        self.website = website
-        self.phone = phone
-        self.address = address
-        self.socialMediaHandles = socialMediaHandles
-        
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.name = try container.decode(String.self, forKey: .name)
+        self.details = try container.decode(String.self, forKey: .details)
+        self.id = (try? container.decode(String.self, forKey: .id)) ?? UUID().uuidString
+    }
+    
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(id, forKey: .id)
+        try container.encode(name, forKey: .name)
+        try container.encode(details, forKey: .details)
+    }
+    
+    enum CodingKeys: String, CodingKey {
+        case id, name, details
     }
 }
