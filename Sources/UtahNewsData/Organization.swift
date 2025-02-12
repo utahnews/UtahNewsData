@@ -34,9 +34,10 @@ public struct Organization: AssociatedData, Codable, Identifiable, Hashable {
         self.id = try container.decode(String.self, forKey: .id)
         self.relationships = (try? container.decode([Relationship].self, forKey: .relationships)) ?? []
         self.name = try container.decode(String.self, forKey: .name)
-        // Wrap decoding with try? to allow fallback
-        self.orgDescription = (try? container.decodeIfPresent(String.self, forKey: .orgDescription))
+        // Decode using the new key "orgDescription", then fall back to "description".
+        let decodedDesc = (try? container.decodeIfPresent(String.self, forKey: .orgDescription))
             ?? (try? container.decodeIfPresent(String.self, forKey: .oldDescription))
+        self.orgDescription = (decodedDesc?.isEmpty ?? true) ? nil : decodedDesc
         self.contactInfo = (try? container.decode([ContactInfo].self, forKey: .contactInfo)) ?? []
         self.website = try? container.decode(String.self, forKey: .website)
     }
