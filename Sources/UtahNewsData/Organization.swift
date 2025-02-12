@@ -31,10 +31,11 @@ public struct Organization: AssociatedData, Codable, Identifiable, Hashable {
     
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        self.id = try container.decode(String.self, forKey: .id)
+        // Use decodeIfPresent for id and fall back to a new UUID if missing.
+        self.id = (try? container.decodeIfPresent(String.self, forKey: .id)) ?? UUID().uuidString
         self.relationships = (try? container.decode([Relationship].self, forKey: .relationships)) ?? []
         self.name = try container.decode(String.self, forKey: .name)
-        // Decode using the new key "orgDescription", then fall back to "description".
+        // First try the new key "orgDescription", then fall back to the legacy key "description"
         let decodedDesc = (try? container.decodeIfPresent(String.self, forKey: .orgDescription))
             ?? (try? container.decodeIfPresent(String.self, forKey: .oldDescription))
         self.orgDescription = (decodedDesc?.isEmpty ?? true) ? nil : decodedDesc
