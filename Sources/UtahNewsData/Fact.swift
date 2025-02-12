@@ -15,7 +15,7 @@ public struct Fact: AssociatedData {
     public var source: Source
     public var dateVerified: Date
 
-    init(id: String = UUID().uuidString, statement: String, source: Source, dateVerified: Date) {
+    public init(id: String = UUID().uuidString, statement: String, source: Source, dateVerified: Date) {
         self.id = id
         self.statement = statement
         self.source = source
