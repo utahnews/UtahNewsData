@@ -1,5 +1,5 @@
 // This file consolidates model definitions (commented out) from targeted files.
-// Generated on Tue Feb  4 13:59:15 MST 2025
+// Generated on Sun Feb 23 17:53:43 MST 2025
 // Current time: February 4, 2025 at 1:58:27 PM MST
 // Do NOT uncomment this file into your code base.
 
@@ -494,29 +494,73 @@
 // File: Fact.swift
 // //
 // //  Fact.swift
-// //  NewsCapture
+// //  UtahNewsData
 // //
 // //  Created by Mark Evans on 10/25/24.
 // //
 // 
 // import SwiftUI
 // 
-// 
-// public struct Fact: AssociatedData {
+// public struct Fact: AssociatedData, Codable {
 //     public var id: String
 //     public var relationships: [Relationship] = []
 //     public var statement: String
-//     public var source: Source
-//     public var dateVerified: Date
+//     public var dateVerified: Date?  // Made optional to handle empty date strings
 // 
-//     init(id: String = UUID().uuidString, statement: String, source: Source, dateVerified: Date) {
+//     // Default initializer
+//     public init(
+//         id: String = UUID().uuidString,
+//         statement: String,
+//         dateVerified: Date? = nil
+//     ) {
 //         self.id = id
 //         self.statement = statement
-//         self.source = source
 //         self.dateVerified = dateVerified
 //     }
+//     
+//     // Custom initializer to supply a default id if missing
+//     // and to decode the dateVerified string, setting it to nil if empty.
+//     public init(from decoder: Decoder) throws {
+//         let container = try decoder.container(keyedBy: CodingKeys.self)
+//         self.statement = try container.decode(String.self, forKey: .statement)
+//         
+//         // Decode the date string and convert it to a Date.
+//         let dateString = try container.decode(String.self, forKey: .dateVerified)
+//         if dateString.isEmpty {
+//             self.dateVerified = nil
+//         } else {
+//             let formatter = ISO8601DateFormatter()
+//             self.dateVerified = formatter.date(from: dateString)
+//         }
+//         
+//         self.id = (try? container.decode(String.self, forKey: .id)) ?? UUID().uuidString
+//         self.relationships = (try? container.decode([Relationship].self, forKey: .relationships)) ?? []
+//     }
+//     
+//     // Standard encoding implementation.
+//     public func encode(to encoder: Encoder) throws {
+//         var container = encoder.container(keyedBy: CodingKeys.self)
+//         try container.encode(id, forKey: .id)
+//         try container.encode(relationships, forKey: .relationships)
+//         try container.encode(statement, forKey: .statement)
+//         
+//         // When encoding, if dateVerified is not nil, encode it as an ISO8601 string; otherwise encode an empty string.
+//         if let date = dateVerified {
+//             let formatter = ISO8601DateFormatter()
+//             let dateString = formatter.string(from: date)
+//             try container.encode(dateString, forKey: .dateVerified)
+//         } else {
+//             try container.encode("", forKey: .dateVerified)
+//         }
+//     }
+//     
+//     enum CodingKeys: String, CodingKey {
+//         case id
+//         case relationships
+//         case statement
+//         case dateVerified
+//     }
 // }
-// 
 // 
 // public enum Verification: String, CaseIterable {
 //     case none = "None"
@@ -639,6 +683,10 @@
 // //  Created by Mark Evans on 10/25/24.
 // //
 // 
+// // Location.swift
+// // Summary: Defines the Location structure for the UtahNewsData module.
+// //          Now includes a convenience initializer to create a Location with coordinates.
+// 
 // import SwiftUI
 // 
 // public struct Location: AssociatedData, Codable, Hashable, Equatable {
@@ -647,10 +695,18 @@
 //     public var name: String
 //     public var address: String?
 //     public var coordinates: Coordinates?
-// 
+//     
+//     // Existing initializer
 //     public init(id: String = UUID().uuidString, name: String) {
 //         self.id = id
 //         self.name = name
+//     }
+//     
+//     // New convenience initializer to include coordinates
+//     public init(id: String = UUID().uuidString, name: String, coordinates: Coordinates?) {
+//         self.id = id
+//         self.name = name
+//         self.coordinates = coordinates
 //     }
 // }
 // 
@@ -788,7 +844,7 @@
 // File: Organization.swift
 // //
 // //  Organization.swift
-// //  NewsCapture
+// //  UtahNewsData
 // //
 // //  Created by Mark Evans on 10/25/24.
 // //
@@ -799,52 +855,198 @@
 //     public var id: String
 //     public var relationships: [Relationship] = []
 //     public var name: String
-//     public var description: String?
+//     public var orgDescription: String?   // Internal property name
 //     public var contactInfo: [ContactInfo]? = []
 //     public var website: String?
 // 
-//     public init(id: String = UUID().uuidString, name: String, website: String? = nil) {
+//     public init(
+//         id: String = UUID().uuidString,
+//         name: String,
+//         orgDescription: String? = nil,
+//         contactInfo: [ContactInfo]? = nil,
+//         website: String? = nil
+//     ) {
 //         self.id = id
 //         self.name = name
+//         self.orgDescription = orgDescription
+//         self.contactInfo = contactInfo
 //         self.website = website
+//     }
+//     
+//     public init(from decoder: Decoder) throws {
+//         let container = try decoder.container(keyedBy: CodingKeys.self)
+//         // Use decodeIfPresent for id and fall back to a new UUID if missing.
+//         self.id = (try? container.decodeIfPresent(String.self, forKey: .id)) ?? UUID().uuidString
+//         self.relationships = (try? container.decode([Relationship].self, forKey: .relationships)) ?? []
+//         self.name = try container.decode(String.self, forKey: .name)
+//         // First try the new key "orgDescription", then fall back to the legacy key "description"
+//         let decodedDesc = (try? container.decodeIfPresent(String.self, forKey: .orgDescription))
+//             ?? (try? container.decodeIfPresent(String.self, forKey: .oldDescription))
+//         self.orgDescription = (decodedDesc?.isEmpty ?? true) ? nil : decodedDesc
+//         self.contactInfo = (try? container.decode([ContactInfo].self, forKey: .contactInfo)) ?? []
+//         self.website = try? container.decode(String.self, forKey: .website)
+//     }
+//     
+//     public func encode(to encoder: Encoder) throws {
+//         var container = encoder.container(keyedBy: CodingKeys.self)
+//         try container.encode(id, forKey: .id)
+//         try container.encode(relationships, forKey: .relationships)
+//         try container.encode(name, forKey: .name)
+//         // Always encode using the legacy key "description" for backward compatibility.
+//         try container.encode(orgDescription, forKey: .oldDescription)
+//         try container.encode(contactInfo, forKey: .contactInfo)
+//         try container.encode(website, forKey: .website)
+//     }
+//     
+//     private enum CodingKeys: String, CodingKey {
+//         case id, relationships, name
+//         case orgDescription
+//         case oldDescription = "description"
+//         case contactInfo, website
 //     }
 // }
 
 // File: Person.swift
 // //
 // //  Person.swift
-// //  NewsCapture
+// //  UtahNewsData
 // //
-// //  Created by Mark Evans on 10/25/24.
+// //  Created by Mark Evans on [date].
 // //
+// //  Updated to include additional properties for public interest/notability.
 // 
 // import SwiftUI
 // 
-// 
-// 
 // public struct Person: AssociatedData, Codable, Identifiable, Hashable {
+//     // MARK: - Core Properties
 //     public var id: String
 //     public var relationships: [Relationship] = []
 //     public var name: String
-//     public var bio: String?
+//     public var details: String
+// 
+//     // MARK: - Additional Public Figure Properties
+//     public var biography: String?
 //     public var birthDate: Date?
-//     public var contactInfo: ContactInfo?
-//  // For profile images, audio interviews, etc.
-// 
-//     public init(id: String = UUID().uuidString, name: String) {
-//         self.id = id
-//         self.name = name
-//     }
-// }
-// 
-// public struct ContactInfo: Codable, Identifiable, Hashable, Equatable {
-//     public var id: String = UUID().uuidString
-//     public var name: String?
+//     public var deathDate: Date?
+//     public var occupation: String?
+//     public var nationality: String?
+//     public var notableAchievements: [String]?
+//     public var imageURL: String?
+//     public var locationString: String?
+//     public var locationLatitude: Double?
+//     public var locationLongitude: Double?
 //     public var email: String?
 //     public var website: String?
 //     public var phone: String?
 //     public var address: String?
-//     public var socialMediaHandles: [String: String]? // e.g., ["Twitter": "@username"]
+//     public var socialMediaHandles: [String: String]?
+// 
+//     // MARK: - Initializer
+//     public init(
+//         id: String = UUID().uuidString,
+//         relationships: [Relationship] = [],
+//         name: String,
+//         details: String,
+//         biography: String? = nil,
+//         birthDate: Date? = nil,
+//         deathDate: Date? = nil,
+//         occupation: String? = nil,
+//         nationality: String? = nil,
+//         notableAchievements: [String]? = nil,
+//         imageURL: String? = nil,
+//         locationString: String? = nil,
+//         locationLatitude: Double? = nil,
+//         locationLongitude: Double? = nil,
+//         email: String? = nil,
+//         website: String? = nil,
+//         phone: String? = nil,
+//         address: String? = nil,
+//         socialMediaHandles: [String: String]? = [:]
+//     ) {
+//         self.id = id
+//         self.relationships = relationships
+//         self.name = name
+//         self.details = details
+// 
+//         self.biography = biography
+//         self.birthDate = birthDate
+//         self.deathDate = deathDate
+//         self.occupation = occupation
+//         self.nationality = nationality
+//         self.notableAchievements = notableAchievements
+// 
+//         self.imageURL = imageURL
+//         self.locationString = locationString
+//         self.locationLatitude = locationLatitude
+//         self.locationLongitude = locationLongitude
+//         self.email = email
+//         self.website = website
+//         self.phone = phone
+//         self.address = address
+//         self.socialMediaHandles = socialMediaHandles
+//     }
+//     
+//     // MARK: - Decodable
+//     public init(from decoder: Decoder) throws {
+//         let container = try decoder.container(keyedBy: CodingKeys.self)
+//         self.name = try container.decode(String.self, forKey: .name)
+//         self.details = try container.decode(String.self, forKey: .details)
+//         self.id = (try? container.decode(String.self, forKey: .id)) ?? UUID().uuidString
+//         self.relationships = (try? container.decode([Relationship].self, forKey: .relationships)) ?? []
+//         
+//         self.biography = try? container.decode(String.self, forKey: .biography)
+//         self.birthDate = try? container.decode(Date.self, forKey: .birthDate)
+//         self.deathDate = try? container.decode(Date.self, forKey: .deathDate)
+//         self.occupation = try? container.decode(String.self, forKey: .occupation)
+//         self.nationality = try? container.decode(String.self, forKey: .nationality)
+//         self.notableAchievements = try? container.decode([String].self, forKey: .notableAchievements)
+// 
+//         // New properties decoding
+//         self.imageURL = try? container.decode(String.self, forKey: .imageURL)
+//         self.locationString = try? container.decode(String.self, forKey: .locationString)
+//         self.locationLatitude = try? container.decode(Double.self, forKey: .locationLatitude)
+//         self.locationLongitude = try? container.decode(Double.self, forKey: .locationLongitude)
+//         self.email = try? container.decode(String.self, forKey: .email)
+//         self.website = try? container.decode(String.self, forKey: .website)
+//         self.phone = try? container.decode(String.self, forKey: .phone)
+//         self.address = try? container.decode(String.self, forKey: .address)
+//         self.socialMediaHandles = try? container.decode([String: String].self, forKey: .socialMediaHandles)
+//     }
+//     
+//     // MARK: - Encodable
+//     public func encode(to encoder: Encoder) throws {
+//         var container = encoder.container(keyedBy: CodingKeys.self)
+//         try container.encode(id, forKey: .id)
+//         try container.encode(relationships, forKey: .relationships)
+//         try container.encode(name, forKey: .name)
+//         try container.encode(details, forKey: .details)
+//         
+//         try container.encode(biography, forKey: .biography)
+//         try container.encode(birthDate, forKey: .birthDate)
+//         try container.encode(deathDate, forKey: .deathDate)
+//         try container.encode(occupation, forKey: .occupation)
+//         try container.encode(nationality, forKey: .nationality)
+//         try container.encode(notableAchievements, forKey: .notableAchievements)
+//         
+//         // New properties encoding
+//         try container.encode(imageURL, forKey: .imageURL)
+//         try container.encode(locationString, forKey: .locationString)
+//         try container.encode(locationLatitude, forKey: .locationLatitude)
+//         try container.encode(locationLongitude, forKey: .locationLongitude)
+//         try container.encode(email, forKey: .email)
+//         try container.encode(website, forKey: .website)
+//         try container.encode(phone, forKey: .phone)
+//         try container.encode(address, forKey: .address)
+//         try container.encode(socialMediaHandles, forKey: .socialMediaHandles)
+//     }
+//     
+//     // MARK: - Coding Keys
+//     enum CodingKeys: String, CodingKey {
+//         case id, relationships, name, details
+//         case biography, birthDate, deathDate, occupation, nationality, notableAchievements
+//         // New keys added
+//         case imageURL, locationString, locationLatitude, locationLongitude, email, website, phone, address, socialMediaHandles
+//     }
 // }
 
 // File: Poll.swift
