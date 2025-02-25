@@ -8,7 +8,7 @@
 
 import SwiftUI
 
-public struct Person: AssociatedData, Codable, Identifiable, Hashable {
+public struct Person: AssociatedData, Codable, Identifiable, Hashable, EntityDetailsProvider {
     // MARK: - Core Properties
     public var id: String
     public var relationships: [Relationship] = []
@@ -137,5 +137,79 @@ public struct Person: AssociatedData, Codable, Identifiable, Hashable {
         case biography, birthDate, deathDate, occupation, nationality, notableAchievements
         // New keys added
         case imageURL, locationString, locationLatitude, locationLongitude, email, website, phone, address, socialMediaHandles
+    }
+    
+    // MARK: - EntityDetailsProvider Implementation
+    
+    public func getDetailedDescription() -> String {
+        var description = details + "\n\n"
+        
+        if let bio = biography {
+            description += "**Biography**: \(bio)\n\n"
+        }
+        
+        if let occupation = occupation {
+            description += "**Occupation**: \(occupation)\n"
+        }
+        
+        if let nationality = nationality {
+            description += "**Nationality**: \(nationality)\n"
+        }
+        
+        // Add birth/death dates if available
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateStyle = .medium
+        
+        if let birthDate = birthDate {
+            description += "**Born**: \(dateFormatter.string(from: birthDate))"
+            if let deathDate = deathDate {
+                description += " | **Died**: \(dateFormatter.string(from: deathDate))"
+            }
+            description += "\n"
+        } else if let deathDate = deathDate {
+            description += "**Died**: \(dateFormatter.string(from: deathDate))\n"
+        }
+        
+        // Add notable achievements
+        if let achievements = notableAchievements, !achievements.isEmpty {
+            description += "\n**Notable Achievements**:\n"
+            for achievement in achievements {
+                description += "- \(achievement)\n"
+            }
+            description += "\n"
+        }
+        
+        // Add location information
+        if let location = locationString {
+            description += "**Location**: \(location)\n"
+        }
+        
+        // Add contact information
+        var contactInfo = ""
+        if let email = email {
+            contactInfo += "Email: \(email) | "
+        }
+        if let phone = phone {
+            contactInfo += "Phone: \(phone) | "
+        }
+        if let website = website {
+            contactInfo += "Website: \(website) | "
+        }
+        
+        if !contactInfo.isEmpty {
+            // Remove trailing separator
+            contactInfo = String(contactInfo.dropLast(3))
+            description += "\n**Contact**: \(contactInfo)\n"
+        }
+        
+        // Add social media handles
+        if let socialMedia = socialMediaHandles, !socialMedia.isEmpty {
+            description += "\n**Social Media**:\n"
+            for (platform, handle) in socialMedia {
+                description += "- \(platform): \(handle)\n"
+            }
+        }
+        
+        return description
     }
 }

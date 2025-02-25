@@ -7,7 +7,7 @@
 
 import SwiftUI
 
-public struct Organization: AssociatedData, Codable, Identifiable, Hashable {
+public struct Organization: AssociatedData, Codable, Identifiable, Hashable, EntityDetailsProvider {
     public var id: String
     public var relationships: [Relationship] = []
     public var name: String
@@ -59,5 +59,62 @@ public struct Organization: AssociatedData, Codable, Identifiable, Hashable {
         case orgDescription
         case oldDescription = "description"
         case contactInfo, website
+    }
+    
+    // MARK: - EntityDetailsProvider Implementation
+    
+    public func getDetailedDescription() -> String {
+        var description = ""
+        
+        if let desc = orgDescription {
+            description += desc + "\n\n"
+        }
+        
+        if let website = website {
+            description += "**Website**: \(website)\n\n"
+        }
+        
+        // Add contact information
+        if let contacts = contactInfo, !contacts.isEmpty {
+            description += "**Contact Information**:\n\n"
+            
+            for (index, contact) in contacts.enumerated() {
+                if contacts.count > 1 {
+                    description += "### Contact \(index + 1)\n"
+                }
+                
+                if let contactName = contact.name {
+                    description += "**Name**: \(contactName)\n"
+                }
+                
+                if let email = contact.email {
+                    description += "**Email**: \(email)\n"
+                }
+                
+                if let phone = contact.phone {
+                    description += "**Phone**: \(phone)\n"
+                }
+                
+                if let address = contact.address {
+                    description += "**Address**: \(address)\n"
+                }
+                
+                if let website = contact.website {
+                    description += "**Website**: \(website)\n"
+                }
+                
+                // Add social media handles
+                if let socialMedia = contact.socialMediaHandles, !socialMedia.isEmpty {
+                    description += "\n**Social Media**:\n"
+                    for (platform, handle) in socialMedia {
+                        description += "- \(platform): \(handle)\n"
+                    }
+                }
+                
+                description += "\n"
+            }
+        }
+        
+        return description
     }
 }
