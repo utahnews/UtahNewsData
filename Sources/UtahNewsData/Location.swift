@@ -95,7 +95,13 @@ public struct Location: AssociatedData, Codable, Hashable, Equatable {
 }
 
 /// Represents geographic coordinates with latitude and longitude.
-public struct Coordinates: Codable, Hashable, Equatable {
+public struct Coordinates: BaseEntity, Codable, Hashable, Equatable {
+    /// Unique identifier for the coordinates
+    public var id: String
+    
+    /// The name or description of these coordinates
+    public var name: String
+    
     /// Latitude coordinate (north/south position)
     public var latitude: Double
     
@@ -103,11 +109,17 @@ public struct Coordinates: Codable, Hashable, Equatable {
     public var longitude: Double
     
     /// Creates new geographic coordinates.
-    /// 
     /// - Parameters:
-    ///   - latitude: North/south position (-90 to 90)
-    ///   - longitude: East/west position (-180 to 180)
-    public init(latitude: Double, longitude: Double) {
+    ///   - id: Unique identifier for the coordinates
+    ///   - name: Name or description of these coordinates (e.g., "Downtown SLC")
+    ///   - latitude: Latitude coordinate
+    ///   - longitude: Longitude coordinate
+    public init(id: String = UUID().uuidString, 
+                name: String, 
+                latitude: Double, 
+                longitude: Double) {
+        self.id = id
+        self.name = name
         self.latitude = latitude
         self.longitude = longitude
     }

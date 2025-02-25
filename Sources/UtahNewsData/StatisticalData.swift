@@ -81,7 +81,7 @@ public enum VisualizationType: String, Codable {
 /// Represents a numerical data point in the UtahNewsData system.
 /// StatisticalData can be associated with articles, news events, and other content types,
 /// providing quantitative information with proper attribution.
-public struct StatisticalData: Codable, Identifiable, Hashable, Equatable, EntityDetailsProvider {
+public struct StatisticalData: AssociatedData, EntityDetailsProvider {
     /// Unique identifier for the statistical data
     public var id: String = UUID().uuidString
     

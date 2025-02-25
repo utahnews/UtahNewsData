@@ -226,7 +226,7 @@ public class RAGUtilities {
 /// Protocol for entities that can provide detailed descriptions for RAG.
 /// Implementing this protocol allows an entity to provide rich, structured
 /// information about itself for context generation.
-public protocol EntityDetailsProvider {
+public protocol EntityDetailsProvider: BaseEntity {
     /// Returns a detailed description of the entity for RAG context.
     /// This should include all relevant information about the entity
     /// in a format suitable for inclusion in RAG prompts.
@@ -280,20 +280,20 @@ public struct KnowledgeGraph: Codable {
     }
 }
 
-/// Represents a node in the knowledge graph.
-/// Nodes correspond to entities in the system.
-public struct KnowledgeNode: Codable, Identifiable {
-    /// Unique identifier for the node, matching the entity's ID
+/// Represents a node in a knowledge graph.
+/// Each node corresponds to an entity in the system.
+public struct KnowledgeNode: BaseEntity, Codable, Identifiable {
+    /// Unique identifier for the node
     public let id: String
     
-    /// Type of the entity this node represents
+    /// Type of entity this node represents
     public let type: String
     
-    /// Name of the entity this node represents
+    /// Name or title of the entity
     public let name: String
     
-    /// Additional properties for the node
-    public var properties: [String: String]?
+    /// Additional properties of the entity
+    public let properties: [String: String]
     
     /// Creates a new knowledge graph node
     /// - Parameters:
@@ -305,7 +305,7 @@ public struct KnowledgeNode: Codable, Identifiable {
         self.id = id
         self.type = type
         self.name = name
-        self.properties = properties
+        self.properties = properties ?? [:]
     }
 }
 

@@ -82,7 +82,7 @@ public enum ConfidenceLevel: String, Codable {
 /// Represents a verified piece of information in the UtahNewsData system.
 /// Facts can be associated with articles, news events, and other content types,
 /// providing verified data points with proper attribution.
-public struct Fact: Codable, Identifiable, Hashable, Equatable, EntityDetailsProvider {
+public struct Fact: AssociatedData, EntityDetailsProvider {
     /// Unique identifier for the fact
     public var id: String = UUID().uuidString
     

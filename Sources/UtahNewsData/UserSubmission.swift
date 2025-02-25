@@ -16,7 +16,7 @@
  
  1. Core submission metadata (title, description, submission date)
  2. User attribution (who submitted the content)
- 3. Multiple media type support (text, images, videos, audio, documents)
+ 3. Multiple media item support using the unified MediaItem model
  4. Relationship tracking with other entities
  
  ## Usage:
@@ -25,16 +25,25 @@
  // Create a user submission with text and an image
  let submission = UserSubmission(
      id: UUID().uuidString,
-     relationships: [],
      title: "Traffic accident on Main Street",
      description: "I witnessed a car accident at the intersection of Main and State",
      user: currentUser,
-     text: [TextMedia(content: "The accident happened around 2:30 PM...")],
-     images: [ImageMedia(url: "https://example.com/accident-photo.jpg")]
+     mediaItems: [
+         MediaItem(title: "Description", type: .text, url: "", textContent: "The accident happened around 2:30 PM..."),
+         MediaItem(title: "Photo", type: .image, url: "https://example.com/accident-photo.jpg")
+     ]
  )
  
  // Add the submission to the system
  dataStore.addUserSubmission(submission)
+ 
+ // Add a relationship to a location
+ let location = Location(name: "Main Street and State Street")
+ submission.relationships.append(Relationship(
+     id: location.id,
+     type: .location,
+     displayName: "Location"
+ ))
  ```
  
  UserSubmission implements AssociatedData, allowing it to maintain relationships
@@ -47,7 +56,7 @@ import Foundation
 /// Represents content submitted by users to the news system.
 /// User submissions can include various types of media content such as
 /// text, images, videos, audio, and documents.
-public struct UserSubmission: AssociatedData, Codable, Identifiable, Hashable {
+public struct UserSubmission: AssociatedData, EntityDetailsProvider {
     /// Unique identifier for the submission
     public var id: String
     
@@ -66,59 +75,35 @@ public struct UserSubmission: AssociatedData, Codable, Identifiable, Hashable {
     /// User who submitted the content
     public var user: Person
     
-    /// Text content included in the submission
-    public var text: [TextMedia]
-    
-    /// Image content included in the submission
-    public var images: [ImageMedia]
-    
-    /// Video content included in the submission
-    public var videos: [VideoMedia]
-    
-    /// Audio content included in the submission
-    public var audio: [AudioMedia]
-    
-    /// Document content included in the submission
-    public var documents: [DocumentMedia]
+    /// Media items included in the submission
+    public var mediaItems: [MediaItem]
     
     /// Creates a new user submission with the specified properties.
     ///
     /// - Parameters:
     ///   - id: Unique identifier for the submission
-    ///   - relationships: Relationships to other entities in the system
     ///   - title: Title or headline of the submission
     ///   - description: Detailed description of the submission
     ///   - dateSubmitted: When the content was submitted (defaults to current date)
     ///   - user: User who submitted the content
-    ///   - text: Text content included in the submission
-    ///   - images: Image content included in the submission
-    ///   - videos: Video content included in the submission
-    ///   - audio: Audio content included in the submission
-    ///   - documents: Document content included in the submission
+    ///   - mediaItems: Media items included in the submission
+    ///   - relationships: Relationships to other entities in the system
     public init(
-        id: String,
-        relationships: [Relationship],
+        id: String = UUID().uuidString,
         title: String,
         description: String = "",
         dateSubmitted: Date = Date(),
         user: Person,
-        text: [TextMedia] = [],
-        images: [ImageMedia] = [],
-        videos: [VideoMedia] = [],
-        audio: [AudioMedia] = [],
-        documents: [DocumentMedia] = []
+        mediaItems: [MediaItem] = [],
+        relationships: [Relationship] = []
     ) {
         self.id = id
-        self.relationships = relationships
         self.title = title
         self.description = description
         self.dateSubmitted = dateSubmitted
         self.user = user
-        self.text = text
-        self.images = images
-        self.videos = videos
-        self.audio = audio
-        self.documents = documents
+        self.mediaItems = mediaItems
+        self.relationships = relationships
     }
     
     /// The name property required by the AssociatedData protocol.
@@ -126,15 +111,112 @@ public struct UserSubmission: AssociatedData, Codable, Identifiable, Hashable {
     public var name: String {
         return title
     }
+    
+    /// Generates a detailed text description of the user submission for use in RAG systems.
+    /// The description includes the title, description, user information, and media items.
+    ///
+    /// - Returns: A formatted string containing the submission's details
+    public func getDetailedDescription() -> String {
+        var description = "USER SUBMISSION: \(title)"
+        description += "\nDescription: \(self.description)"
+        description += "\nSubmitted by: \(user.name) on \(formatDate(dateSubmitted))"
+        
+        if !mediaItems.isEmpty {
+            description += "\n\nMedia Items:"
+            for (index, item) in mediaItems.enumerated() {
+                description += "\n\n[\(index + 1)] \(item.getDetailedDescription())"
+            }
+        }
+        
+        return description
+    }
+    
+    /// Helper method to format a date for display
+    private func formatDate(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .medium
+        formatter.timeStyle = .short
+        return formatter.string(from: date)
+    }
 }
 
+// MARK: - Legacy Support
+
+/// Extension to provide backward compatibility with the old media type model
+public extension UserSubmission {
+    /// Creates a UserSubmission from the legacy model that used separate media type arrays
+    ///
+    /// - Parameters:
+    ///   - legacySubmission: The legacy UserSubmission with separate media arrays
+    /// - Returns: A new UserSubmission with a unified mediaItems array
+    static func fromLegacy(
+        id: String,
+        title: String,
+        description: String,
+        dateSubmitted: Date,
+        user: Person,
+        text: [TextMedia],
+        images: [ImageMedia],
+        videos: [VideoMedia],
+        audio: [AudioMedia],
+        documents: [DocumentMedia],
+        relationships: [Relationship] = []
+    ) -> UserSubmission {
+        var mediaItems: [MediaItem] = []
+        
+        // Convert text media
+        for textMedia in text {
+            mediaItems.append(MediaItem.from(textMedia))
+        }
+        
+        // Convert image media
+        for imageMedia in images {
+            mediaItems.append(MediaItem.from(imageMedia))
+        }
+        
+        // Convert video media
+        for videoMedia in videos {
+            mediaItems.append(MediaItem.from(videoMedia))
+        }
+        
+        // Convert audio media
+        for audioMedia in audio {
+            mediaItems.append(MediaItem.from(audioMedia))
+        }
+        
+        // Convert document media
+        for documentMedia in documents {
+            mediaItems.append(MediaItem.from(documentMedia))
+        }
+        
+        return UserSubmission(
+            id: id,
+            title: title,
+            description: description,
+            dateSubmitted: dateSubmitted,
+            user: user,
+            mediaItems: mediaItems,
+            relationships: relationships
+        )
+    }
+}
+
+// MARK: - Legacy Media Types (Deprecated)
+
 /// Represents text content in a user submission
-public struct TextMedia: Codable, Hashable {
+/// @deprecated Use MediaItem with type .text instead
+@available(*, deprecated, message: "Use MediaItem with type .text instead")
+public struct TextMedia: BaseEntity, Codable, Hashable {
     /// Unique identifier for the text content
     public var id: String = UUID().uuidString
     
     /// The text content
     public var content: String
+    
+    /// The name of the text media, used for display and embedding generation
+    public var name: String {
+        return content.prefix(50) + (content.count > 50 ? "..." : "")
+    }
     
     /// Creates new text content with the specified content.
     ///
@@ -144,16 +226,23 @@ public struct TextMedia: Codable, Hashable {
     }
 }
 
-/// Represents image content in a user submission
-public struct ImageMedia: Codable, Hashable {
+/// Represents an image in a user submission
+/// @deprecated Use MediaItem with type .image instead
+@available(*, deprecated, message: "Use MediaItem with type .image instead")
+public struct ImageMedia: BaseEntity, Codable, Hashable {
     /// Unique identifier for the image
     public var id: String = UUID().uuidString
     
-    /// URL where the image can be accessed
+    /// URL or path to the image
     public var url: String
     
     /// Caption or description of the image
     public var caption: String?
+    
+    /// The name of the image media, used for display and embedding generation
+    public var name: String {
+        return caption ?? "Image \(id)"
+    }
     
     /// Creates new image content with the specified properties.
     ///
@@ -166,12 +255,14 @@ public struct ImageMedia: Codable, Hashable {
     }
 }
 
-/// Represents video content in a user submission
-public struct VideoMedia: Codable, Hashable {
+/// Represents a video in a user submission
+/// @deprecated Use MediaItem with type .video instead
+@available(*, deprecated, message: "Use MediaItem with type .video instead")
+public struct VideoMedia: BaseEntity, Codable, Hashable {
     /// Unique identifier for the video
     public var id: String = UUID().uuidString
     
-    /// URL where the video can be accessed
+    /// URL or path to the video
     public var url: String
     
     /// Caption or description of the video
@@ -179,6 +270,11 @@ public struct VideoMedia: Codable, Hashable {
     
     /// Duration of the video in seconds
     public var duration: Double?
+    
+    /// The name of the video media, used for display and embedding generation
+    public var name: String {
+        return caption ?? "Video \(id)"
+    }
     
     /// Creates new video content with the specified properties.
     ///
@@ -194,11 +290,13 @@ public struct VideoMedia: Codable, Hashable {
 }
 
 /// Represents audio content in a user submission
-public struct AudioMedia: Codable, Hashable {
+/// @deprecated Use MediaItem with type .audio instead
+@available(*, deprecated, message: "Use MediaItem with type .audio instead")
+public struct AudioMedia: BaseEntity, Codable, Hashable {
     /// Unique identifier for the audio
     public var id: String = UUID().uuidString
     
-    /// URL where the audio can be accessed
+    /// URL or path to the audio
     public var url: String
     
     /// Caption or description of the audio
@@ -206,6 +304,11 @@ public struct AudioMedia: Codable, Hashable {
     
     /// Duration of the audio in seconds
     public var duration: Double?
+    
+    /// The name of the audio media, used for display and embedding generation
+    public var name: String {
+        return caption ?? "Audio \(id)"
+    }
     
     /// Creates new audio content with the specified properties.
     ///
@@ -220,29 +323,36 @@ public struct AudioMedia: Codable, Hashable {
     }
 }
 
-/// Represents document content in a user submission
-public struct DocumentMedia: Codable, Hashable {
+/// Represents a document in a user submission
+/// @deprecated Use MediaItem with type .document instead
+@available(*, deprecated, message: "Use MediaItem with type .document instead")
+public struct DocumentMedia: BaseEntity, Codable, Hashable {
     /// Unique identifier for the document
     public var id: String = UUID().uuidString
     
-    /// URL where the document can be accessed
+    /// URL or path to the document
     public var url: String
     
     /// Title or name of the document
     public var title: String?
     
-    /// Type or format of the document (e.g., "pdf", "docx")
-    public var documentType: String?
+    /// Description of the document
+    public var description: String?
+    
+    /// The name of the document media, used for display and embedding generation
+    public var name: String {
+        return title ?? "Document \(id)"
+    }
     
     /// Creates new document content with the specified properties.
     ///
     /// - Parameters:
     ///   - url: URL where the document can be accessed
     ///   - title: Title or name of the document
-    ///   - documentType: Type or format of the document
-    public init(url: String, title: String? = nil, documentType: String? = nil) {
+    ///   - description: Description of the document
+    public init(url: String, title: String? = nil, description: String? = nil) {
         self.url = url
         self.title = title
-        self.documentType = documentType
+        self.description = description
     }
 }

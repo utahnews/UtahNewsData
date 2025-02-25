@@ -48,14 +48,34 @@
 import Foundation
 
 /// Collection of scraped stories from a web source.
-public struct StoryExtract: Codable {
+public struct StoryExtract: BaseEntity, Codable {
+    /// Unique identifier for the story extract
+    public var id: String = UUID().uuidString
+    
+    /// The name or description of this story extract
+    public var name: String = "Story Extract"
+    
     /// Array of scraped stories
     public let stories: [ScrapeStory]
+    
+    /// Creates a new story extract with the specified stories.
+    /// - Parameter stories: Array of scraped stories
+    public init(stories: [ScrapeStory]) {
+        self.stories = stories
+    }
 }
 
 /// Represents raw story data extracted from a web page.
 /// This is the initial data structure used before processing into domain models.
-public struct ScrapeStory: Codable, Sendable {
+public struct ScrapeStory: BaseEntity, Codable, Sendable {
+    /// Unique identifier for the scraped story
+    public var id: String
+    
+    /// The name or title of this scraped story
+    public var name: String {
+        return title ?? "Untitled Story"
+    }
+    
     /// Title or headline of the story
     public var title: String?
     
@@ -85,7 +105,13 @@ public struct ScrapeStory: Codable, Sendable {
 }
 
 /// Response structure for a single story extraction API call.
-public struct SingleStoryResponse: Codable {
+public struct SingleStoryResponse: BaseEntity, Codable {
+    /// Unique identifier for the response
+    public var id: String = UUID().uuidString
+    
+    /// The name or description of this response
+    public var name: String = "Single Story Response"
+    
     /// Whether the extraction was successful
     public let success: Bool
     
@@ -94,13 +120,25 @@ public struct SingleStoryResponse: Codable {
 }
 
 /// Container for a single extracted story.
-public struct SingleStoryData: Codable {
+public struct SingleStoryData: BaseEntity, Codable {
+    /// Unique identifier for the data container
+    public var id: String = UUID().uuidString
+    
+    /// The name or description of this data container
+    public var name: String = "Single Story Data"
+    
     /// The extracted story
     public let extract: ScrapeStory
 }
 
 /// Response structure for a batch crawling API call.
-public struct FirecrawlResponse: Codable {
+public struct FirecrawlResponse: BaseEntity, Codable {
+    /// Unique identifier for the response
+    public var id: String = UUID().uuidString
+    
+    /// The name or description of this response
+    public var name: String = "Firecrawl Response"
+    
     /// Whether the crawling operation was successful
     public let success: Bool
     
@@ -109,7 +147,13 @@ public struct FirecrawlResponse: Codable {
 }
 
 /// Container for batch extracted stories.
-public struct FirecrawlData: Codable {
+public struct FirecrawlData: BaseEntity, Codable {
+    /// Unique identifier for the data container
+    public var id: String = UUID().uuidString
+    
+    /// The name or description of this data container
+    public var name: String = "Firecrawl Data"
+    
     /// Collection of extracted stories
     public let extract: StoryExtract
 }

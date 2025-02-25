@@ -3,7 +3,7 @@
 import Foundation
 
 // MARK: - Configuration
-let outputPath = "README.md"
+let outputPath = "../README.md"
 let sourceDir = "Sources/UtahNewsData"
 let consolidatedModelsPath = "\(sourceDir)/ConsolidatedModels.swift"
 
@@ -87,14 +87,14 @@ func generateReadme() -> String {
     Entities can be connected through relationships using the `Relationship` struct:
 
     ```swift
-    public struct Relationship: Codable, Hashable {
-        public let id: String                  // ID of the target entity
-        public let type: AssociatedDataType    // Type of the target entity
+    public struct Relationship: BaseEntity, Codable, Hashable {
+        public var id: String                  // Unique identifier for the relationship
+        public var name: String                // Name or description of the relationship
+        public let targetId: String            // ID of the target entity
+        public let type: EntityType            // Type of the target entity
         public var displayName: String?        // Human-readable relationship description
         public let createdAt: Date             // When the relationship was created
-        public let confidence: Float           // Confidence score (0.0 to 1.0)
-        public let context: String?            // Additional context about the relationship
-        public let source: RelationshipSource  // Source of this relationship information
+        public var context: String?            // Additional context about the relationship
     }
     ```
 
@@ -137,9 +137,7 @@ func generateReadme() -> String {
         id: organization.id,
         type: .organization,
         displayName: "Works at",
-        context: "Jane has been working here since 2020",
-        confidence: 0.95,
-        source: .userInput
+        context: "Jane has been working here since 2020"
     )
 
     // Add the relationship to the person
@@ -239,7 +237,6 @@ func generateReadme() -> String {
     
     readme += """
     ```
-
     ## Model Reference
 
     This package includes the following models:

@@ -160,7 +160,15 @@ public struct Poll: AssociatedData {
 /// Represents a single response to a poll.
 /// Each response captures the selected option and optionally
 /// the person who responded.
-public struct PollResponse: Codable, Hashable {
+public struct PollResponse: BaseEntity, Codable, Hashable {
+    /// Unique identifier for the poll response
+    public var id: String
+    
+    /// The name or description of this poll response
+    public var name: String {
+        return "Response to poll: \(selectedOption)"
+    }
+    
     /// Person who responded to the poll (optional for anonymous polls)
     public var respondent: Person?
     

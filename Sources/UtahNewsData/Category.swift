@@ -61,7 +61,7 @@ import Foundation
 /// Represents a content category in the UtahNewsData system.
 /// Categories provide a way to organize and classify content such as articles,
 /// media items, and other news-related entities.
-public struct Category: Codable, Identifiable, Hashable, Equatable, EntityDetailsProvider {
+public struct Category: AssociatedData, EntityDetailsProvider {
     /// Unique identifier for the category
     public var id: String = UUID().uuidString
     

@@ -6,32 +6,23 @@
 //
 
 /*
- # AssociatedData Protocol and Relationship Model
+ # Entity Model Foundation
  
- This file defines the core protocol and relationship model for the UtahNewsData package.
+ This file defines the core protocols and relationship model for the UtahNewsData package.
  It provides the foundation for all entity models and their relationships.
  
  ## Key Components:
  
- 1. AssociatedData Protocol: The base protocol that all entity models implement
- 2. Relationship Struct: Defines connections between entities
- 3. RelationshipSource Enum: Tracks the origin of relationship information
- 4. AssociatedDataType Enum: Defines all supported entity types
+ 1. BaseEntity Protocol: The foundation protocol for all entities
+ 2. AssociatedData Protocol: Extends BaseEntity with relationship capabilities
+ 3. Relationship Struct: Defines connections between entities
+ 4. RelationshipSource Enum: Tracks the origin of relationship information
+ 5. EntityType Enum: Defines all supported entity types
  
  ## Usage:
  
- All entity models in the system implement the AssociatedData protocol, which enables:
- - Consistent identification via the `id` property
- - Relationship tracking via the `relationships` array
- - Text generation for vector embeddings via the `toEmbeddingText()` method
- 
- Relationships between entities are bidirectional and can include:
- - Human-readable display names
- - Confidence scores
- - Context information
- - Source attribution
- 
- ## Example:
+ All entity models in the system implement at least the BaseEntity protocol,
+ and most implement the AssociatedData protocol for relationship tracking:
  
  ```swift
  // Create a person entity
@@ -45,9 +36,7 @@
      id: org.id,
      type: .organization,
      displayName: "Works at",
-     context: "Senior reporter since 2020",
-     confidence: 0.95,
-     source: .userInput
+     context: "Senior reporter since 2020"
  )
  
  // Add the relationship to the person
@@ -59,17 +48,21 @@
 import SwiftUI
 import Foundation
 
-/// The core protocol that all entity models in the system implement.
-/// Provides consistent identification, relationship tracking, and text generation capabilities.
-public protocol AssociatedData {
+/// The foundation protocol for all entities in the system.
+/// Provides consistent identification and naming.
+public protocol BaseEntity: Identifiable, Codable, Hashable {
     /// Unique identifier for the entity
     var id: String { get }
     
-    /// Array of relationships to other entities
-    var relationships: [Relationship] { get set }
-    
     /// The name or title of the entity, used for display and embedding generation
     var name: String { get }
+}
+
+/// The core protocol that all relational entity models in the system implement.
+/// Extends BaseEntity with relationship tracking capabilities.
+public protocol AssociatedData: BaseEntity {
+    /// Array of relationships to other entities
+    var relationships: [Relationship] { get set }
 }
 
 /// Extension to provide default implementations for AssociatedData
@@ -78,12 +71,6 @@ public extension AssociatedData {
     /// This text includes the entity's basic information and its relationships.
     /// 
     /// - Returns: A string representation of the entity for embedding
-    /// 
-    /// - Example:
-    ///   ```swift
-    ///   let embeddingText = person.toEmbeddingText()
-    ///   // Use this text for creating vector embeddings
-    ///   ```
     func toEmbeddingText() -> String {
         let entityType = String(describing: type(of: self))
         var text = "This is a \(entityType) with ID \(id) named \(name)."
@@ -109,12 +96,20 @@ public extension AssociatedData {
 
 /// Represents a relationship between two entities in the system.
 /// Relationships are directional but typically created in pairs to represent bidirectional connections.
-public struct Relationship: Codable, Hashable {
+public struct Relationship: BaseEntity, Codable, Hashable {
+    /// Unique identifier for the relationship
+    public var id: String = UUID().uuidString
+    
+    /// The name or description of this relationship
+    public var name: String {
+        return displayName ?? "Relationship to \(type.rawValue) \(id)"
+    }
+    
     /// Unique identifier of the target entity
-    public let id: String
+    public let targetId: String
     
     /// Type of the target entity
-    public let type: AssociatedDataType
+    public let type: EntityType
     
     /// Optional display name for the relationship (e.g., "Works at", "Located in")
     public var displayName: String?
@@ -122,82 +117,22 @@ public struct Relationship: Codable, Hashable {
     /// When the relationship was created
     public let createdAt: Date
     
-    /// Confidence score for the relationship (0.0 to 1.0)
-    /// Higher values indicate greater confidence in the relationship's accuracy
-    public let confidence: Float
+    /// Optional additional context about the relationship
+    public var context: String?
     
-    /// Additional context about the relationship
-    /// This can include details about how entities are related
-    public let context: String?
-    
-    /// Source of this relationship information
-    /// Tracks where the relationship data originated from
-    public let source: RelationshipSource
-    
-    /// Standard initializer with all fields
-    /// 
+    /// Creates a new relationship between entities.
+    ///
     /// - Parameters:
     ///   - id: Unique identifier of the target entity
     ///   - type: Type of the target entity
-    ///   - displayName: Optional human-readable description of the relationship
-    ///   - createdAt: When the relationship was created (defaults to current date)
-    ///   - confidence: Confidence score from 0.0 to 1.0 (defaults to 1.0)
-    ///   - context: Additional information about the relationship
-    ///   - source: Origin of the relationship information (defaults to .system)
-    public init(
-        id: String,
-        type: AssociatedDataType,
-        displayName: String? = nil,
-        createdAt: Date = Date(),
-        confidence: Float = 1.0,
-        context: String? = nil,
-        source: RelationshipSource = .system
-    ) {
-        self.id = id
+    ///   - displayName: Optional display name for the relationship
+    ///   - context: Optional additional context about the relationship
+    public init(id: String, type: EntityType, displayName: String? = nil, context: String? = nil) {
+        self.targetId = id
         self.type = type
         self.displayName = displayName
-        self.createdAt = createdAt
-        self.confidence = confidence
         self.context = context
-        self.source = source
-    }
-    
-    /// Simplified initializer for backward compatibility
-    /// 
-    /// - Parameters:
-    ///   - id: Unique identifier of the target entity
-    ///   - type: Type of the target entity
-    ///   - displayName: Optional human-readable description of the relationship
-    public init(id: String, type: AssociatedDataType, displayName: String?) {
-        self.id = id
-        self.type = type
-        self.displayName = displayName
         self.createdAt = Date()
-        self.confidence = 1.0
-        self.context = nil
-        self.source = .system
-    }
-    
-    /// Generates text representation of this relationship for embedding
-    /// 
-    /// - Parameters:
-    ///   - sourceEntityName: Name of the entity that has this relationship
-    ///   - sourceEntityType: Type of the entity that has this relationship
-    /// - Returns: A string representation of the relationship for embedding
-    public func toEmbeddingText(sourceEntityName: String, sourceEntityType: String) -> String {
-        var text = "The \(sourceEntityType) '\(sourceEntityName)' has a relationship with entity ID \(id) of type \(type.rawValue)."
-        
-        if let displayName = displayName {
-            text += " The relationship is described as: \(displayName)."
-        }
-        
-        if let context = context {
-            text += " \(context)"
-        }
-        
-        text += " This relationship was created on \(createdAt) with a confidence of \(confidence)."
-        
-        return text
     }
 }
 
@@ -219,7 +154,7 @@ public enum RelationshipSource: String, Codable {
 
 /// Defines all entity types supported in the system
 /// Used to categorize entities and their relationships
-public enum AssociatedDataType: String, Codable {
+public enum EntityType: String, Codable {
     case person = "persons"
     case organization = "organizations"
     case location = "locations"
@@ -267,4 +202,7 @@ public enum AssociatedDataType: String, Codable {
         }
     }
 }
+
+// For backward compatibility
+public typealias AssociatedDataType = EntityType
 

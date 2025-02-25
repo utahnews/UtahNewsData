@@ -206,18 +206,23 @@ public class DataExporter {
 /// Represents a record for vector storage.
 /// This structure contains the text to be embedded and metadata
 /// about the entity or relationship it represents.
-public struct VectorRecord: Codable {
+public struct VectorRecord: BaseEntity, Codable {
     /// Unique identifier for this vector record
     public let id: String
     
     /// Type of entity this vector represents
     public let entityType: String
     
-    /// Text to be embedded
+    /// The text to be embedded
     public let text: String
     
-    /// Additional metadata to store with the vector
+    /// Additional metadata about the entity
     public let metadata: [String: String]
+    
+    /// The name of the vector record, used for display and embedding generation
+    public var name: String {
+        return metadata["name"] ?? "Vector \(id)"
+    }
     
     /// Vector embedding (to be filled by the embedding service)
     public var embedding: [Float]?

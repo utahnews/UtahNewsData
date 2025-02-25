@@ -61,7 +61,13 @@
 import Foundation
 
 /// Represents a recurrence rule for repeating calendar events
-public struct RecurrenceRule: Codable, Hashable, Equatable {
+public struct RecurrenceRule: BaseEntity, Codable, Hashable, Equatable {
+    /// Unique identifier for the recurrence rule
+    public var id: String
+    
+    /// The name or description of this recurrence rule
+    public var name: String
+    
     /// Frequency of recurrence (daily, weekly, monthly, yearly)
     public var frequency: String
     
@@ -103,7 +109,7 @@ public struct RecurrenceRule: Codable, Hashable, Equatable {
 /// Represents a calendar event in the UtahNewsData system.
 /// CalEvents can be used to track scheduled events such as press conferences,
 /// meetings, hearings, and other time-based occurrences relevant to news coverage.
-public struct CalEvent: Codable, Identifiable, Hashable, Equatable, EntityDetailsProvider {
+public struct CalEvent: AssociatedData, EntityDetailsProvider {
     /// Unique identifier for the calendar event
     public var id: String = UUID().uuidString
     

@@ -59,7 +59,7 @@ import SwiftUI
 /// Represents contact information for entities in the news data system.
 /// This can be used with various entity types, particularly with
 /// Organization and Person entities.
-public struct ContactInfo: Codable, Identifiable, Hashable, Equatable {
+public struct ContactInfo: BaseEntity, Codable, Hashable, Equatable {
     /// Unique identifier for the contact information
     public var id: String = UUID().uuidString
     

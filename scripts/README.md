@@ -83,7 +83,9 @@ let relationship = Relationship(
     id: organization.id,
     type: .organization,
     displayName: "Works at",
-    context: "Jane has been working here since 2020"
+    context: "Jane has been working here since 2020",
+    confidence: 0.95,
+    source: .userInput
 )
 
 // Add the relationship to the person
