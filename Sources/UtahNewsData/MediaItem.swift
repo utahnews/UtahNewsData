@@ -1,182 +1,223 @@
 //
 //  MediaItem.swift
-//  NewsCapture
+//  UtahNewsData
 //
-//  Created by Mark Evans on 10/25/24.
-//
-//  Updated so each media struct defines custom `==` and `hash(into:)`
-//  based solely on the `id` property. This prevents duplicated Set entries
-//  when other properties (e.g. title, caption) change.
-//
-//  Copy & Paste this file in place of your existing MediaItem.swift.
+//  Created by Mark Evans on 2/12/25.
 //
 
-import SwiftUI
+/*
+ # MediaItem Model
+ 
+ This file defines the MediaItem model, which represents various types of media content
+ in the UtahNewsData system, such as images, videos, audio recordings, and documents.
+ MediaItems can be associated with articles, events, and other entities.
+ 
+ ## Key Features:
+ 
+ 1. Core identification (id, title)
+ 2. Media type classification (image, video, audio, document)
+ 3. Source attribution and metadata
+ 4. Content description and caption
+ 5. File information (URL, format, size)
+ 6. Associated entities
+ 
+ ## Usage:
+ 
+ ```swift
+ // Create an image media item
+ let image = MediaItem(
+     title: "Downtown Salt Lake City Skyline",
+     type: .image,
+     url: "https://example.com/images/slc-skyline.jpg",
+     caption: "View of downtown Salt Lake City with mountains in background",
+     creator: photographer // Person entity
+ )
+ 
+ // Create a video media item
+ let video = MediaItem(
+     title: "Governor's Press Conference",
+     type: .video,
+     url: "https://example.com/videos/governor-presser.mp4",
+     duration: 1800, // 30 minutes in seconds
+     creator: videoTeam, // Person entity
+     source: newsOrganization // Organization entity
+ )
+ 
+ // Associate media with an article
+ let article = Article(
+     title: "Utah's Economic Growth Continues",
+     body: ["Utah's economy showed strong growth in the first quarter..."],
+     mediaItems: [image, video]
+ )
+ ```
+ 
+ The MediaItem model implements EntityDetailsProvider, allowing it to generate
+ rich text descriptions for RAG (Retrieval Augmented Generation) systems.
+ */
 
-public struct TextMedia: Identifiable, Codable {
-    public var id: String
-    public var relationships: [Relationship] = []
-    public var title: String?
-    public var dateCreated: Date
-    public var text: String
+import Foundation
 
-    public init(
-        id: String = UUID().uuidString,
-        title: String? = nil,
-        text: String,
-        dateCreated: Date = Date()
-    ) {
-        self.id = id
-        self.title = title
-        self.text = text
-        self.dateCreated = dateCreated
-    }
+/// Represents the type of media content
+public enum MediaType: String, Codable {
+    case image
+    case video
+    case audio
+    case document
+    case other
 }
 
-extension TextMedia: Equatable, Hashable {
-    public static func == (lhs: TextMedia, rhs: TextMedia) -> Bool {
-        lhs.id == rhs.id
-    }
+/// Represents a media item in the UtahNewsData system, such as images, videos,
+/// audio recordings, and documents. MediaItems can be associated with articles,
+/// events, and other entities.
+public struct MediaItem: Codable, Identifiable, Hashable, Equatable, EntityDetailsProvider {
+    /// Unique identifier for the media item
+    public var id: String = UUID().uuidString
     
-    public func hash(into hasher: inout Hasher) {
-        hasher.combine(id)
-    }
-}
-
-public struct ImageMedia: Identifiable, Codable {
-    public var id: String
+    /// Relationships to other entities in the system
     public var relationships: [Relationship] = []
-    public var title: String?
-    public var dateCreated: Date
-    public var imageURL: URL
+    
+    /// Title or name of the media item
+    public var title: String
+    
+    /// Type of media (image, video, audio, document, other)
+    public var type: MediaType
+    
+    /// URL where the media can be accessed
+    public var url: String
+    
+    /// Alternative text description for accessibility
+    public var altText: String?
+    
+    /// Caption or description of the media content
     public var caption: String?
-    public var credit: String?
-
+    
+    /// Person or entity that created the media
+    public var creator: Person?
+    
+    /// Organization that provided or published the media
+    public var source: Organization?
+    
+    /// When the media was created or published
+    public var creationDate: Date?
+    
+    /// Duration in seconds (for audio/video)
+    public var duration: Double?
+    
+    /// File format (e.g., "jpg", "mp4", "mp3", "pdf")
+    public var format: String?
+    
+    /// File size in bytes
+    public var fileSize: Int?
+    
+    /// Width in pixels (for images/videos)
+    public var width: Int?
+    
+    /// Height in pixels (for images/videos)
+    public var height: Int?
+    
+    /// Keywords or tags associated with the media
+    public var tags: [String]?
+    
+    /// Geographic location where the media was captured
+    public var location: Location?
+    
+    /// Creates a new MediaItem with the specified properties.
+    ///
+    /// - Parameters:
+    ///   - title: Title or name of the media item
+    ///   - type: Type of media (image, video, audio, document, other)
+    ///   - url: URL where the media can be accessed
+    ///   - altText: Alternative text description for accessibility
+    ///   - caption: Caption or description of the media content
+    ///   - creator: Person or entity that created the media
+    ///   - source: Organization that provided or published the media
+    ///   - creationDate: When the media was created or published
+    ///   - duration: Duration in seconds (for audio/video)
+    ///   - format: File format (e.g., "jpg", "mp4", "mp3", "pdf")
+    ///   - fileSize: File size in bytes
+    ///   - width: Width in pixels (for images/videos)
+    ///   - height: Height in pixels (for images/videos)
+    ///   - tags: Keywords or tags associated with the media
+    ///   - location: Geographic location where the media was captured
     public init(
-        id: String = UUID().uuidString,
-        title: String? = nil,
-        imageURL: URL,
+        title: String,
+        type: MediaType,
+        url: String,
+        altText: String? = nil,
         caption: String? = nil,
-        credit: String? = nil,
-        dateCreated: Date = Date()
+        creator: Person? = nil,
+        source: Organization? = nil,
+        creationDate: Date? = nil,
+        duration: Double? = nil,
+        format: String? = nil,
+        fileSize: Int? = nil,
+        width: Int? = nil,
+        height: Int? = nil,
+        tags: [String]? = nil,
+        location: Location? = nil
     ) {
-        self.id = id
         self.title = title
-        self.imageURL = imageURL
+        self.type = type
+        self.url = url
+        self.altText = altText
         self.caption = caption
-        self.credit = credit
-        self.dateCreated = dateCreated
-    }
-}
-
-extension ImageMedia: Equatable, Hashable {
-    public static func == (lhs: ImageMedia, rhs: ImageMedia) -> Bool {
-        lhs.id == rhs.id
-    }
-    
-    public func hash(into hasher: inout Hasher) {
-        hasher.combine(id)
-    }
-}
-
-public struct VideoMedia: Identifiable, Codable {
-    public var id: String
-    public var relationships: [Relationship] = []
-    public var title: String?
-    public var dateCreated: Date
-    public var videoURL: URL
-    public var duration: TimeInterval?
-    public var thumbnailURL: URL?
-
-    public init(
-        id: String = UUID().uuidString,
-        title: String? = nil,
-        videoURL: URL,
-        duration: TimeInterval? = nil,
-        thumbnailURL: URL? = nil,
-        dateCreated: Date = Date()
-    ) {
-        self.id = id
-        self.title = title
-        self.videoURL = videoURL
+        self.creator = creator
+        self.source = source
+        self.creationDate = creationDate
         self.duration = duration
-        self.thumbnailURL = thumbnailURL
-        self.dateCreated = dateCreated
-    }
-}
-
-extension VideoMedia: Equatable, Hashable {
-    public static func == (lhs: VideoMedia, rhs: VideoMedia) -> Bool {
-        lhs.id == rhs.id
+        self.format = format
+        self.fileSize = fileSize
+        self.width = width
+        self.height = height
+        self.tags = tags
+        self.location = location
     }
     
-    public func hash(into hasher: inout Hasher) {
-        hasher.combine(id)
-    }
-}
-
-public struct AudioMedia: Identifiable, Codable {
-    public var id: String
-    public var relationships: [Relationship] = []
-    public var title: String?
-    public var dateCreated: Date
-    public var audioURL: URL
-    public var duration: TimeInterval?
-
-    public init(
-        id: String = UUID().uuidString,
-        title: String? = nil,
-        audioURL: URL,
-        duration: TimeInterval? = nil,
-        dateCreated: Date = Date()
-    ) {
-        self.id = id
-        self.title = title
-        self.audioURL = audioURL
-        self.duration = duration
-        self.dateCreated = dateCreated
-    }
-}
-
-extension AudioMedia: Equatable, Hashable {
-    public static func == (lhs: AudioMedia, rhs: AudioMedia) -> Bool {
-        lhs.id == rhs.id
-    }
-    
-    public func hash(into hasher: inout Hasher) {
-        hasher.combine(id)
-    }
-}
-
-public struct DocumentMedia: Identifiable, Codable {
-    public var id: String
-    public var relationships: [Relationship] = []
-    public var title: String?
-    public var dateCreated: Date
-    public var documentURL: URL
-    public var fileType: String // e.g., "pdf", "docx"
-
-    public init(
-        id: String = UUID().uuidString,
-        title: String? = nil,
-        documentURL: URL,
-        fileType: String,
-        dateCreated: Date = Date()
-    ) {
-        self.id = id
-        self.title = title
-        self.documentURL = documentURL
-        self.fileType = fileType
-        self.dateCreated = dateCreated
-    }
-}
-
-extension DocumentMedia: Equatable, Hashable {
-    public static func == (lhs: DocumentMedia, rhs: DocumentMedia) -> Bool {
-        lhs.id == rhs.id
-    }
-    
-    public func hash(into hasher: inout Hasher) {
-        hasher.combine(id)
+    /// Generates a detailed text description of the media item for use in RAG systems.
+    /// The description includes the title, type, caption, and metadata.
+    ///
+    /// - Returns: A formatted string containing the media item's details
+    public func getDetailedDescription() -> String {
+        var description = "MEDIA ITEM: \(title) (Type: \(type.rawValue))"
+        
+        if let caption = caption {
+            description += "\nCaption: \(caption)"
+        }
+        
+        if let altText = altText {
+            description += "\nDescription: \(altText)"
+        }
+        
+        if let creator = creator {
+            description += "\nCreator: \(creator.name)"
+        }
+        
+        if let source = source {
+            description += "\nSource: \(source.name)"
+        }
+        
+        if let creationDate = creationDate {
+            let formatter = DateFormatter()
+            formatter.dateStyle = .medium
+            description += "\nCreation Date: \(formatter.string(from: creationDate))"
+        }
+        
+        if let duration = duration {
+            let minutes = Int(duration) / 60
+            let seconds = Int(duration) % 60
+            description += "\nDuration: \(minutes)m \(seconds)s"
+        }
+        
+        if let location = location {
+            description += "\nLocation: \(location.name)"
+        }
+        
+        if let tags = tags, !tags.isEmpty {
+            description += "\nTags: \(tags.joined(separator: ", "))"
+        }
+        
+        description += "\nURL: \(url)"
+        
+        return description
     }
 }

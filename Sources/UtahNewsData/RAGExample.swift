@@ -1,12 +1,55 @@
 import Foundation
 
+/*
+ # RAG Example
+ 
+ This file provides practical examples of how to use the RAG (Retrieval-Augmented Generation)
+ utilities in the UtahNewsData package. It demonstrates the complete workflow from creating
+ entities and relationships to generating context, preparing vector records, creating
+ knowledge graphs, and exporting to SQL.
+ 
+ ## Key Demonstrations:
+ 
+ 1. Entity Creation: Creating Person and Organization entities
+ 2. Relationship Establishment: Creating bidirectional relationships between entities
+ 3. Context Generation: Generating rich text context for RAG systems
+ 4. Vector Preparation: Preparing entities for vector embedding
+ 5. Knowledge Graph Creation: Building a graph representation of entities and relationships
+ 6. SQL Export: Generating SQL statements for relational database storage
+ 
+ ## Usage:
+ 
+ You can call the `prepareEntitiesForRAG()` function to see the complete workflow in action:
+ 
+ ```swift
+ RAGExample.prepareEntitiesForRAG()
+ ```
+ 
+ This example is designed to be educational and demonstrate best practices for
+ working with the UtahNewsData models and RAG utilities.
+ */
+
 /// This file contains example code demonstrating how to use the RAG utilities.
 /// It is not meant to be used in production, but rather as a reference.
 public struct RAGExample {
     
-    /// Example function showing how to prepare entities for RAG
+    /// Example function showing how to prepare entities for RAG.
+    /// This function demonstrates the complete workflow for working with
+    /// entities, relationships, and RAG utilities.
+    ///
+    /// The workflow includes:
+    /// 1. Creating example entities (Person and Organization)
+    /// 2. Establishing bidirectional relationships between them
+    /// 3. Generating context for individual entities and combined entities
+    /// 4. Preparing vector records for embedding
+    /// 5. Creating a knowledge graph
+    /// 6. Exporting entities and relationships to SQL
+    ///
+    /// - Note: This is for demonstration purposes only and prints results to the console.
     public static func prepareEntitiesForRAG() {
-        // Create some example entities
+        // MARK: - Create Example Entities
+        
+        // Create a Person entity with detailed information
         let person = Person(
             name: "Jane Doe",
             details: "A fictional person used for demonstration purposes.",
@@ -16,22 +59,28 @@ public struct RAGExample {
             notableAchievements: ["Developed the UtahNewsData framework", "Published 3 books on Swift"]
         )
         
+        // Create an Organization entity
         let organization = Organization(
             name: "Utah News Network",
             orgDescription: "A fictional news organization covering Utah news.",
             website: "https://www.utahnewsnetwork.example"
         )
         
-        // Create relationships between entities
+        // MARK: - Create Relationships
+        
+        // Create a relationship from Person to Organization
+        // Note the use of confidence score, context, and source attribution
         let personToOrgRelationship = Relationship(
             id: organization.id,
             type: .organization,
             displayName: "Works at",
             context: "Jane Doe has been working at Utah News Network since 2020.",
-            confidence: 0.95,
-            source: .userInput
+            confidence: 0.95,  // High confidence (0.0-1.0 scale)
+            source: .userInput // This relationship was manually entered
         )
         
+        // Create a relationship from Organization to Person
+        // This establishes a bidirectional relationship
         let orgToPersonRelationship = Relationship(
             id: person.id,
             type: .person,
@@ -42,6 +91,7 @@ public struct RAGExample {
         )
         
         // Add relationships to entities
+        // Note: We create new instances because the entities are immutable
         var updatedPerson = person
         updatedPerson.relationships.append(personToOrgRelationship)
         
@@ -51,16 +101,19 @@ public struct RAGExample {
         // MARK: - Generate RAG Context
         
         // Generate context for a single entity
+        // This creates a rich text document describing the entity and its relationships
         let personContext = RAGUtilities.generateEntityContext(updatedPerson)
         print("Person Context:\n\(personContext)\n")
         
         // Generate context for multiple entities
+        // This combines context from multiple entities into a single document
         let combinedContext = RAGUtilities.generateCombinedContext([updatedPerson, updatedOrg])
         print("Combined Context:\n\(combinedContext)\n")
         
         // MARK: - Prepare for Vector Storage
         
         // Generate vector records for entities
+        // These records can be sent to an embedding service and stored in a vector database
         let vectorRecords = RAGUtilities.prepareEntitiesForEmbedding([updatedPerson, updatedOrg])
         print("Generated \(vectorRecords.count) vector records")
         
@@ -76,10 +129,12 @@ public struct RAGExample {
         // MARK: - Generate Knowledge Graph
         
         // Create a knowledge graph from entities
+        // This builds a graph representation with nodes (entities) and edges (relationships)
         let graph = RAGUtilities.generateKnowledgeGraph([updatedPerson, updatedOrg])
         print("Knowledge Graph: \(graph.nodes.count) nodes, \(graph.edges.count) edges")
         
         // Export the graph to JSON
+        // This can be used for visualization or import into a graph database
         do {
             let graphJSON = try graph.toJSON()
             print("Knowledge Graph JSON (excerpt):")
@@ -93,10 +148,12 @@ public struct RAGExample {
         // MARK: - Export to Relational Database
         
         // Generate SQL for entities
+        // This creates SQL insert statements for storing entities in a relational database
         let personSQL = DataExporter.exportEntityToSQL(updatedPerson, tableName: "persons")
         print("Person SQL: \(personSQL)")
         
         // Generate SQL for relationships
+        // This creates SQL insert statements for storing relationships in a relational database
         let relationshipSQL = DataExporter.exportRelationshipsToSQL(updatedPerson)
         print("Relationship SQL (first statement): \(relationshipSQL.first ?? "")")
     }

@@ -6,33 +6,149 @@
 //
 //  Updated to include additional properties for public interest/notability.
 
+/*
+ # Person Model
+ 
+ This file defines the Person model, which represents individuals in the UtahNewsData system.
+ The Person model is one of the core entity types and can be related to many other entities
+ such as organizations, news stories, quotes, and more.
+ 
+ ## Key Features:
+ 
+ 1. Core identification (id, name, details)
+ 2. Biographical information (biography, birth/death dates, nationality)
+ 3. Professional details (occupation, achievements)
+ 4. Contact information (email, phone, website, address)
+ 5. Location data (string representation and coordinates)
+ 6. Social media presence
+ 
+ ## Usage:
+ 
+ ```swift
+ // Create a basic person
+ let person = Person(
+     name: "Jane Doe",
+     details: "Reporter for Utah News Network"
+ )
+ 
+ // Create a person with more details
+ let detailedPerson = Person(
+     name: "John Smith",
+     details: "Political analyst",
+     biography: "John Smith is a political analyst with 15 years of experience...",
+     occupation: "Political Analyst",
+     nationality: "American",
+     notableAchievements: ["Published 3 books", "Regular contributor to major news outlets"]
+ )
+ 
+ // Add a relationship to another entity
+ var updatedPerson = person
+ updatedPerson.relationships.append(
+     Relationship(
+         id: organization.id,
+         type: .organization,
+         displayName: "Works at",
+         context: "Senior reporter since 2020"
+     )
+ )
+ ```
+ 
+ The Person model implements EntityDetailsProvider, which allows it to generate
+ rich text descriptions for RAG systems.
+ */
+
 import SwiftUI
 
+/// Represents a person in the news data system.
+/// This can be a journalist, public figure, expert, or any individual
+/// relevant to news content.
 public struct Person: AssociatedData, Codable, Identifiable, Hashable, EntityDetailsProvider {
     // MARK: - Core Properties
+    
+    /// Unique identifier for the person
     public var id: String
+    
+    /// Relationships to other entities (organizations, locations, etc.)
     public var relationships: [Relationship] = []
+    
+    /// The person's full name
     public var name: String
+    
+    /// Brief description or summary of the person
     public var details: String
 
     // MARK: - Additional Public Figure Properties
+    
+    /// Detailed biography or background information
     public var biography: String?
+    
+    /// Date of birth, if known
     public var birthDate: Date?
+    
+    /// Date of death, if applicable
     public var deathDate: Date?
+    
+    /// Professional occupation or role
     public var occupation: String?
+    
+    /// Nationality or citizenship
     public var nationality: String?
+    
+    /// List of significant achievements or contributions
     public var notableAchievements: [String]?
+    
+    /// URL to a profile image or photo
     public var imageURL: String?
+    
+    /// Text description of location (e.g., "Salt Lake City, Utah")
     public var locationString: String?
+    
+    /// Latitude coordinate for precise location
     public var locationLatitude: Double?
+    
+    /// Longitude coordinate for precise location
     public var locationLongitude: Double?
+    
+    /// Email address for contact
     public var email: String?
+    
+    /// Personal or professional website
     public var website: String?
+    
+    /// Phone number for contact
     public var phone: String?
+    
+    /// Physical address
     public var address: String?
+    
+    /// Dictionary of social media platforms and corresponding handles
+    /// Example: ["Twitter": "@janedoe", "LinkedIn": "jane-doe"]
     public var socialMediaHandles: [String: String]?
 
     // MARK: - Initializer
+    
+    /// Creates a new Person instance with the specified properties.
+    ///
+    /// - Parameters:
+    ///   - id: Unique identifier (defaults to a new UUID string)
+    ///   - relationships: Array of relationships to other entities (defaults to empty)
+    ///   - name: The person's full name
+    ///   - details: Brief description or summary
+    ///   - biography: Detailed background information
+    ///   - birthDate: Date of birth
+    ///   - deathDate: Date of death, if applicable
+    ///   - occupation: Professional role or job title
+    ///   - nationality: Citizenship or nationality
+    ///   - notableAchievements: List of significant accomplishments
+    ///   - imageURL: URL to a profile image
+    ///   - locationString: Text description of location
+    ///   - locationLatitude: Latitude coordinate
+    ///   - locationLongitude: Longitude coordinate
+    ///   - email: Contact email address
+    ///   - website: Personal or professional website
+    ///   - phone: Contact phone number
+    ///   - address: Physical address
+    ///   - socialMediaHandles: Dictionary of platform names and handles
     public init(
         id: String = UUID().uuidString,
         relationships: [Relationship] = [],
@@ -78,6 +194,12 @@ public struct Person: AssociatedData, Codable, Identifiable, Hashable, EntityDet
     }
     
     // MARK: - Decodable
+    
+    /// Creates a Person instance by decoding from the given decoder.
+    /// Provides fallbacks for optional properties and generates a UUID if id is missing.
+    ///
+    /// - Parameter decoder: The decoder to read data from
+    /// - Throws: An error if decoding fails
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         self.name = try container.decode(String.self, forKey: .name)
@@ -105,6 +227,11 @@ public struct Person: AssociatedData, Codable, Identifiable, Hashable, EntityDet
     }
     
     // MARK: - Encodable
+    
+    /// Encodes the Person instance to the given encoder.
+    ///
+    /// - Parameter encoder: The encoder to write data to
+    /// - Throws: An error if encoding fails
     public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(id, forKey: .id)
@@ -132,6 +259,8 @@ public struct Person: AssociatedData, Codable, Identifiable, Hashable, EntityDet
     }
     
     // MARK: - Coding Keys
+    
+    /// Keys used for encoding and decoding Person instances
     enum CodingKeys: String, CodingKey {
         case id, relationships, name, details
         case biography, birthDate, deathDate, occupation, nationality, notableAchievements
@@ -141,6 +270,11 @@ public struct Person: AssociatedData, Codable, Identifiable, Hashable, EntityDet
     
     // MARK: - EntityDetailsProvider Implementation
     
+    /// Generates a detailed description of the person for RAG context.
+    /// This includes biographical information, professional details,
+    /// achievements, location, and contact information.
+    ///
+    /// - Returns: A formatted string containing the person's details
     public func getDetailedDescription() -> String {
         var description = details + "\n\n"
         

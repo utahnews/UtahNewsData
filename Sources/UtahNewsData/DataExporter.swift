@@ -1,11 +1,55 @@
 import Foundation
 
+/*
+ # Data Exporter
+ 
+ This file provides utilities for exporting UtahNewsData models to various formats,
+ including SQL statements for relational databases and vector records for embedding.
+ 
+ ## Key Components:
+ 
+ 1. Relational Database Export: Generate SQL statements for entities and relationships
+ 2. Vector Storage Export: Create vector records for embedding in vector databases
+ 
+ ## Usage:
+ 
+ The DataExporter class provides static methods that can be used with any entity
+ that implements the AssociatedData protocol:
+ 
+ ```swift
+ // Export an entity to SQL
+ let personSQL = DataExporter.exportEntityToSQL(person)
+ 
+ // Export relationships to SQL
+ let relationshipSQL = DataExporter.exportRelationshipsToSQL(person)
+ 
+ // Generate a vector record for an entity
+ let vectorRecord = DataExporter.generateVectorRecord(person)
+ ```
+ 
+ These utilities help bridge the gap between the in-memory data model and
+ persistent storage systems, enabling efficient data management and retrieval.
+ */
+
 /// Utilities for exporting UtahNewsData models to various formats
 public class DataExporter {
     
     // MARK: - Relational Database Export
     
-    /// Exports an entity to a SQL insert statement
+    /// Exports an entity to a SQL insert statement.
+    /// This generates a parameterized SQL statement that can be used
+    /// to insert the entity into a relational database.
+    ///
+    /// - Parameters:
+    ///   - entity: The entity to export
+    ///   - tableName: Optional custom table name (defaults to the entity's type name in lowercase)
+    /// - Returns: A SQL insert statement with placeholders for values
+    ///
+    /// - Example:
+    ///   ```swift
+    ///   let sql = DataExporter.exportEntityToSQL(person)
+    ///   // INSERT INTO person (id, name, details, ...) VALUES (:id, :name, :details, ...);
+    ///   ```
     public static func exportEntityToSQL<T: AssociatedData & Encodable>(_ entity: T, tableName: String? = nil) -> String {
         let table = tableName ?? String(describing: type(of: entity)).lowercased()
         
@@ -21,7 +65,21 @@ public class DataExporter {
         return "INSERT INTO \(table) (\(columns)) VALUES (\(placeholders));"
     }
     
-    /// Exports relationships to SQL insert statements
+    /// Exports relationships to SQL insert statements.
+    /// This generates parameterized SQL statements for each relationship
+    /// of the entity, suitable for inserting into a relationships table.
+    ///
+    /// - Parameter entity: The entity whose relationships should be exported
+    /// - Returns: An array of SQL insert statements for relationships
+    ///
+    /// - Example:
+    ///   ```swift
+    ///   let sqlStatements = DataExporter.exportRelationshipsToSQL(person)
+    ///   // [
+    ///   //   "INSERT INTO relationships (id, source_id, ...) VALUES (:id, :source_id, ...);",
+    ///   //   ...
+    ///   // ]
+    ///   ```
     public static func exportRelationshipsToSQL<T: AssociatedData>(_ entity: T) -> [String] {
         return entity.relationships.map { relationship -> String in
             let dict: [String: Any] = [
@@ -46,7 +104,16 @@ public class DataExporter {
         }
     }
     
-    /// Generates CREATE TABLE statements for all entity types
+    /// Generates CREATE TABLE statements for all entity types.
+    /// This creates the SQL schema for storing entities and their relationships.
+    ///
+    /// - Returns: An array of SQL CREATE TABLE statements
+    ///
+    /// - Example:
+    ///   ```swift
+    ///   let createStatements = DataExporter.generateCreateTableStatements()
+    ///   // Execute these statements to set up your database schema
+    ///   ```
     public static func generateCreateTableStatements() -> [String] {
         var statements: [String] = []
         
@@ -74,7 +141,18 @@ public class DataExporter {
     
     // MARK: - Vector Storage Export
     
-    /// Generates a vector storage record for an entity
+    /// Generates a vector storage record for an entity.
+    /// This creates a record suitable for embedding and storing in a vector database,
+    /// containing the entity's text representation and metadata.
+    ///
+    /// - Parameter entity: The entity to generate a vector record for
+    /// - Returns: A VectorRecord containing the entity's text and metadata
+    ///
+    /// - Example:
+    ///   ```swift
+    ///   let record = DataExporter.generateVectorRecord(person)
+    ///   // Send this record to an embedding service
+    ///   ```
     public static func generateVectorRecord<T: AssociatedData>(_ entity: T) -> VectorRecord {
         return VectorRecord(
             id: entity.id,
@@ -88,7 +166,18 @@ public class DataExporter {
         )
     }
     
-    /// Generates vector storage records for an entity's relationships
+    /// Generates vector storage records for an entity's relationships.
+    /// This creates records for each relationship, suitable for embedding
+    /// and storing in a vector database.
+    ///
+    /// - Parameter entity: The entity whose relationships should be exported
+    /// - Returns: An array of VectorRecord objects for relationships
+    ///
+    /// - Example:
+    ///   ```swift
+    ///   let records = DataExporter.generateRelationshipVectorRecords(person)
+    ///   // Send these records to an embedding service
+    ///   ```
     public static func generateRelationshipVectorRecords<T: AssociatedData>(_ entity: T) -> [VectorRecord] {
         return entity.relationships.map { relationship -> VectorRecord in
             let text = relationship.toEmbeddingText(
@@ -114,7 +203,9 @@ public class DataExporter {
 
 // MARK: - Helper Models
 
-/// Represents a record for vector storage
+/// Represents a record for vector storage.
+/// This structure contains the text to be embedded and metadata
+/// about the entity or relationship it represents.
 public struct VectorRecord: Codable {
     /// Unique identifier for this vector record
     public let id: String
@@ -131,6 +222,13 @@ public struct VectorRecord: Codable {
     /// Vector embedding (to be filled by the embedding service)
     public var embedding: [Float]?
     
+    /// Creates a new vector record
+    /// - Parameters:
+    ///   - id: Unique identifier for this record
+    ///   - entityType: Type of entity this vector represents
+    ///   - text: Text to be embedded
+    ///   - metadata: Additional metadata to store with the vector
+    ///   - embedding: Optional pre-computed embedding
     public init(id: String, entityType: String, text: String, metadata: [String: String], embedding: [Float]? = nil) {
         self.id = id
         self.entityType = entityType
@@ -143,7 +241,12 @@ public struct VectorRecord: Codable {
 // MARK: - Extensions
 
 extension Encodable {
-    /// Converts an Encodable object to a dictionary
+    /// Converts an Encodable object to a dictionary.
+    /// This is used internally to convert entities to dictionaries
+    /// for SQL generation and other export operations.
+    ///
+    /// - Returns: A dictionary representation of the object
+    /// - Throws: An error if conversion fails
     func asDictionary() throws -> [String: Any] {
         let data = try JSONEncoder().encode(self)
         guard let dictionary = try JSONSerialization.jsonObject(with: data, options: .allowFragments) as? [String: Any] else {
