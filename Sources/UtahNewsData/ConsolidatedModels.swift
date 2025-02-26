@@ -1,5 +1,5 @@
 // This file consolidates model definitions (commented out) from targeted files.
-// Generated on Mon Feb 24 23:13:32 MST 2025
+// Generated on Tue Feb 25 18:48:52 MST 2025
 // Current time: February 4, 2025 at 1:58:27 PM MST
 // Do NOT uncomment this file into your code base.
 
@@ -349,9 +349,17 @@
 // 
 // /// Represents a relationship between two entities in the system.
 // /// Relationships are directional but typically created in pairs to represent bidirectional connections.
-// public struct Relationship: Codable, Hashable {
+// public struct Relationship: BaseEntity, Codable, Hashable {
+//     /// Unique identifier for the relationship
+//     public var id: String = UUID().uuidString
+//     
+//     /// The name or description of this relationship
+//     public var name: String {
+//         return displayName ?? "Relationship to \(type.rawValue) \(id)"
+//     }
+//     
 //     /// Unique identifier of the target entity
-//     public let id: String
+//     public let targetId: String
 //     
 //     /// Type of the target entity
 //     public let type: EntityType
@@ -362,52 +370,22 @@
 //     /// When the relationship was created
 //     public let createdAt: Date
 //     
-//     /// Additional context about the relationship
-//     /// This can include details about how entities are related
-//     public let context: String?
+//     /// Optional additional context about the relationship
+//     public var context: String?
 //     
-//     /// Source of this relationship information
-//     /// Tracks where the relationship data originated from
-//     public let source: RelationshipSource
-//     
-//     /// Standard initializer with all fields
-//     /// 
+//     /// Creates a new relationship between entities.
+//     ///
 //     /// - Parameters:
 //     ///   - id: Unique identifier of the target entity
 //     ///   - type: Type of the target entity
-//     ///   - displayName: Optional human-readable description of the relationship
-//     ///   - createdAt: When the relationship was created (defaults to current date)
-//     ///   - context: Additional information about the relationship
-//     ///   - source: Origin of the relationship information (defaults to .system)
-//     public init(
-//         id: String,
-//         type: EntityType,
-//         displayName: String? = nil,
-//         createdAt: Date = Date(),
-//         context: String? = nil,
-//         source: RelationshipSource = .system
-//     ) {
-//         self.id = id
+//     ///   - displayName: Optional display name for the relationship
+//     ///   - context: Optional additional context about the relationship
+//     public init(id: String, type: EntityType, displayName: String? = nil, context: String? = nil) {
+//         self.targetId = id
 //         self.type = type
 //         self.displayName = displayName
-//         self.createdAt = createdAt
 //         self.context = context
-//         self.source = source
-//     }
-//     
-//     /// Simplified initializer for backward compatibility
-//     /// 
-//     /// - Parameters:
-//     ///   - id: Unique identifier of the target entity
-//     ///   - type: Type of the target entity
-//     ///   - displayName: Optional human-readable description of the relationship
-//     public init(id: String, type: EntityType, displayName: String?) {
-//         self.id = id
-//         self.type = type
-//         self.displayName = displayName
 //         self.createdAt = Date()
-//         self.context = nil
-//         self.source = .system
 //     }
 // }
 // 
@@ -539,9 +517,12 @@
 // /// A struct representing an audio clip in the news app.
 // /// Audio clips are a type of news content with additional properties for
 // /// duration and audio quality (bitrate).
-// public struct Audio: NewsContent {
+// public struct Audio: NewsContent, BaseEntity {
 //     /// Unique identifier for the audio clip
-//     public var id: UUID
+//     public var id: String
+//     
+//     /// The name of the entity (required by BaseEntity)
+//     public var name: String { title }
 //     
 //     /// Title or name of the audio clip
 //     public var title: String
@@ -570,7 +551,7 @@
 //     /// Creates a new audio clip with the specified properties.
 //     ///
 //     /// - Parameters:
-//     ///   - id: Unique identifier for the audio clip (defaults to a new UUID)
+//     ///   - id: Unique identifier for the audio clip (defaults to a new UUID string)
 //     ///   - title: Title or name of the audio clip
 //     ///   - url: URL where the audio can be accessed
 //     ///   - urlToImage: URL to an image representing the audio (defaults to a placeholder)
@@ -580,7 +561,7 @@
 //     ///   - duration: Length of the audio in seconds
 //     ///   - bitrate: Audio quality in kilobits per second (kbps)
 //     public init(
-//         id: UUID = UUID(),
+//         id: String = UUID().uuidString,
 //         title: String,
 //         url: String,
 //         urlToImage: String? = "https://picsum.photos/800/1200",
@@ -697,7 +678,13 @@
 // import Foundation
 // 
 // /// Represents a recurrence rule for repeating calendar events
-// public struct RecurrenceRule: Codable, Hashable, Equatable {
+// public struct RecurrenceRule: BaseEntity, Codable, Hashable, Equatable {
+//     /// Unique identifier for the recurrence rule
+//     public var id: String
+//     
+//     /// The name or description of this recurrence rule
+//     public var name: String
+//     
 //     /// Frequency of recurrence (daily, weekly, monthly, yearly)
 //     public var frequency: String
 //     
@@ -716,18 +703,24 @@
 //     /// Creates a new RecurrenceRule with the specified properties.
 //     ///
 //     /// - Parameters:
+//     ///   - id: Unique identifier for the recurrence rule (defaults to a new UUID string)
+//     ///   - name: The name or description of this recurrence rule
 //     ///   - frequency: Frequency of recurrence (daily, weekly, monthly, yearly)
 //     ///   - interval: Interval between occurrences (e.g., every 2 weeks)
 //     ///   - endDate: When the recurrence ends (specific date)
 //     ///   - occurrences: Number of occurrences after which the recurrence ends
 //     ///   - daysOfWeek: Days of the week when the event occurs (for weekly recurrence)
 //     public init(
+//         id: String = UUID().uuidString,
+//         name: String? = nil,
 //         frequency: String,
 //         interval: Int = 1,
 //         endDate: Date? = nil,
 //         occurrences: Int? = nil,
 //         daysOfWeek: [Int]? = nil
 //     ) {
+//         self.id = id
+//         self.name = name ?? "\(frequency) (every \(interval))"
 //         self.frequency = frequency
 //         self.interval = interval
 //         self.endDate = endDate
@@ -739,9 +732,12 @@
 // /// Represents a calendar event in the UtahNewsData system.
 // /// CalEvents can be used to track scheduled events such as press conferences,
 // /// meetings, hearings, and other time-based occurrences relevant to news coverage.
-// public struct CalEvent: AssociatedData, EntityDetailsProvider {
+// public struct CalEvent: AssociatedData, EntityDetailsProvider, BaseEntity {
 //     /// Unique identifier for the calendar event
 //     public var id: String = UUID().uuidString
+//     
+//     /// The name of the entity (required by BaseEntity)
+//     public var name: String { title }
 //     
 //     /// Relationships to other entities in the system
 //     public var relationships: [Relationship] = []
@@ -762,10 +758,10 @@
 //     public var location: Location?
 //     
 //     /// Person or organization organizing the event
-//     public var organizer: EntityDetailsProvider?
+//     public var organizer: (any EntityDetailsProvider)?
 //     
 //     /// People or organizations attending the event
-//     public var attendees: [EntityDetailsProvider]?
+//     public var attendees: [any EntityDetailsProvider]?
 //     
 //     /// Whether the event is open to the public
 //     public var isPublic: Bool?
@@ -777,7 +773,7 @@
 //     public var recurrenceRule: RecurrenceRule?
 //     
 //     /// Entities related to this event
-//     public var relatedEntities: [EntityDetailsProvider]?
+//     public var relatedEntities: [any EntityDetailsProvider]?
 //     
 //     /// Creates a new CalEvent with the specified properties.
 //     ///
@@ -799,12 +795,12 @@
 //         startDate: Date,
 //         endDate: Date,
 //         location: Location? = nil,
-//         organizer: EntityDetailsProvider? = nil,
-//         attendees: [EntityDetailsProvider]? = nil,
+//         organizer: (any EntityDetailsProvider)? = nil,
+//         attendees: [any EntityDetailsProvider]? = nil,
 //         isPublic: Bool? = nil,
 //         url: String? = nil,
 //         recurrenceRule: RecurrenceRule? = nil,
-//         relatedEntities: [EntityDetailsProvider]? = nil
+//         relatedEntities: [any EntityDetailsProvider]? = nil
 //     ) {
 //         self.title = title
 //         self.description = description
@@ -817,6 +813,64 @@
 //         self.url = url
 //         self.recurrenceRule = recurrenceRule
 //         self.relatedEntities = relatedEntities
+//     }
+//     
+//     // Implement Equatable manually since we have properties that don't conform to Equatable
+//     public static func == (lhs: CalEvent, rhs: CalEvent) -> Bool {
+//         return lhs.id == rhs.id &&
+//                lhs.title == rhs.title &&
+//                lhs.startDate == rhs.startDate &&
+//                lhs.endDate == rhs.endDate
+//     }
+//     
+//     // Implement Hashable manually
+//     public func hash(into hasher: inout Hasher) {
+//         hasher.combine(id)
+//         hasher.combine(title)
+//         hasher.combine(startDate)
+//         hasher.combine(endDate)
+//     }
+//     
+//     // Implement Codable manually
+//     public init(from decoder: Decoder) throws {
+//         let container = try decoder.container(keyedBy: CodingKeys.self)
+//         
+//         id = try container.decode(String.self, forKey: .id)
+//         title = try container.decode(String.self, forKey: .title)
+//         description = try container.decodeIfPresent(String.self, forKey: .description)
+//         startDate = try container.decode(Date.self, forKey: .startDate)
+//         endDate = try container.decode(Date.self, forKey: .endDate)
+//         location = try container.decodeIfPresent(Location.self, forKey: .location)
+//         isPublic = try container.decodeIfPresent(Bool.self, forKey: .isPublic)
+//         url = try container.decodeIfPresent(String.self, forKey: .url)
+//         recurrenceRule = try container.decodeIfPresent(RecurrenceRule.self, forKey: .recurrenceRule)
+//         relationships = try container.decodeIfPresent([Relationship].self, forKey: .relationships) ?? []
+//         
+//         // Skip decoding organizer, attendees, and relatedEntities as they use protocol types
+//         organizer = nil
+//         attendees = nil
+//         relatedEntities = nil
+//     }
+//     
+//     public func encode(to encoder: Encoder) throws {
+//         var container = encoder.container(keyedBy: CodingKeys.self)
+//         
+//         try container.encode(id, forKey: .id)
+//         try container.encode(title, forKey: .title)
+//         try container.encodeIfPresent(description, forKey: .description)
+//         try container.encode(startDate, forKey: .startDate)
+//         try container.encode(endDate, forKey: .endDate)
+//         try container.encodeIfPresent(location, forKey: .location)
+//         try container.encodeIfPresent(isPublic, forKey: .isPublic)
+//         try container.encodeIfPresent(url, forKey: .url)
+//         try container.encodeIfPresent(recurrenceRule, forKey: .recurrenceRule)
+//         try container.encode(relationships, forKey: .relationships)
+//         
+//         // Skip encoding organizer, attendees, and relatedEntities as they use protocol types
+//     }
+//     
+//     private enum CodingKeys: String, CodingKey {
+//         case id, title, description, startDate, endDate, location, isPublic, url, recurrenceRule, relationships
 //     }
 //     
 //     /// Generates a detailed text description of the calendar event for use in RAG systems.
@@ -951,7 +1005,7 @@
 // /// Represents a content category in the UtahNewsData system.
 // /// Categories provide a way to organize and classify content such as articles,
 // /// media items, and other news-related entities.
-// public struct Category: AssociatedData, EntityDetailsProvider {
+// public struct Category: AssociatedData, EntityDetailsProvider, BaseEntity {
 //     /// Unique identifier for the category
 //     public var id: String = UUID().uuidString
 //     
@@ -964,13 +1018,32 @@
 //     /// Detailed description of what the category encompasses
 //     public var description: String?
 //     
-//     /// Parent category if this is a subcategory
-//     public var parentCategory: Category?
+//     /// Parent category reference (using id instead of direct reference)
+//     public var parentCategoryId: String?
 //     
-//     /// Child categories if this category has subcategories
-//     public var subcategories: [Category]?
+//     /// Child category references (using ids instead of direct references)
+//     public var subcategoryIds: [String]?
 //     
 //     /// Creates a new Category with the specified properties.
+//     ///
+//     /// - Parameters:
+//     ///   - name: The name of the category
+//     ///   - description: Detailed description of what the category encompasses
+//     ///   - parentCategoryId: ID of parent category if this is a subcategory
+//     ///   - subcategoryIds: IDs of child categories if this category has subcategories
+//     public init(
+//         name: String,
+//         description: String? = nil,
+//         parentCategoryId: String? = nil,
+//         subcategoryIds: [String]? = nil
+//     ) {
+//         self.name = name
+//         self.description = description
+//         self.parentCategoryId = parentCategoryId
+//         self.subcategoryIds = subcategoryIds
+//     }
+//     
+//     /// Convenience initializer that takes Category instances for parent and subcategories
 //     ///
 //     /// - Parameters:
 //     ///   - name: The name of the category
@@ -985,8 +1058,8 @@
 //     ) {
 //         self.name = name
 //         self.description = description
-//         self.parentCategory = parentCategory
-//         self.subcategories = subcategories
+//         self.parentCategoryId = parentCategory?.id
+//         self.subcategoryIds = subcategories?.map { $0.id }
 //     }
 //     
 //     /// Generates a detailed text description of the category for use in RAG systems.
@@ -1000,13 +1073,12 @@
 //             description += "\nDescription: \(categoryDescription)"
 //         }
 //         
-//         if let parentCategory = parentCategory {
-//             description += "\nParent Category: \(parentCategory.name)"
+//         if let parentCategoryId = parentCategoryId {
+//             description += "\nParent Category ID: \(parentCategoryId)"
 //         }
 //         
-//         if let subcategories = subcategories, !subcategories.isEmpty {
-//             let subcategoryNames = subcategories.map { $0.name }.joined(separator: ", ")
-//             description += "\nSubcategories: \(subcategoryNames)"
+//         if let subcategoryIds = subcategoryIds, !subcategoryIds.isEmpty {
+//             description += "\nSubcategory IDs: \(subcategoryIds.joined(separator: ", "))"
 //         }
 //         
 //         return description
@@ -1072,7 +1144,7 @@
 // 
 // /// Represents an expert's analysis or commentary on a topic or news event.
 // /// Expert analyses provide authoritative perspectives from qualified individuals.
-// public struct ExpertAnalysis: AssociatedData {
+// public struct ExpertAnalysis: AssociatedData, Codable {
 //     /// Unique identifier for the expert analysis
 //     public var id: String
 //     
@@ -1115,7 +1187,7 @@
 // /// Represents professional credentials, degrees, and certifications.
 // /// Used to establish the qualifications and expertise of individuals
 // /// providing expert analysis.
-// public enum Credential: String {
+// public enum Credential: String, Codable {
 //     // Academic Degrees
 //     /// Doctor of Philosophy
 //     case PhD = "Doctor of Philosophy"
@@ -1563,9 +1635,15 @@
 // /// Represents a verified piece of information in the UtahNewsData system.
 // /// Facts can be associated with articles, news events, and other content types,
 // /// providing verified data points with proper attribution.
-// public struct Fact: AssociatedData, EntityDetailsProvider {
+// public struct Fact: AssociatedData, EntityDetailsProvider, BaseEntity {
 //     /// Unique identifier for the fact
 //     public var id: String = UUID().uuidString
+//     
+//     /// The name of the entity (required by BaseEntity)
+//     public var name: String { 
+//         let truncatedStatement = statement.count > 50 ? statement.prefix(50) + "..." : statement
+//         return String(truncatedStatement)
+//     }
 //     
 //     /// Relationships to other entities in the system
 //     public var relationships: [Relationship] = []
@@ -1574,7 +1652,7 @@
 //     public var statement: String
 //     
 //     /// Organizations or persons that are the source of this fact
-//     public var sources: [EntityDetailsProvider]?
+//     public var sources: [any EntityDetailsProvider]?
 //     
 //     /// Current verification status of the fact
 //     public var verificationStatus: VerificationStatus?
@@ -1588,11 +1666,11 @@
 //     /// Subject areas or keywords related to the fact
 //     public var topics: [String]?
 //     
-//     /// Formal category the fact belongs to
-//     public var category: Category?
+//     /// Category ID the fact belongs to (instead of direct reference)
+//     public var categoryId: String?
 //     
 //     /// Entities (people, organizations, locations) related to this fact
-//     public var relatedEntities: [EntityDetailsProvider]?
+//     public var relatedEntities: [any EntityDetailsProvider]?
 //     
 //     /// Creates a new Fact with the specified properties.
 //     ///
@@ -1603,17 +1681,17 @@
 //     ///   - confidenceLevel: Confidence level in the fact's accuracy
 //     ///   - date: When the fact was established or reported
 //     ///   - topics: Subject areas or keywords related to the fact
-//     ///   - category: Formal category the fact belongs to
+//     ///   - categoryId: ID of the category the fact belongs to
 //     ///   - relatedEntities: Entities (people, organizations, locations) related to this fact
 //     public init(
 //         statement: String,
-//         sources: [EntityDetailsProvider]? = nil,
+//         sources: [any EntityDetailsProvider]? = nil,
 //         verificationStatus: VerificationStatus? = nil,
 //         confidenceLevel: ConfidenceLevel? = nil,
 //         date: Date? = nil,
 //         topics: [String]? = nil,
-//         category: Category? = nil,
-//         relatedEntities: [EntityDetailsProvider]? = nil
+//         categoryId: String? = nil,
+//         relatedEntities: [any EntityDetailsProvider]? = nil
 //     ) {
 //         self.statement = statement
 //         self.sources = sources
@@ -1621,8 +1699,88 @@
 //         self.confidenceLevel = confidenceLevel
 //         self.date = date
 //         self.topics = topics
-//         self.category = category
+//         self.categoryId = categoryId
 //         self.relatedEntities = relatedEntities
+//     }
+//     
+//     /// Convenience initializer that takes a Category instance
+//     ///
+//     /// - Parameters:
+//     ///   - statement: The factual statement
+//     ///   - sources: Organizations or persons that are the source of this fact
+//     ///   - verificationStatus: Current verification status of the fact
+//     ///   - confidenceLevel: Confidence level in the fact's accuracy
+//     ///   - date: When the fact was established or reported
+//     ///   - topics: Subject areas or keywords related to the fact
+//     ///   - category: Category the fact belongs to
+//     ///   - relatedEntities: Entities (people, organizations, locations) related to this fact
+//     public init(
+//         statement: String,
+//         sources: [any EntityDetailsProvider]? = nil,
+//         verificationStatus: VerificationStatus? = nil,
+//         confidenceLevel: ConfidenceLevel? = nil,
+//         date: Date? = nil,
+//         topics: [String]? = nil,
+//         category: Category? = nil,
+//         relatedEntities: [any EntityDetailsProvider]? = nil
+//     ) {
+//         self.statement = statement
+//         self.sources = sources
+//         self.verificationStatus = verificationStatus
+//         self.confidenceLevel = confidenceLevel
+//         self.date = date
+//         self.topics = topics
+//         self.categoryId = category?.id
+//         self.relatedEntities = relatedEntities
+//     }
+//     
+//     // Implement Equatable manually since we have properties that don't conform to Equatable
+//     public static func == (lhs: Fact, rhs: Fact) -> Bool {
+//         return lhs.id == rhs.id &&
+//                lhs.statement == rhs.statement
+//     }
+//     
+//     // Implement Hashable manually
+//     public func hash(into hasher: inout Hasher) {
+//         hasher.combine(id)
+//         hasher.combine(statement)
+//     }
+//     
+//     // Implement Codable manually
+//     public init(from decoder: Decoder) throws {
+//         let container = try decoder.container(keyedBy: CodingKeys.self)
+//         
+//         id = try container.decode(String.self, forKey: .id)
+//         statement = try container.decode(String.self, forKey: .statement)
+//         verificationStatus = try container.decodeIfPresent(VerificationStatus.self, forKey: .verificationStatus)
+//         confidenceLevel = try container.decodeIfPresent(ConfidenceLevel.self, forKey: .confidenceLevel)
+//         date = try container.decodeIfPresent(Date.self, forKey: .date)
+//         topics = try container.decodeIfPresent([String].self, forKey: .topics)
+//         categoryId = try container.decodeIfPresent(String.self, forKey: .categoryId)
+//         relationships = try container.decodeIfPresent([Relationship].self, forKey: .relationships) ?? []
+//         
+//         // Skip decoding sources and relatedEntities as they use protocol types
+//         sources = nil
+//         relatedEntities = nil
+//     }
+//     
+//     public func encode(to encoder: Encoder) throws {
+//         var container = encoder.container(keyedBy: CodingKeys.self)
+//         
+//         try container.encode(id, forKey: .id)
+//         try container.encode(statement, forKey: .statement)
+//         try container.encodeIfPresent(verificationStatus, forKey: .verificationStatus)
+//         try container.encodeIfPresent(confidenceLevel, forKey: .confidenceLevel)
+//         try container.encodeIfPresent(date, forKey: .date)
+//         try container.encodeIfPresent(topics, forKey: .topics)
+//         try container.encodeIfPresent(categoryId, forKey: .categoryId)
+//         try container.encode(relationships, forKey: .relationships)
+//         
+//         // Skip encoding sources and relatedEntities as they use protocol types
+//     }
+//     
+//     private enum CodingKeys: String, CodingKey {
+//         case id, statement, verificationStatus, confidenceLevel, date, topics, categoryId, relationships
 //     }
 //     
 //     /// Generates a detailed text description of the fact for use in RAG systems.
@@ -1643,11 +1801,7 @@
 //         if let sources = sources, !sources.isEmpty {
 //             description += "\nSources:"
 //             for source in sources {
-//                 if let person = source as? Person {
-//                     description += "\n- \(person.name)"
-//                 } else if let organization = source as? Organization {
-//                     description += "\n- \(organization.name)"
-//                 }
+//                 description += "\n- \(source.name)"
 //             }
 //         }
 //         
@@ -1657,8 +1811,8 @@
 //             description += "\nDate: \(formatter.string(from: date))"
 //         }
 //         
-//         if let category = category {
-//             description += "\nCategory: \(category.name)"
+//         if let categoryId = categoryId {
+//             description += "\nCategory ID: \(categoryId)"
 //         }
 //         
 //         if let topics = topics, !topics.isEmpty {
@@ -2029,7 +2183,13 @@
 // }
 // 
 // /// Represents geographic coordinates with latitude and longitude.
-// public struct Coordinates: Codable, Hashable, Equatable {
+// public struct Coordinates: BaseEntity, Codable, Hashable, Equatable {
+//     /// Unique identifier for the coordinates
+//     public var id: String
+//     
+//     /// The name or description of these coordinates
+//     public var name: String
+//     
 //     /// Latitude coordinate (north/south position)
 //     public var latitude: Double
 //     
@@ -2037,11 +2197,17 @@
 //     public var longitude: Double
 //     
 //     /// Creates new geographic coordinates.
-//     /// 
 //     /// - Parameters:
-//     ///   - latitude: North/south position (-90 to 90)
-//     ///   - longitude: East/west position (-180 to 180)
-//     public init(latitude: Double, longitude: Double) {
+//     ///   - id: Unique identifier for the coordinates
+//     ///   - name: Name or description of these coordinates (e.g., "Downtown SLC")
+//     ///   - latitude: Latitude coordinate
+//     ///   - longitude: Longitude coordinate
+//     public init(id: String = UUID().uuidString, 
+//                 name: String, 
+//                 latitude: Double, 
+//                 longitude: Double) {
+//         self.id = id
+//         self.name = name
 //         self.latitude = latitude
 //         self.longitude = longitude
 //     }
@@ -2448,7 +2614,7 @@
 // /// Represents a significant event covered in the news in the UtahNewsData system.
 // /// NewsEvents can be associated with articles, people, organizations, and locations,
 // /// providing a way to track and organize coverage of specific occurrences.
-// public struct NewsEvent: Codable, Identifiable, Hashable, Equatable, AssociatedData {
+// public struct NewsEvent: Codable, Identifiable, Hashable, Equatable, AssociatedData, BaseEntity {
 //     /// Unique identifier for the news event
 //     public var id: String
 //     
@@ -2457,6 +2623,11 @@
 //     
 //     /// The name or headline of the event
 //     public var title: String
+//     
+//     /// The name property required by the BaseEntity protocol
+//     public var name: String {
+//         return title
+//     }
 //     
 //     /// When the event occurred
 //     public var date: Date
@@ -2797,9 +2968,7 @@
 //                     description += "### Contact \(index + 1)\n"
 //                 }
 //                 
-//                 if let contactName = contact.name {
-//                     description += "**Name**: \(contactName)\n"
-//                 }
+//                 description += "**Name**: \(contact.name)\n"
 //                 
 //                 if let email = contact.email {
 //                     description += "**Email**: \(email)\n"
@@ -3347,7 +3516,15 @@
 // /// Represents a single response to a poll.
 // /// Each response captures the selected option and optionally
 // /// the person who responded.
-// public struct PollResponse: Codable, Hashable {
+// public struct PollResponse: BaseEntity, Codable, Hashable {
+//     /// Unique identifier for the poll response
+//     public var id: String
+//     
+//     /// The name or description of this poll response
+//     public var name: String {
+//         return "Response to poll: \(selectedOption)"
+//     }
+//     
 //     /// Person who responded to the poll (optional for anonymous polls)
 //     public var respondent: Person?
 //     
@@ -3357,9 +3534,11 @@
 //     /// Creates a new poll response with the specified properties.
 //     ///
 //     /// - Parameters:
+//     ///   - id: Unique identifier for the poll response (defaults to a new UUID string)
 //     ///   - respondent: Person who responded to the poll (optional for anonymous polls)
 //     ///   - selectedOption: The option selected by the respondent
-//     public init(respondent: Person? = nil, selectedOption: String) {
+//     public init(id: String = UUID().uuidString, respondent: Person? = nil, selectedOption: String) {
+//         self.id = id
 //         self.respondent = respondent
 //         self.selectedOption = selectedOption
 //     }
@@ -3433,9 +3612,14 @@
 // /// Represents a direct quotation from an individual in the UtahNewsData system.
 // /// Quotes can be associated with articles, news events, and other content types,
 // /// providing attribution and context for statements.
-// public struct Quote: Codable, Identifiable, Hashable, Equatable, EntityDetailsProvider {
+// public struct Quote: Identifiable, EntityDetailsProvider {
 //     /// Unique identifier for the quote
 //     public var id: String = UUID().uuidString
+//     
+//     /// The name property required by the BaseEntity protocol
+//     public var name: String {
+//         return text.count > 50 ? String(text.prefix(47)) + "..." : text
+//     }
 //     
 //     /// Relationships to other entities in the system
 //     public var relationships: [Relationship] = []
@@ -3447,7 +3631,7 @@
 //     public var speaker: Person?
 //     
 //     /// The event, article, or other source where the quote originated
-//     public var source: EntityDetailsProvider?
+//     public var source: (any EntityDetailsProvider)?
 //     
 //     /// When the statement was made
 //     public var date: Date?
@@ -3474,7 +3658,7 @@
 //     public init(
 //         text: String,
 //         speaker: Person? = nil,
-//         source: EntityDetailsProvider? = nil,
+//         source: (any EntityDetailsProvider)? = nil,
 //         date: Date? = nil,
 //         context: String? = nil,
 //         topics: [String]? = nil,
@@ -3519,6 +3703,67 @@
 //         }
 //         
 //         return description
+//     }
+// }
+// 
+// // MARK: - Equatable & Hashable
+// extension Quote: Equatable, Hashable {
+//     public static func == (lhs: Quote, rhs: Quote) -> Bool {
+//         lhs.id == rhs.id &&
+//         lhs.text == rhs.text &&
+//         lhs.speaker == rhs.speaker &&
+//         lhs.date == rhs.date &&
+//         lhs.context == rhs.context &&
+//         lhs.topics == rhs.topics &&
+//         lhs.location == rhs.location
+//         // Note: source is not compared as it's an EntityDetailsProvider which doesn't conform to Equatable
+//     }
+//     
+//     public func hash(into hasher: inout Hasher) {
+//         hasher.combine(id)
+//         hasher.combine(text)
+//         hasher.combine(speaker)
+//         hasher.combine(date)
+//         hasher.combine(context)
+//         hasher.combine(topics)
+//         hasher.combine(location)
+//         // Note: source is not hashed as it's an EntityDetailsProvider which doesn't conform to Hashable
+//     }
+// }
+// 
+// // MARK: - Codable
+// extension Quote: Codable {
+//     private enum CodingKeys: String, CodingKey {
+//         case id, relationships, text, speaker, date, context, topics, location
+//         // Note: source is excluded as it's an EntityDetailsProvider which doesn't conform to Codable
+//     }
+//     
+//     public init(from decoder: Decoder) throws {
+//         let container = try decoder.container(keyedBy: CodingKeys.self)
+//         
+//         id = try container.decode(String.self, forKey: .id)
+//         relationships = try container.decode([Relationship].self, forKey: .relationships)
+//         text = try container.decode(String.self, forKey: .text)
+//         speaker = try container.decodeIfPresent(Person.self, forKey: .speaker)
+//         date = try container.decodeIfPresent(Date.self, forKey: .date)
+//         context = try container.decodeIfPresent(String.self, forKey: .context)
+//         topics = try container.decodeIfPresent([String].self, forKey: .topics)
+//         location = try container.decodeIfPresent(Location.self, forKey: .location)
+//         source = nil // Cannot decode EntityDetailsProvider
+//     }
+//     
+//     public func encode(to encoder: Encoder) throws {
+//         var container = encoder.container(keyedBy: CodingKeys.self)
+//         
+//         try container.encode(id, forKey: .id)
+//         try container.encode(relationships, forKey: .relationships)
+//         try container.encode(text, forKey: .text)
+//         try container.encode(speaker, forKey: .speaker)
+//         try container.encode(date, forKey: .date)
+//         try container.encode(context, forKey: .context)
+//         try container.encode(topics, forKey: .topics)
+//         try container.encode(location, forKey: .location)
+//         // source is not encoded as it's an EntityDetailsProvider which doesn't conform to Codable
 //     }
 // }
 
@@ -3573,14 +3818,34 @@
 // import Foundation
 // 
 // /// Collection of scraped stories from a web source.
-// public struct StoryExtract: Codable {
+// public struct StoryExtract: BaseEntity, Codable {
+//     /// Unique identifier for the story extract
+//     public var id: String = UUID().uuidString
+//     
+//     /// The name or description of this story extract
+//     public var name: String = "Story Extract"
+//     
 //     /// Array of scraped stories
 //     public let stories: [ScrapeStory]
+//     
+//     /// Creates a new story extract with the specified stories.
+//     /// - Parameter stories: Array of scraped stories
+//     public init(stories: [ScrapeStory]) {
+//         self.stories = stories
+//     }
 // }
 // 
 // /// Represents raw story data extracted from a web page.
 // /// This is the initial data structure used before processing into domain models.
-// public struct ScrapeStory: Codable, Sendable {
+// public struct ScrapeStory: BaseEntity, Codable, Sendable {
+//     /// Unique identifier for the scraped story
+//     public var id: String
+//     
+//     /// The name or title of this scraped story
+//     public var name: String {
+//         return title ?? "Untitled Story"
+//     }
+//     
 //     /// Title or headline of the story
 //     public var title: String?
 //     
@@ -3610,7 +3875,13 @@
 // }
 // 
 // /// Response structure for a single story extraction API call.
-// public struct SingleStoryResponse: Codable {
+// public struct SingleStoryResponse: BaseEntity, Codable {
+//     /// Unique identifier for the response
+//     public var id: String = UUID().uuidString
+//     
+//     /// The name or description of this response
+//     public var name: String = "Single Story Response"
+//     
 //     /// Whether the extraction was successful
 //     public let success: Bool
 //     
@@ -3619,13 +3890,25 @@
 // }
 // 
 // /// Container for a single extracted story.
-// public struct SingleStoryData: Codable {
+// public struct SingleStoryData: BaseEntity, Codable {
+//     /// Unique identifier for the data container
+//     public var id: String = UUID().uuidString
+//     
+//     /// The name or description of this data container
+//     public var name: String = "Single Story Data"
+//     
 //     /// The extracted story
 //     public let extract: ScrapeStory
 // }
 // 
 // /// Response structure for a batch crawling API call.
-// public struct FirecrawlResponse: Codable {
+// public struct FirecrawlResponse: BaseEntity, Codable {
+//     /// Unique identifier for the response
+//     public var id: String = UUID().uuidString
+//     
+//     /// The name or description of this response
+//     public var name: String = "Firecrawl Response"
+//     
 //     /// Whether the crawling operation was successful
 //     public let success: Bool
 //     
@@ -3634,7 +3917,13 @@
 // }
 // 
 // /// Container for batch extracted stories.
-// public struct FirecrawlData: Codable {
+// public struct FirecrawlData: BaseEntity, Codable {
+//     /// Unique identifier for the data container
+//     public var id: String = UUID().uuidString
+//     
+//     /// The name or description of this data container
+//     public var name: String = "Firecrawl Data"
+//     
 //     /// Collection of extracted stories
 //     public let extract: StoryExtract
 // }
@@ -4175,9 +4464,14 @@
 // /// Represents a numerical data point in the UtahNewsData system.
 // /// StatisticalData can be associated with articles, news events, and other content types,
 // /// providing quantitative information with proper attribution.
-// public struct StatisticalData: AssociatedData, EntityDetailsProvider {
+// public struct StatisticalData: EntityDetailsProvider {
 //     /// Unique identifier for the statistical data
 //     public var id: String = UUID().uuidString
+//     
+//     /// The name property required by the BaseEntity protocol
+//     public var name: String {
+//         return title
+//     }
 //     
 //     /// Relationships to other entities in the system
 //     public var relationships: [Relationship] = []
@@ -4192,7 +4486,7 @@
 //     public var unit: String
 //     
 //     /// Organization or person that is the source of this data
-//     public var source: EntityDetailsProvider?
+//     public var source: (any EntityDetailsProvider)?
 //     
 //     /// When the data was collected or published
 //     public var date: Date?
@@ -4213,7 +4507,7 @@
 //     public var topics: [String]?
 //     
 //     /// Entities (people, organizations, locations) related to this data
-//     public var relatedEntities: [EntityDetailsProvider]?
+//     public var relatedEntities: [any EntityDetailsProvider]?
 //     
 //     /// Creates a new StatisticalData with the specified properties.
 //     ///
@@ -4233,14 +4527,14 @@
 //         title: String,
 //         value: String,
 //         unit: String,
-//         source: EntityDetailsProvider? = nil,
+//         source: (any EntityDetailsProvider)? = nil,
 //         date: Date? = nil,
 //         methodology: String? = nil,
 //         marginOfError: String? = nil,
 //         visualizationType: VisualizationType? = nil,
 //         comparisonValue: String? = nil,
 //         topics: [String]? = nil,
-//         relatedEntities: [EntityDetailsProvider]? = nil
+//         relatedEntities: [any EntityDetailsProvider]? = nil
 //     ) {
 //         self.title = title
 //         self.value = value
@@ -4294,6 +4588,80 @@
 //         }
 //         
 //         return description
+//     }
+// }
+// 
+// // MARK: - Equatable & Hashable
+// extension StatisticalData: Equatable, Hashable {
+//     public static func == (lhs: StatisticalData, rhs: StatisticalData) -> Bool {
+//         lhs.id == rhs.id &&
+//         lhs.title == rhs.title &&
+//         lhs.value == rhs.value &&
+//         lhs.unit == rhs.unit &&
+//         lhs.date == rhs.date &&
+//         lhs.methodology == rhs.methodology &&
+//         lhs.marginOfError == rhs.marginOfError &&
+//         lhs.visualizationType == rhs.visualizationType &&
+//         lhs.comparisonValue == rhs.comparisonValue &&
+//         lhs.topics == rhs.topics
+//         // Note: source and relatedEntities are not compared as they're EntityDetailsProvider which doesn't conform to Equatable
+//     }
+//     
+//     public func hash(into hasher: inout Hasher) {
+//         hasher.combine(id)
+//         hasher.combine(title)
+//         hasher.combine(value)
+//         hasher.combine(unit)
+//         hasher.combine(date)
+//         hasher.combine(methodology)
+//         hasher.combine(marginOfError)
+//         hasher.combine(visualizationType)
+//         hasher.combine(comparisonValue)
+//         hasher.combine(topics)
+//         // Note: source and relatedEntities are not hashed as they're EntityDetailsProvider which doesn't conform to Hashable
+//     }
+// }
+// 
+// // MARK: - Codable
+// extension StatisticalData: Codable {
+//     private enum CodingKeys: String, CodingKey {
+//         case id, relationships, title, value, unit, date, methodology, marginOfError, visualizationType, comparisonValue, topics
+//         // Note: source and relatedEntities are excluded as they're EntityDetailsProvider which doesn't conform to Codable
+//     }
+//     
+//     public init(from decoder: Decoder) throws {
+//         let container = try decoder.container(keyedBy: CodingKeys.self)
+//         
+//         id = try container.decode(String.self, forKey: .id)
+//         relationships = try container.decode([Relationship].self, forKey: .relationships)
+//         title = try container.decode(String.self, forKey: .title)
+//         value = try container.decode(String.self, forKey: .value)
+//         unit = try container.decode(String.self, forKey: .unit)
+//         date = try container.decodeIfPresent(Date.self, forKey: .date)
+//         methodology = try container.decodeIfPresent(String.self, forKey: .methodology)
+//         marginOfError = try container.decodeIfPresent(String.self, forKey: .marginOfError)
+//         visualizationType = try container.decodeIfPresent(VisualizationType.self, forKey: .visualizationType)
+//         comparisonValue = try container.decodeIfPresent(String.self, forKey: .comparisonValue)
+//         topics = try container.decodeIfPresent([String].self, forKey: .topics)
+//         source = nil // Cannot decode EntityDetailsProvider
+//         relatedEntities = nil // Cannot decode [EntityDetailsProvider]
+//     }
+//     
+//     public func encode(to encoder: Encoder) throws {
+//         var container = encoder.container(keyedBy: CodingKeys.self)
+//         
+//         try container.encode(id, forKey: .id)
+//         try container.encode(relationships, forKey: .relationships)
+//         try container.encode(title, forKey: .title)
+//         try container.encode(value, forKey: .value)
+//         try container.encode(unit, forKey: .unit)
+//         try container.encode(date, forKey: .date)
+//         try container.encode(methodology, forKey: .methodology)
+//         try container.encode(marginOfError, forKey: .marginOfError)
+//         try container.encode(visualizationType, forKey: .visualizationType)
+//         try container.encode(comparisonValue, forKey: .comparisonValue)
+//         try container.encode(topics, forKey: .topics)
+//         // source and relatedEntities are not encoded as they're EntityDetailsProvider which doesn't conform to Codable
 //     }
 // }
 
@@ -4455,40 +4823,9 @@
 //         description: String,
 //         dateSubmitted: Date,
 //         user: Person,
-//         text: [TextMedia],
-//         images: [ImageMedia],
-//         videos: [VideoMedia],
-//         audio: [AudioMedia],
-//         documents: [DocumentMedia],
+//         mediaItems: [MediaItem],
 //         relationships: [Relationship] = []
 //     ) -> UserSubmission {
-//         var mediaItems: [MediaItem] = []
-//         
-//         // Convert text media
-//         for textMedia in text {
-//             mediaItems.append(MediaItem.from(textMedia))
-//         }
-//         
-//         // Convert image media
-//         for imageMedia in images {
-//             mediaItems.append(MediaItem.from(imageMedia))
-//         }
-//         
-//         // Convert video media
-//         for videoMedia in videos {
-//             mediaItems.append(MediaItem.from(videoMedia))
-//         }
-//         
-//         // Convert audio media
-//         for audioMedia in audio {
-//             mediaItems.append(MediaItem.from(audioMedia))
-//         }
-//         
-//         // Convert document media
-//         for documentMedia in documents {
-//             mediaItems.append(MediaItem.from(documentMedia))
-//         }
-//         
 //         return UserSubmission(
 //             id: id,
 //             title: title,
@@ -4503,132 +4840,136 @@
 // 
 // // MARK: - Legacy Media Types (Deprecated)
 // 
-// /// Represents text content in a user submission
-// /// @deprecated Use MediaItem with type .text instead
+// /// A text-based media item in a user submission
 // @available(*, deprecated, message: "Use MediaItem with type .text instead")
-// public struct TextMedia: Codable, Hashable {
-//     /// Unique identifier for the text content
-//     public var id: String = UUID().uuidString
+// public struct TextMedia: BaseEntity, Codable, Hashable {
+//     /// Unique identifier for the text media
+//     public var id: String
 //     
 //     /// The text content
 //     public var content: String
 //     
-//     /// Creates new text content with the specified content.
-//     ///
-//     /// - Parameter content: The text content
-//     public init(content: String) {
+//     /// The name of the text media, used for display and embedding generation
+//     public var name: String {
+//         return content.prefix(50) + (content.count > 50 ? "..." : "")
+//     }
+//     
+//     /// Creates a new text media item
+//     public init(id: String = UUID().uuidString, content: String) {
+//         self.id = id
 //         self.content = content
 //     }
 // }
 // 
-// /// Represents image content in a user submission
-// /// @deprecated Use MediaItem with type .image instead
+// /// An image media item in a user submission
 // @available(*, deprecated, message: "Use MediaItem with type .image instead")
-// public struct ImageMedia: Codable, Hashable {
-//     /// Unique identifier for the image
-//     public var id: String = UUID().uuidString
+// public struct ImageMedia: BaseEntity, Codable, Hashable {
+//     /// Unique identifier for the image media
+//     public var id: String
 //     
-//     /// URL where the image can be accessed
+//     /// URL or path to the image
 //     public var url: String
 //     
 //     /// Caption or description of the image
 //     public var caption: String?
 //     
-//     /// Creates new image content with the specified properties.
-//     ///
-//     /// - Parameters:
-//     ///   - url: URL where the image can be accessed
-//     ///   - caption: Caption or description of the image
-//     public init(url: String, caption: String? = nil) {
+//     /// The name of the image media, used for display and embedding generation
+//     public var name: String {
+//         return caption ?? "Image \(id)"
+//     }
+//     
+//     /// Creates a new image media item
+//     public init(id: String = UUID().uuidString, url: String, caption: String? = nil) {
+//         self.id = id
 //         self.url = url
 //         self.caption = caption
 //     }
 // }
 // 
-// /// Represents video content in a user submission
-// /// @deprecated Use MediaItem with type .video instead
+// /// A video media item in a user submission
 // @available(*, deprecated, message: "Use MediaItem with type .video instead")
-// public struct VideoMedia: Codable, Hashable {
-//     /// Unique identifier for the video
-//     public var id: String = UUID().uuidString
+// public struct VideoMedia: BaseEntity, Codable, Hashable {
+//     /// Unique identifier for the video media
+//     public var id: String
 //     
-//     /// URL where the video can be accessed
+//     /// URL or path to the video
 //     public var url: String
 //     
 //     /// Caption or description of the video
 //     public var caption: String?
 //     
 //     /// Duration of the video in seconds
-//     public var duration: Double?
+//     public var duration: TimeInterval?
 //     
-//     /// Creates new video content with the specified properties.
-//     ///
-//     /// - Parameters:
-//     ///   - url: URL where the video can be accessed
-//     ///   - caption: Caption or description of the video
-//     ///   - duration: Duration of the video in seconds
-//     public init(url: String, caption: String? = nil, duration: Double? = nil) {
+//     /// The name of the video media, used for display and embedding generation
+//     public var name: String {
+//         return caption ?? "Video \(id)"
+//     }
+//     
+//     /// Creates a new video media item
+//     public init(id: String = UUID().uuidString, url: String, caption: String? = nil, duration: TimeInterval? = nil) {
+//         self.id = id
 //         self.url = url
 //         self.caption = caption
 //         self.duration = duration
 //     }
 // }
 // 
-// /// Represents audio content in a user submission
-// /// @deprecated Use MediaItem with type .audio instead
+// /// An audio media item in a user submission
 // @available(*, deprecated, message: "Use MediaItem with type .audio instead")
-// public struct AudioMedia: Codable, Hashable {
-//     /// Unique identifier for the audio
-//     public var id: String = UUID().uuidString
+// public struct AudioMedia: BaseEntity, Codable, Hashable {
+//     /// Unique identifier for the audio media
+//     public var id: String
 //     
-//     /// URL where the audio can be accessed
+//     /// URL or path to the audio
 //     public var url: String
 //     
 //     /// Caption or description of the audio
 //     public var caption: String?
 //     
 //     /// Duration of the audio in seconds
-//     public var duration: Double?
+//     public var duration: TimeInterval?
 //     
-//     /// Creates new audio content with the specified properties.
-//     ///
-//     /// - Parameters:
-//     ///   - url: URL where the audio can be accessed
-//     ///   - caption: Caption or description of the audio
-//     ///   - duration: Duration of the audio in seconds
-//     public init(url: String, caption: String? = nil, duration: Double? = nil) {
+//     /// The name of the audio media, used for display and embedding generation
+//     public var name: String {
+//         return caption ?? "Audio \(id)"
+//     }
+//     
+//     /// Creates a new audio media item
+//     public init(id: String = UUID().uuidString, url: String, caption: String? = nil, duration: TimeInterval? = nil) {
+//         self.id = id
 //         self.url = url
 //         self.caption = caption
 //         self.duration = duration
 //     }
 // }
 // 
-// /// Represents document content in a user submission
-// /// @deprecated Use MediaItem with type .document instead
+// /// A document media item in a user submission
 // @available(*, deprecated, message: "Use MediaItem with type .document instead")
-// public struct DocumentMedia: Codable, Hashable {
-//     /// Unique identifier for the document
-//     public var id: String = UUID().uuidString
+// public struct DocumentMedia: BaseEntity, Codable, Hashable {
+//     /// Unique identifier for the document media
+//     public var id: String
 //     
-//     /// URL where the document can be accessed
+//     /// URL or path to the document
 //     public var url: String
 //     
 //     /// Title or name of the document
 //     public var title: String?
 //     
-//     /// Type or format of the document (e.g., "pdf", "docx")
-//     public var documentType: String?
+//     /// Description of the document
+//     public var description: String?
 //     
-//     /// Creates new document content with the specified properties.
-//     ///
-//     /// - Parameters:
-//     ///   - url: URL where the document can be accessed
-//     ///   - title: Title or name of the document
-//     ///   - documentType: Type or format of the document
-//     public init(url: String, title: String? = nil, documentType: String? = nil) {
+//     /// The name of the document media, used for display and embedding generation
+//     public var name: String {
+//         return title ?? "Document \(id)"
+//     }
+//     
+//     /// Creates a new document media item
+//     public init(id: String = UUID().uuidString, url: String, title: String? = nil, description: String? = nil) {
+//         self.id = id
 //         self.url = url
 //         self.title = title
-//         self.documentType = documentType
+//         self.description = description
 //     }
 // }
 
@@ -4748,9 +5089,12 @@
 // /// A struct representing a video in the news app.
 // /// Videos are a type of news content with additional properties for
 // /// duration and resolution.
-// public struct Video: NewsContent {
+// public struct Video: NewsContent, BaseEntity {
 //     /// Unique identifier for the video
-//     public var id: UUID
+//     public var id: String
+//     
+//     /// The name of the entity (required by BaseEntity)
+//     public var name: String { title }
 //     
 //     /// Title or headline of the video
 //     public var title: String
@@ -4779,7 +5123,7 @@
 //     /// Creates a new video with the specified properties.
 //     ///
 //     /// - Parameters:
-//     ///   - id: Unique identifier for the video (defaults to a new UUID)
+//     ///   - id: Unique identifier for the video (defaults to a new UUID string)
 //     ///   - title: Title or headline of the video
 //     ///   - url: URL where the video can be accessed
 //     ///   - urlToImage: URL to a thumbnail image (defaults to a placeholder)
@@ -4789,7 +5133,7 @@
 //     ///   - duration: Length of the video in seconds
 //     ///   - resolution: Video quality (e.g., "720p", "1080p", "4K")
 //     public init(
-//         id: UUID = UUID(),
+//         id: String = UUID().uuidString,
 //         title: String,
 //         url: String,
 //         urlToImage: String? = "https://picsum.photos/800/1200",
