@@ -90,9 +90,7 @@ public class DataExporter {
                 "target_type": relationship.type.rawValue,
                 "display_name": relationship.displayName as Any,
                 "created_at": relationship.createdAt,
-                "confidence": relationship.confidence,
-                "context": relationship.context as Any,
-                "source": relationship.source.rawValue
+                "context": relationship.context as Any
             ]
             
             // Generate column names and values
@@ -180,10 +178,8 @@ public class DataExporter {
     ///   ```
     public static func generateRelationshipVectorRecords<T: AssociatedData>(_ entity: T) -> [VectorRecord] {
         return entity.relationships.map { relationship -> VectorRecord in
-            let text = relationship.toEmbeddingText(
-                sourceEntityName: entity.name,
-                sourceEntityType: String(describing: type(of: entity))
-            )
+            // Create embedding text manually since toEmbeddingText doesn't exist
+            let text = "Relationship from \(entity.name) (\(String(describing: type(of: entity)))) to \(relationship.id) of type \(relationship.type.rawValue)"
             
             return VectorRecord(
                 id: "\(entity.id)_rel_\(relationship.id)",
@@ -194,7 +190,9 @@ public class DataExporter {
                     "source_type": String(describing: type(of: entity)),
                     "target_id": relationship.id,
                     "target_type": relationship.type.rawValue,
-                    "relationship_type": relationship.type.rawValue
+                    "display_name": relationship.displayName ?? "",
+                    "created_at": ISO8601DateFormatter().string(from: relationship.createdAt),
+                    "context": relationship.context ?? ""
                 ]
             )
         }

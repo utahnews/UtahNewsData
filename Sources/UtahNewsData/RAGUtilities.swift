@@ -67,7 +67,7 @@ public class RAGUtilities {
         context += "ID: \(entity.id)\n\n"
         
         // Add entity-specific details if available
-        if let detailsProvider = entity as? EntityDetailsProvider {
+        if let detailsProvider = entity as? any EntityDetailsProvider {
             context += "## Details\n\n"
             context += detailsProvider.getDetailedDescription()
             context += "\n\n"
@@ -133,7 +133,6 @@ public class RAGUtilities {
                     type: relationship.type.rawValue,
                     properties: [
                         "displayName": relationship.displayName as Any,
-                        "confidence": relationship.confidence,
                         "createdAt": relationship.createdAt,
                         "context": relationship.context as Any
                     ]

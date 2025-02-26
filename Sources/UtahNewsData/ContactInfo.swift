@@ -64,7 +64,7 @@ public struct ContactInfo: BaseEntity, Codable, Hashable, Equatable {
     public var id: String = UUID().uuidString
     
     /// Name of the contact (person or department)
-    public var name: String? = nil
+    public var name: String = "Contact"
     
     /// Email address for contact
     public var email: String? = nil
@@ -98,9 +98,11 @@ public struct ContactInfo: BaseEntity, Codable, Hashable, Equatable {
         website: String? = nil,
         phone: String? = nil,
         address: String? = nil,
-        socialMediaHandles: [String: String]? = [:]
+        socialMediaHandles: [String: String]? = nil
     ) {
-        self.name = name
+        if let name = name {
+            self.name = name
+        }
         self.email = email
         self.website = website
         self.phone = phone

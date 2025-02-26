@@ -56,7 +56,7 @@ import SwiftUI
 
 /// Represents an expert's analysis or commentary on a topic or news event.
 /// Expert analyses provide authoritative perspectives from qualified individuals.
-public struct ExpertAnalysis: AssociatedData {
+public struct ExpertAnalysis: AssociatedData, Codable {
     /// Unique identifier for the expert analysis
     public var id: String
     
@@ -99,7 +99,7 @@ public struct ExpertAnalysis: AssociatedData {
 /// Represents professional credentials, degrees, and certifications.
 /// Used to establish the qualifications and expertise of individuals
 /// providing expert analysis.
-public enum Credential: String {
+public enum Credential: String, Codable {
     // Academic Degrees
     /// Doctor of Philosophy
     case PhD = "Doctor of Philosophy"

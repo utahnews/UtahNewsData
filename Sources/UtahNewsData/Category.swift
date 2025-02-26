@@ -61,7 +61,7 @@ import Foundation
 /// Represents a content category in the UtahNewsData system.
 /// Categories provide a way to organize and classify content such as articles,
 /// media items, and other news-related entities.
-public struct Category: AssociatedData, EntityDetailsProvider {
+public struct Category: AssociatedData, EntityDetailsProvider, BaseEntity {
     /// Unique identifier for the category
     public var id: String = UUID().uuidString
     
@@ -74,13 +74,32 @@ public struct Category: AssociatedData, EntityDetailsProvider {
     /// Detailed description of what the category encompasses
     public var description: String?
     
-    /// Parent category if this is a subcategory
-    public var parentCategory: Category?
+    /// Parent category reference (using id instead of direct reference)
+    public var parentCategoryId: String?
     
-    /// Child categories if this category has subcategories
-    public var subcategories: [Category]?
+    /// Child category references (using ids instead of direct references)
+    public var subcategoryIds: [String]?
     
     /// Creates a new Category with the specified properties.
+    ///
+    /// - Parameters:
+    ///   - name: The name of the category
+    ///   - description: Detailed description of what the category encompasses
+    ///   - parentCategoryId: ID of parent category if this is a subcategory
+    ///   - subcategoryIds: IDs of child categories if this category has subcategories
+    public init(
+        name: String,
+        description: String? = nil,
+        parentCategoryId: String? = nil,
+        subcategoryIds: [String]? = nil
+    ) {
+        self.name = name
+        self.description = description
+        self.parentCategoryId = parentCategoryId
+        self.subcategoryIds = subcategoryIds
+    }
+    
+    /// Convenience initializer that takes Category instances for parent and subcategories
     ///
     /// - Parameters:
     ///   - name: The name of the category
@@ -95,8 +114,8 @@ public struct Category: AssociatedData, EntityDetailsProvider {
     ) {
         self.name = name
         self.description = description
-        self.parentCategory = parentCategory
-        self.subcategories = subcategories
+        self.parentCategoryId = parentCategory?.id
+        self.subcategoryIds = subcategories?.map { $0.id }
     }
     
     /// Generates a detailed text description of the category for use in RAG systems.
@@ -110,13 +129,12 @@ public struct Category: AssociatedData, EntityDetailsProvider {
             description += "\nDescription: \(categoryDescription)"
         }
         
-        if let parentCategory = parentCategory {
-            description += "\nParent Category: \(parentCategory.name)"
+        if let parentCategoryId = parentCategoryId {
+            description += "\nParent Category ID: \(parentCategoryId)"
         }
         
-        if let subcategories = subcategories, !subcategories.isEmpty {
-            let subcategoryNames = subcategories.map { $0.name }.joined(separator: ", ")
-            description += "\nSubcategories: \(subcategoryNames)"
+        if let subcategoryIds = subcategoryIds, !subcategoryIds.isEmpty {
+            description += "\nSubcategory IDs: \(subcategoryIds.joined(separator: ", "))"
         }
         
         return description

@@ -82,9 +82,15 @@ public enum ConfidenceLevel: String, Codable {
 /// Represents a verified piece of information in the UtahNewsData system.
 /// Facts can be associated with articles, news events, and other content types,
 /// providing verified data points with proper attribution.
-public struct Fact: AssociatedData, EntityDetailsProvider {
+public struct Fact: AssociatedData, EntityDetailsProvider, BaseEntity {
     /// Unique identifier for the fact
     public var id: String = UUID().uuidString
+    
+    /// The name of the entity (required by BaseEntity)
+    public var name: String { 
+        let truncatedStatement = statement.count > 50 ? statement.prefix(50) + "..." : statement
+        return String(truncatedStatement)
+    }
     
     /// Relationships to other entities in the system
     public var relationships: [Relationship] = []
@@ -93,7 +99,7 @@ public struct Fact: AssociatedData, EntityDetailsProvider {
     public var statement: String
     
     /// Organizations or persons that are the source of this fact
-    public var sources: [EntityDetailsProvider]?
+    public var sources: [any EntityDetailsProvider]?
     
     /// Current verification status of the fact
     public var verificationStatus: VerificationStatus?
@@ -107,11 +113,11 @@ public struct Fact: AssociatedData, EntityDetailsProvider {
     /// Subject areas or keywords related to the fact
     public var topics: [String]?
     
-    /// Formal category the fact belongs to
-    public var category: Category?
+    /// Category ID the fact belongs to (instead of direct reference)
+    public var categoryId: String?
     
     /// Entities (people, organizations, locations) related to this fact
-    public var relatedEntities: [EntityDetailsProvider]?
+    public var relatedEntities: [any EntityDetailsProvider]?
     
     /// Creates a new Fact with the specified properties.
     ///
@@ -122,17 +128,17 @@ public struct Fact: AssociatedData, EntityDetailsProvider {
     ///   - confidenceLevel: Confidence level in the fact's accuracy
     ///   - date: When the fact was established or reported
     ///   - topics: Subject areas or keywords related to the fact
-    ///   - category: Formal category the fact belongs to
+    ///   - categoryId: ID of the category the fact belongs to
     ///   - relatedEntities: Entities (people, organizations, locations) related to this fact
     public init(
         statement: String,
-        sources: [EntityDetailsProvider]? = nil,
+        sources: [any EntityDetailsProvider]? = nil,
         verificationStatus: VerificationStatus? = nil,
         confidenceLevel: ConfidenceLevel? = nil,
         date: Date? = nil,
         topics: [String]? = nil,
-        category: Category? = nil,
-        relatedEntities: [EntityDetailsProvider]? = nil
+        categoryId: String? = nil,
+        relatedEntities: [any EntityDetailsProvider]? = nil
     ) {
         self.statement = statement
         self.sources = sources
@@ -140,8 +146,88 @@ public struct Fact: AssociatedData, EntityDetailsProvider {
         self.confidenceLevel = confidenceLevel
         self.date = date
         self.topics = topics
-        self.category = category
+        self.categoryId = categoryId
         self.relatedEntities = relatedEntities
+    }
+    
+    /// Convenience initializer that takes a Category instance
+    ///
+    /// - Parameters:
+    ///   - statement: The factual statement
+    ///   - sources: Organizations or persons that are the source of this fact
+    ///   - verificationStatus: Current verification status of the fact
+    ///   - confidenceLevel: Confidence level in the fact's accuracy
+    ///   - date: When the fact was established or reported
+    ///   - topics: Subject areas or keywords related to the fact
+    ///   - category: Category the fact belongs to
+    ///   - relatedEntities: Entities (people, organizations, locations) related to this fact
+    public init(
+        statement: String,
+        sources: [any EntityDetailsProvider]? = nil,
+        verificationStatus: VerificationStatus? = nil,
+        confidenceLevel: ConfidenceLevel? = nil,
+        date: Date? = nil,
+        topics: [String]? = nil,
+        category: Category? = nil,
+        relatedEntities: [any EntityDetailsProvider]? = nil
+    ) {
+        self.statement = statement
+        self.sources = sources
+        self.verificationStatus = verificationStatus
+        self.confidenceLevel = confidenceLevel
+        self.date = date
+        self.topics = topics
+        self.categoryId = category?.id
+        self.relatedEntities = relatedEntities
+    }
+    
+    // Implement Equatable manually since we have properties that don't conform to Equatable
+    public static func == (lhs: Fact, rhs: Fact) -> Bool {
+        return lhs.id == rhs.id &&
+               lhs.statement == rhs.statement
+    }
+    
+    // Implement Hashable manually
+    public func hash(into hasher: inout Hasher) {
+        hasher.combine(id)
+        hasher.combine(statement)
+    }
+    
+    // Implement Codable manually
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        
+        id = try container.decode(String.self, forKey: .id)
+        statement = try container.decode(String.self, forKey: .statement)
+        verificationStatus = try container.decodeIfPresent(VerificationStatus.self, forKey: .verificationStatus)
+        confidenceLevel = try container.decodeIfPresent(ConfidenceLevel.self, forKey: .confidenceLevel)
+        date = try container.decodeIfPresent(Date.self, forKey: .date)
+        topics = try container.decodeIfPresent([String].self, forKey: .topics)
+        categoryId = try container.decodeIfPresent(String.self, forKey: .categoryId)
+        relationships = try container.decodeIfPresent([Relationship].self, forKey: .relationships) ?? []
+        
+        // Skip decoding sources and relatedEntities as they use protocol types
+        sources = nil
+        relatedEntities = nil
+    }
+    
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        
+        try container.encode(id, forKey: .id)
+        try container.encode(statement, forKey: .statement)
+        try container.encodeIfPresent(verificationStatus, forKey: .verificationStatus)
+        try container.encodeIfPresent(confidenceLevel, forKey: .confidenceLevel)
+        try container.encodeIfPresent(date, forKey: .date)
+        try container.encodeIfPresent(topics, forKey: .topics)
+        try container.encodeIfPresent(categoryId, forKey: .categoryId)
+        try container.encode(relationships, forKey: .relationships)
+        
+        // Skip encoding sources and relatedEntities as they use protocol types
+    }
+    
+    private enum CodingKeys: String, CodingKey {
+        case id, statement, verificationStatus, confidenceLevel, date, topics, categoryId, relationships
     }
     
     /// Generates a detailed text description of the fact for use in RAG systems.
@@ -162,11 +248,7 @@ public struct Fact: AssociatedData, EntityDetailsProvider {
         if let sources = sources, !sources.isEmpty {
             description += "\nSources:"
             for source in sources {
-                if let person = source as? Person {
-                    description += "\n- \(person.name)"
-                } else if let organization = source as? Organization {
-                    description += "\n- \(organization.name)"
-                }
+                description += "\n- \(source.name)"
             }
         }
         
@@ -176,8 +258,8 @@ public struct Fact: AssociatedData, EntityDetailsProvider {
             description += "\nDate: \(formatter.string(from: date))"
         }
         
-        if let category = category {
-            description += "\nCategory: \(category.name)"
+        if let categoryId = categoryId {
+            description += "\nCategory ID: \(categoryId)"
         }
         
         if let topics = topics, !topics.isEmpty {

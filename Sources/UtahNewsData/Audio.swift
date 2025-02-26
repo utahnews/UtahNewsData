@@ -54,9 +54,12 @@ import Foundation
 /// A struct representing an audio clip in the news app.
 /// Audio clips are a type of news content with additional properties for
 /// duration and audio quality (bitrate).
-public struct Audio: NewsContent {
+public struct Audio: NewsContent, BaseEntity {
     /// Unique identifier for the audio clip
-    public var id: UUID
+    public var id: String
+    
+    /// The name of the entity (required by BaseEntity)
+    public var name: String { title }
     
     /// Title or name of the audio clip
     public var title: String
@@ -85,7 +88,7 @@ public struct Audio: NewsContent {
     /// Creates a new audio clip with the specified properties.
     ///
     /// - Parameters:
-    ///   - id: Unique identifier for the audio clip (defaults to a new UUID)
+    ///   - id: Unique identifier for the audio clip (defaults to a new UUID string)
     ///   - title: Title or name of the audio clip
     ///   - url: URL where the audio can be accessed
     ///   - urlToImage: URL to an image representing the audio (defaults to a placeholder)
@@ -95,7 +98,7 @@ public struct Audio: NewsContent {
     ///   - duration: Length of the audio in seconds
     ///   - bitrate: Audio quality in kilobits per second (kbps)
     public init(
-        id: UUID = UUID(),
+        id: String = UUID().uuidString,
         title: String,
         url: String,
         urlToImage: String? = "https://picsum.photos/800/1200",

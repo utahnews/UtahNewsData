@@ -175,9 +175,7 @@ public struct Organization: AssociatedData, Codable, Identifiable, Hashable, Ent
                     description += "### Contact \(index + 1)\n"
                 }
                 
-                if let contactName = contact.name {
-                    description += "**Name**: \(contactName)\n"
-                }
+                description += "**Name**: \(contact.name)\n"
                 
                 if let email = contact.email {
                     description += "**Email**: \(email)\n"

@@ -54,9 +54,12 @@ import Foundation
 /// A struct representing a video in the news app.
 /// Videos are a type of news content with additional properties for
 /// duration and resolution.
-public struct Video: NewsContent {
+public struct Video: NewsContent, BaseEntity {
     /// Unique identifier for the video
-    public var id: UUID
+    public var id: String
+    
+    /// The name of the entity (required by BaseEntity)
+    public var name: String { title }
     
     /// Title or headline of the video
     public var title: String
@@ -85,7 +88,7 @@ public struct Video: NewsContent {
     /// Creates a new video with the specified properties.
     ///
     /// - Parameters:
-    ///   - id: Unique identifier for the video (defaults to a new UUID)
+    ///   - id: Unique identifier for the video (defaults to a new UUID string)
     ///   - title: Title or headline of the video
     ///   - url: URL where the video can be accessed
     ///   - urlToImage: URL to a thumbnail image (defaults to a placeholder)
@@ -95,7 +98,7 @@ public struct Video: NewsContent {
     ///   - duration: Length of the video in seconds
     ///   - resolution: Video quality (e.g., "720p", "1080p", "4K")
     public init(
-        id: UUID = UUID(),
+        id: String = UUID().uuidString,
         title: String,
         url: String,
         urlToImage: String? = "https://picsum.photos/800/1200",

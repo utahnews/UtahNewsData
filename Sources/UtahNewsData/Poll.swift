@@ -178,9 +178,11 @@ public struct PollResponse: BaseEntity, Codable, Hashable {
     /// Creates a new poll response with the specified properties.
     ///
     /// - Parameters:
+    ///   - id: Unique identifier for the poll response (defaults to a new UUID string)
     ///   - respondent: Person who responded to the poll (optional for anonymous polls)
     ///   - selectedOption: The option selected by the respondent
-    public init(respondent: Person? = nil, selectedOption: String) {
+    public init(id: String = UUID().uuidString, respondent: Person? = nil, selectedOption: String) {
+        self.id = id
         self.respondent = respondent
         self.selectedOption = selectedOption
     }

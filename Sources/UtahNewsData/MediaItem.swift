@@ -288,7 +288,7 @@ public extension MediaItem {
     /// - Returns: A new MediaItem with properties from the Article
     static func from(_ article: Article) -> MediaItem {
         return MediaItem(
-            id: article.id.uuidString,
+            id: article.id,
             title: article.title,
             type: .text,
             url: article.url,
@@ -304,7 +304,7 @@ public extension MediaItem {
     /// - Returns: A new MediaItem with properties from the Video
     static func from(_ video: Video) -> MediaItem {
         return MediaItem(
-            id: video.id.uuidString,
+            id: video.id,
             title: video.title,
             type: .video,
             url: video.url,
@@ -322,15 +322,14 @@ public extension MediaItem {
     /// - Returns: A new MediaItem with properties from the Audio
     static func from(_ audio: Audio) -> MediaItem {
         return MediaItem(
-            id: audio.id.uuidString,
+            id: audio.id,
             title: audio.title,
             type: .audio,
             url: audio.url,
             caption: audio.textContent,
             author: audio.author,
             publishedAt: audio.publishedAt,
-            duration: audio.duration,
-            bitrate: audio.bitrate
+            duration: audio.duration
         )
     }
     
@@ -378,7 +377,7 @@ public extension MediaItem {
         )
     }
     
-    /// Creates a MediaItem from a UserSubmission media type
+    /// Creates a MediaItem from a legacy DocumentMedia
     ///
     /// - Parameter documentMedia: The DocumentMedia to convert
     /// - Returns: A new MediaItem with properties from the DocumentMedia
@@ -388,7 +387,7 @@ public extension MediaItem {
             title: documentMedia.title ?? "Document",
             type: .document,
             url: documentMedia.url,
-            format: documentMedia.documentType
+            format: "application/pdf" // Default format since DocumentMedia doesn't have a format property
         )
     }
     

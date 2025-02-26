@@ -86,18 +86,24 @@ public struct RecurrenceRule: BaseEntity, Codable, Hashable, Equatable {
     /// Creates a new RecurrenceRule with the specified properties.
     ///
     /// - Parameters:
+    ///   - id: Unique identifier for the recurrence rule (defaults to a new UUID string)
+    ///   - name: The name or description of this recurrence rule
     ///   - frequency: Frequency of recurrence (daily, weekly, monthly, yearly)
     ///   - interval: Interval between occurrences (e.g., every 2 weeks)
     ///   - endDate: When the recurrence ends (specific date)
     ///   - occurrences: Number of occurrences after which the recurrence ends
     ///   - daysOfWeek: Days of the week when the event occurs (for weekly recurrence)
     public init(
+        id: String = UUID().uuidString,
+        name: String? = nil,
         frequency: String,
         interval: Int = 1,
         endDate: Date? = nil,
         occurrences: Int? = nil,
         daysOfWeek: [Int]? = nil
     ) {
+        self.id = id
+        self.name = name ?? "\(frequency) (every \(interval))"
         self.frequency = frequency
         self.interval = interval
         self.endDate = endDate
@@ -109,9 +115,12 @@ public struct RecurrenceRule: BaseEntity, Codable, Hashable, Equatable {
 /// Represents a calendar event in the UtahNewsData system.
 /// CalEvents can be used to track scheduled events such as press conferences,
 /// meetings, hearings, and other time-based occurrences relevant to news coverage.
-public struct CalEvent: AssociatedData, EntityDetailsProvider {
+public struct CalEvent: AssociatedData, EntityDetailsProvider, BaseEntity {
     /// Unique identifier for the calendar event
     public var id: String = UUID().uuidString
+    
+    /// The name of the entity (required by BaseEntity)
+    public var name: String { title }
     
     /// Relationships to other entities in the system
     public var relationships: [Relationship] = []
@@ -132,10 +141,10 @@ public struct CalEvent: AssociatedData, EntityDetailsProvider {
     public var location: Location?
     
     /// Person or organization organizing the event
-    public var organizer: EntityDetailsProvider?
+    public var organizer: (any EntityDetailsProvider)?
     
     /// People or organizations attending the event
-    public var attendees: [EntityDetailsProvider]?
+    public var attendees: [any EntityDetailsProvider]?
     
     /// Whether the event is open to the public
     public var isPublic: Bool?
@@ -147,7 +156,7 @@ public struct CalEvent: AssociatedData, EntityDetailsProvider {
     public var recurrenceRule: RecurrenceRule?
     
     /// Entities related to this event
-    public var relatedEntities: [EntityDetailsProvider]?
+    public var relatedEntities: [any EntityDetailsProvider]?
     
     /// Creates a new CalEvent with the specified properties.
     ///
@@ -169,12 +178,12 @@ public struct CalEvent: AssociatedData, EntityDetailsProvider {
         startDate: Date,
         endDate: Date,
         location: Location? = nil,
-        organizer: EntityDetailsProvider? = nil,
-        attendees: [EntityDetailsProvider]? = nil,
+        organizer: (any EntityDetailsProvider)? = nil,
+        attendees: [any EntityDetailsProvider]? = nil,
         isPublic: Bool? = nil,
         url: String? = nil,
         recurrenceRule: RecurrenceRule? = nil,
-        relatedEntities: [EntityDetailsProvider]? = nil
+        relatedEntities: [any EntityDetailsProvider]? = nil
     ) {
         self.title = title
         self.description = description
@@ -187,6 +196,64 @@ public struct CalEvent: AssociatedData, EntityDetailsProvider {
         self.url = url
         self.recurrenceRule = recurrenceRule
         self.relatedEntities = relatedEntities
+    }
+    
+    // Implement Equatable manually since we have properties that don't conform to Equatable
+    public static func == (lhs: CalEvent, rhs: CalEvent) -> Bool {
+        return lhs.id == rhs.id &&
+               lhs.title == rhs.title &&
+               lhs.startDate == rhs.startDate &&
+               lhs.endDate == rhs.endDate
+    }
+    
+    // Implement Hashable manually
+    public func hash(into hasher: inout Hasher) {
+        hasher.combine(id)
+        hasher.combine(title)
+        hasher.combine(startDate)
+        hasher.combine(endDate)
+    }
+    
+    // Implement Codable manually
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        
+        id = try container.decode(String.self, forKey: .id)
+        title = try container.decode(String.self, forKey: .title)
+        description = try container.decodeIfPresent(String.self, forKey: .description)
+        startDate = try container.decode(Date.self, forKey: .startDate)
+        endDate = try container.decode(Date.self, forKey: .endDate)
+        location = try container.decodeIfPresent(Location.self, forKey: .location)
+        isPublic = try container.decodeIfPresent(Bool.self, forKey: .isPublic)
+        url = try container.decodeIfPresent(String.self, forKey: .url)
+        recurrenceRule = try container.decodeIfPresent(RecurrenceRule.self, forKey: .recurrenceRule)
+        relationships = try container.decodeIfPresent([Relationship].self, forKey: .relationships) ?? []
+        
+        // Skip decoding organizer, attendees, and relatedEntities as they use protocol types
+        organizer = nil
+        attendees = nil
+        relatedEntities = nil
+    }
+    
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        
+        try container.encode(id, forKey: .id)
+        try container.encode(title, forKey: .title)
+        try container.encodeIfPresent(description, forKey: .description)
+        try container.encode(startDate, forKey: .startDate)
+        try container.encode(endDate, forKey: .endDate)
+        try container.encodeIfPresent(location, forKey: .location)
+        try container.encodeIfPresent(isPublic, forKey: .isPublic)
+        try container.encodeIfPresent(url, forKey: .url)
+        try container.encodeIfPresent(recurrenceRule, forKey: .recurrenceRule)
+        try container.encode(relationships, forKey: .relationships)
+        
+        // Skip encoding organizer, attendees, and relatedEntities as they use protocol types
+    }
+    
+    private enum CodingKeys: String, CodingKey {
+        case id, title, description, startDate, endDate, location, isPublic, url, recurrenceRule, relationships
     }
     
     /// Generates a detailed text description of the calendar event for use in RAG systems.

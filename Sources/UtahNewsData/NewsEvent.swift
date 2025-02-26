@@ -78,7 +78,7 @@ import Foundation
 /// Represents a significant event covered in the news in the UtahNewsData system.
 /// NewsEvents can be associated with articles, people, organizations, and locations,
 /// providing a way to track and organize coverage of specific occurrences.
-public struct NewsEvent: Codable, Identifiable, Hashable, Equatable, AssociatedData {
+public struct NewsEvent: Codable, Identifiable, Hashable, Equatable, AssociatedData, BaseEntity {
     /// Unique identifier for the news event
     public var id: String
     
@@ -87,6 +87,11 @@ public struct NewsEvent: Codable, Identifiable, Hashable, Equatable, AssociatedD
     
     /// The name or headline of the event
     public var title: String
+    
+    /// The name property required by the BaseEntity protocol
+    public var name: String {
+        return title
+    }
     
     /// When the event occurred
     public var date: Date

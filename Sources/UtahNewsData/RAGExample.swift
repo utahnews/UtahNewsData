@@ -69,14 +69,12 @@ public struct RAGExample {
         // MARK: - Create Relationships
         
         // Create a relationship from Person to Organization
-        // Note the use of confidence score, context, and source attribution
+        // Note the use of context and display name
         let personToOrgRelationship = Relationship(
             id: organization.id,
             type: .organization,
             displayName: "Works at",
-            context: "Jane Doe has been working at Utah News Network since 2020.",
-            confidence: 0.95,  // High confidence (0.0-1.0 scale)
-            source: .userInput // This relationship was manually entered
+            context: "Jane Doe has been working at Utah News Network since 2020."
         )
         
         // Create a relationship from Organization to Person
@@ -85,9 +83,7 @@ public struct RAGExample {
             id: person.id,
             type: .person,
             displayName: "Employs",
-            context: "Utah News Network employs Jane Doe as a senior reporter.",
-            confidence: 0.95,
-            source: .userInput
+            context: "Utah News Network employs Jane Doe as a senior reporter."
         )
         
         // Add relationships to entities
@@ -100,37 +96,29 @@ public struct RAGExample {
         
         // MARK: - Generate RAG Context
         
-        // Generate context for a single entity
-        // This creates a rich text document describing the entity and its relationships
-        let personContext = RAGUtilities.generateEntityContext(updatedPerson)
-        print("Person Context:\n\(personContext)\n")
-        
         // Generate context for multiple entities
         // This combines context from multiple entities into a single document
-        let combinedContext = RAGUtilities.generateCombinedContext([updatedPerson, updatedOrg])
+        let personContext = RAGUtilities.generateCombinedContext([updatedPerson])
+        let orgContext = RAGUtilities.generateCombinedContext([updatedOrg])
+        let combinedContext = personContext + "\n\n" + orgContext
         print("Combined Context:\n\(combinedContext)\n")
-        
-        // MARK: - Prepare for Vector Storage
         
         // Generate vector records for entities
         // These records can be sent to an embedding service and stored in a vector database
-        let vectorRecords = RAGUtilities.prepareEntitiesForEmbedding([updatedPerson, updatedOrg])
+        let personVectorRecords = RAGUtilities.prepareEntitiesForEmbedding([updatedPerson])
+        let orgVectorRecords = RAGUtilities.prepareEntitiesForEmbedding([updatedOrg])
+        let vectorRecords = personVectorRecords + orgVectorRecords
         print("Generated \(vectorRecords.count) vector records")
-        
-        // Example of what a vector record looks like
-        if let firstRecord = vectorRecords.first {
-            print("Example Vector Record:")
-            print("ID: \(firstRecord.id)")
-            print("Entity Type: \(firstRecord.entityType)")
-            print("Text for Embedding: \(firstRecord.text)")
-            print("Metadata: \(firstRecord.metadata)")
-        }
-        
-        // MARK: - Generate Knowledge Graph
         
         // Create a knowledge graph from entities
         // This builds a graph representation with nodes (entities) and edges (relationships)
-        let graph = RAGUtilities.generateKnowledgeGraph([updatedPerson, updatedOrg])
+        let personGraph = RAGUtilities.generateKnowledgeGraph([updatedPerson])
+        let orgGraph = RAGUtilities.generateKnowledgeGraph([updatedOrg])
+        // Combine the graphs
+        var graph = KnowledgeGraph()
+        graph.nodes = personGraph.nodes + orgGraph.nodes
+        graph.edges = personGraph.edges + orgGraph.edges
+        
         print("Knowledge Graph: \(graph.nodes.count) nodes, \(graph.edges.count) edges")
         
         // Export the graph to JSON
@@ -138,9 +126,8 @@ public struct RAGExample {
         do {
             let graphJSON = try graph.toJSON()
             print("Knowledge Graph JSON (excerpt):")
-            if let excerpt = String(graphJSON.prefix(200)) {
-                print("\(excerpt)...")
-            }
+            let excerpt = String(graphJSON.prefix(200))
+            print("\(excerpt)...")
         } catch {
             print("Error generating graph JSON: \(error)")
         }

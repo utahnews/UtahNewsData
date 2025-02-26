@@ -81,9 +81,14 @@ public enum VisualizationType: String, Codable {
 /// Represents a numerical data point in the UtahNewsData system.
 /// StatisticalData can be associated with articles, news events, and other content types,
 /// providing quantitative information with proper attribution.
-public struct StatisticalData: AssociatedData, EntityDetailsProvider {
+public struct StatisticalData: EntityDetailsProvider {
     /// Unique identifier for the statistical data
     public var id: String = UUID().uuidString
+    
+    /// The name property required by the BaseEntity protocol
+    public var name: String {
+        return title
+    }
     
     /// Relationships to other entities in the system
     public var relationships: [Relationship] = []
@@ -98,7 +103,7 @@ public struct StatisticalData: AssociatedData, EntityDetailsProvider {
     public var unit: String
     
     /// Organization or person that is the source of this data
-    public var source: EntityDetailsProvider?
+    public var source: (any EntityDetailsProvider)?
     
     /// When the data was collected or published
     public var date: Date?
@@ -119,7 +124,7 @@ public struct StatisticalData: AssociatedData, EntityDetailsProvider {
     public var topics: [String]?
     
     /// Entities (people, organizations, locations) related to this data
-    public var relatedEntities: [EntityDetailsProvider]?
+    public var relatedEntities: [any EntityDetailsProvider]?
     
     /// Creates a new StatisticalData with the specified properties.
     ///
@@ -139,14 +144,14 @@ public struct StatisticalData: AssociatedData, EntityDetailsProvider {
         title: String,
         value: String,
         unit: String,
-        source: EntityDetailsProvider? = nil,
+        source: (any EntityDetailsProvider)? = nil,
         date: Date? = nil,
         methodology: String? = nil,
         marginOfError: String? = nil,
         visualizationType: VisualizationType? = nil,
         comparisonValue: String? = nil,
         topics: [String]? = nil,
-        relatedEntities: [EntityDetailsProvider]? = nil
+        relatedEntities: [any EntityDetailsProvider]? = nil
     ) {
         self.title = title
         self.value = value
@@ -200,5 +205,79 @@ public struct StatisticalData: AssociatedData, EntityDetailsProvider {
         }
         
         return description
+    }
+}
+
+// MARK: - Equatable & Hashable
+extension StatisticalData: Equatable, Hashable {
+    public static func == (lhs: StatisticalData, rhs: StatisticalData) -> Bool {
+        lhs.id == rhs.id &&
+        lhs.title == rhs.title &&
+        lhs.value == rhs.value &&
+        lhs.unit == rhs.unit &&
+        lhs.date == rhs.date &&
+        lhs.methodology == rhs.methodology &&
+        lhs.marginOfError == rhs.marginOfError &&
+        lhs.visualizationType == rhs.visualizationType &&
+        lhs.comparisonValue == rhs.comparisonValue &&
+        lhs.topics == rhs.topics
+        // Note: source and relatedEntities are not compared as they're EntityDetailsProvider which doesn't conform to Equatable
+    }
+    
+    public func hash(into hasher: inout Hasher) {
+        hasher.combine(id)
+        hasher.combine(title)
+        hasher.combine(value)
+        hasher.combine(unit)
+        hasher.combine(date)
+        hasher.combine(methodology)
+        hasher.combine(marginOfError)
+        hasher.combine(visualizationType)
+        hasher.combine(comparisonValue)
+        hasher.combine(topics)
+        // Note: source and relatedEntities are not hashed as they're EntityDetailsProvider which doesn't conform to Hashable
+    }
+}
+
+// MARK: - Codable
+extension StatisticalData: Codable {
+    private enum CodingKeys: String, CodingKey {
+        case id, relationships, title, value, unit, date, methodology, marginOfError, visualizationType, comparisonValue, topics
+        // Note: source and relatedEntities are excluded as they're EntityDetailsProvider which doesn't conform to Codable
+    }
+    
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        
+        id = try container.decode(String.self, forKey: .id)
+        relationships = try container.decode([Relationship].self, forKey: .relationships)
+        title = try container.decode(String.self, forKey: .title)
+        value = try container.decode(String.self, forKey: .value)
+        unit = try container.decode(String.self, forKey: .unit)
+        date = try container.decodeIfPresent(Date.self, forKey: .date)
+        methodology = try container.decodeIfPresent(String.self, forKey: .methodology)
+        marginOfError = try container.decodeIfPresent(String.self, forKey: .marginOfError)
+        visualizationType = try container.decodeIfPresent(VisualizationType.self, forKey: .visualizationType)
+        comparisonValue = try container.decodeIfPresent(String.self, forKey: .comparisonValue)
+        topics = try container.decodeIfPresent([String].self, forKey: .topics)
+        source = nil // Cannot decode EntityDetailsProvider
+        relatedEntities = nil // Cannot decode [EntityDetailsProvider]
+    }
+    
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        
+        try container.encode(id, forKey: .id)
+        try container.encode(relationships, forKey: .relationships)
+        try container.encode(title, forKey: .title)
+        try container.encode(value, forKey: .value)
+        try container.encode(unit, forKey: .unit)
+        try container.encode(date, forKey: .date)
+        try container.encode(methodology, forKey: .methodology)
+        try container.encode(marginOfError, forKey: .marginOfError)
+        try container.encode(visualizationType, forKey: .visualizationType)
+        try container.encode(comparisonValue, forKey: .comparisonValue)
+        try container.encode(topics, forKey: .topics)
+        // source and relatedEntities are not encoded as they're EntityDetailsProvider which doesn't conform to Codable
     }
 }
