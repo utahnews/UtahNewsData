@@ -155,40 +155,9 @@ public extension UserSubmission {
         description: String,
         dateSubmitted: Date,
         user: Person,
-        text: [TextMedia],
-        images: [ImageMedia],
-        videos: [VideoMedia],
-        audio: [AudioMedia],
-        documents: [DocumentMedia],
+        mediaItems: [MediaItem],
         relationships: [Relationship] = []
     ) -> UserSubmission {
-        var mediaItems: [MediaItem] = []
-        
-        // Convert text media
-        for textMedia in text {
-            mediaItems.append(MediaItem.from(textMedia))
-        }
-        
-        // Convert image media
-        for imageMedia in images {
-            mediaItems.append(MediaItem.from(imageMedia))
-        }
-        
-        // Convert video media
-        for videoMedia in videos {
-            mediaItems.append(MediaItem.from(videoMedia))
-        }
-        
-        // Convert audio media
-        for audioMedia in audio {
-            mediaItems.append(MediaItem.from(audioMedia))
-        }
-        
-        // Convert document media
-        for documentMedia in documents {
-            mediaItems.append(MediaItem.from(documentMedia))
-        }
-        
         return UserSubmission(
             id: id,
             title: title,
@@ -203,12 +172,11 @@ public extension UserSubmission {
 
 // MARK: - Legacy Media Types (Deprecated)
 
-/// Represents text content in a user submission
-/// @deprecated Use MediaItem with type .text instead
+/// A text-based media item in a user submission
 @available(*, deprecated, message: "Use MediaItem with type .text instead")
 public struct TextMedia: BaseEntity, Codable, Hashable {
-    /// Unique identifier for the text content
-    public var id: String = UUID().uuidString
+    /// Unique identifier for the text media
+    public var id: String
     
     /// The text content
     public var content: String
@@ -218,20 +186,18 @@ public struct TextMedia: BaseEntity, Codable, Hashable {
         return content.prefix(50) + (content.count > 50 ? "..." : "")
     }
     
-    /// Creates new text content with the specified content.
-    ///
-    /// - Parameter content: The text content
-    public init(content: String) {
+    /// Creates a new text media item
+    public init(id: String = UUID().uuidString, content: String) {
+        self.id = id
         self.content = content
     }
 }
 
-/// Represents an image in a user submission
-/// @deprecated Use MediaItem with type .image instead
+/// An image media item in a user submission
 @available(*, deprecated, message: "Use MediaItem with type .image instead")
 public struct ImageMedia: BaseEntity, Codable, Hashable {
-    /// Unique identifier for the image
-    public var id: String = UUID().uuidString
+    /// Unique identifier for the image media
+    public var id: String
     
     /// URL or path to the image
     public var url: String
@@ -244,23 +210,19 @@ public struct ImageMedia: BaseEntity, Codable, Hashable {
         return caption ?? "Image \(id)"
     }
     
-    /// Creates new image content with the specified properties.
-    ///
-    /// - Parameters:
-    ///   - url: URL where the image can be accessed
-    ///   - caption: Caption or description of the image
-    public init(url: String, caption: String? = nil) {
+    /// Creates a new image media item
+    public init(id: String = UUID().uuidString, url: String, caption: String? = nil) {
+        self.id = id
         self.url = url
         self.caption = caption
     }
 }
 
-/// Represents a video in a user submission
-/// @deprecated Use MediaItem with type .video instead
+/// A video media item in a user submission
 @available(*, deprecated, message: "Use MediaItem with type .video instead")
 public struct VideoMedia: BaseEntity, Codable, Hashable {
-    /// Unique identifier for the video
-    public var id: String = UUID().uuidString
+    /// Unique identifier for the video media
+    public var id: String
     
     /// URL or path to the video
     public var url: String
@@ -269,32 +231,27 @@ public struct VideoMedia: BaseEntity, Codable, Hashable {
     public var caption: String?
     
     /// Duration of the video in seconds
-    public var duration: Double?
+    public var duration: TimeInterval?
     
     /// The name of the video media, used for display and embedding generation
     public var name: String {
         return caption ?? "Video \(id)"
     }
     
-    /// Creates new video content with the specified properties.
-    ///
-    /// - Parameters:
-    ///   - url: URL where the video can be accessed
-    ///   - caption: Caption or description of the video
-    ///   - duration: Duration of the video in seconds
-    public init(url: String, caption: String? = nil, duration: Double? = nil) {
+    /// Creates a new video media item
+    public init(id: String = UUID().uuidString, url: String, caption: String? = nil, duration: TimeInterval? = nil) {
+        self.id = id
         self.url = url
         self.caption = caption
         self.duration = duration
     }
 }
 
-/// Represents audio content in a user submission
-/// @deprecated Use MediaItem with type .audio instead
+/// An audio media item in a user submission
 @available(*, deprecated, message: "Use MediaItem with type .audio instead")
 public struct AudioMedia: BaseEntity, Codable, Hashable {
-    /// Unique identifier for the audio
-    public var id: String = UUID().uuidString
+    /// Unique identifier for the audio media
+    public var id: String
     
     /// URL or path to the audio
     public var url: String
@@ -303,32 +260,27 @@ public struct AudioMedia: BaseEntity, Codable, Hashable {
     public var caption: String?
     
     /// Duration of the audio in seconds
-    public var duration: Double?
+    public var duration: TimeInterval?
     
     /// The name of the audio media, used for display and embedding generation
     public var name: String {
         return caption ?? "Audio \(id)"
     }
     
-    /// Creates new audio content with the specified properties.
-    ///
-    /// - Parameters:
-    ///   - url: URL where the audio can be accessed
-    ///   - caption: Caption or description of the audio
-    ///   - duration: Duration of the audio in seconds
-    public init(url: String, caption: String? = nil, duration: Double? = nil) {
+    /// Creates a new audio media item
+    public init(id: String = UUID().uuidString, url: String, caption: String? = nil, duration: TimeInterval? = nil) {
+        self.id = id
         self.url = url
         self.caption = caption
         self.duration = duration
     }
 }
 
-/// Represents a document in a user submission
-/// @deprecated Use MediaItem with type .document instead
+/// A document media item in a user submission
 @available(*, deprecated, message: "Use MediaItem with type .document instead")
 public struct DocumentMedia: BaseEntity, Codable, Hashable {
-    /// Unique identifier for the document
-    public var id: String = UUID().uuidString
+    /// Unique identifier for the document media
+    public var id: String
     
     /// URL or path to the document
     public var url: String
@@ -344,13 +296,9 @@ public struct DocumentMedia: BaseEntity, Codable, Hashable {
         return title ?? "Document \(id)"
     }
     
-    /// Creates new document content with the specified properties.
-    ///
-    /// - Parameters:
-    ///   - url: URL where the document can be accessed
-    ///   - title: Title or name of the document
-    ///   - description: Description of the document
-    public init(url: String, title: String? = nil, description: String? = nil) {
+    /// Creates a new document media item
+    public init(id: String = UUID().uuidString, url: String, title: String? = nil, description: String? = nil) {
+        self.id = id
         self.url = url
         self.title = title
         self.description = description

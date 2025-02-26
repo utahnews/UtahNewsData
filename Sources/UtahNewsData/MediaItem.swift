@@ -337,6 +337,7 @@ public extension MediaItem {
     ///
     /// - Parameter imageMedia: The ImageMedia to convert
     /// - Returns: A new MediaItem with properties from the ImageMedia
+    @available(*, deprecated, message: "Use MediaItem initializer with type .image instead")
     static func from(_ imageMedia: ImageMedia) -> MediaItem {
         return MediaItem(
             id: imageMedia.id,
@@ -351,6 +352,7 @@ public extension MediaItem {
     ///
     /// - Parameter videoMedia: The VideoMedia to convert
     /// - Returns: A new MediaItem with properties from the VideoMedia
+    @available(*, deprecated, message: "Use MediaItem initializer with type .video instead")
     static func from(_ videoMedia: VideoMedia) -> MediaItem {
         return MediaItem(
             id: videoMedia.id,
@@ -366,6 +368,7 @@ public extension MediaItem {
     ///
     /// - Parameter audioMedia: The AudioMedia to convert
     /// - Returns: A new MediaItem with properties from the AudioMedia
+    @available(*, deprecated, message: "Use MediaItem initializer with type .audio instead")
     static func from(_ audioMedia: AudioMedia) -> MediaItem {
         return MediaItem(
             id: audioMedia.id,
@@ -381,6 +384,7 @@ public extension MediaItem {
     ///
     /// - Parameter documentMedia: The DocumentMedia to convert
     /// - Returns: A new MediaItem with properties from the DocumentMedia
+    @available(*, deprecated, message: "Use MediaItem initializer with type .document instead")
     static func from(_ documentMedia: DocumentMedia) -> MediaItem {
         return MediaItem(
             id: documentMedia.id,
@@ -395,6 +399,7 @@ public extension MediaItem {
     ///
     /// - Parameter textMedia: The TextMedia to convert
     /// - Returns: A new MediaItem with properties from the TextMedia
+    @available(*, deprecated, message: "Use MediaItem initializer with type .text instead")
     static func from(_ textMedia: TextMedia) -> MediaItem {
         return MediaItem(
             id: textMedia.id,
