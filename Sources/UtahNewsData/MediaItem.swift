@@ -279,6 +279,26 @@ public struct MediaItem: AssociatedData, EntityDetailsProvider {
     }
 }
 
+// MediaItem.swift (Add this extension below your MediaItem definition)
+extension MediaItem {
+    /// Creates a MediaItem from a file URL and a given media type.
+    public init(sourceURL: URL, type: MediaType, title: String = "", textContent: String? = nil, fileType: String? = nil) {
+        self.init(
+            title: title,
+            type: type,
+            url: sourceURL.absoluteString,
+            altText: nil,
+            caption: nil,
+            textContent: textContent,
+            creator: nil,
+            source: nil,
+            author: nil,
+            publishedAt: Date()
+        )
+        self.format = fileType
+    }
+}
+
 // MARK: - Conversion from Legacy Types
 
 public extension MediaItem {
