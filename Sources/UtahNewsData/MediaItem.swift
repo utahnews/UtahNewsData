@@ -65,6 +65,7 @@ import Foundation
 
 /// Represents the type of media content
 public enum MediaType: String, Codable {
+    case article
     case image
     case video
     case audio
@@ -140,6 +141,9 @@ public struct MediaItem: AssociatedData, EntityDetailsProvider {
     /// Geographic location where the media was captured
     public var location: Location?
     
+    /// Metadata associated with the media item
+    public var metadata: [String: String] = [:]
+    
     /// Creates a new MediaItem with the specified properties.
     ///
     /// - Parameters:
@@ -163,6 +167,7 @@ public struct MediaItem: AssociatedData, EntityDetailsProvider {
     ///   - height: Height in pixels (for images/videos)
     ///   - tags: Keywords or tags associated with the media
     ///   - location: Geographic location where the media was captured
+    ///   - metadata: Metadata associated with the media item
     public init(
         id: String = UUID().uuidString,
         title: String,
@@ -184,7 +189,8 @@ public struct MediaItem: AssociatedData, EntityDetailsProvider {
         height: Int? = nil,
         tags: [String]? = nil,
         location: Location? = nil,
-        relationships: [Relationship] = []
+        relationships: [Relationship] = [],
+        metadata: [String: String] = [:]
     ) {
         self.id = id
         self.title = title
@@ -207,6 +213,7 @@ public struct MediaItem: AssociatedData, EntityDetailsProvider {
         self.tags = tags
         self.location = location
         self.relationships = relationships
+        self.metadata = metadata
     }
     
     /// The name property required by the AssociatedData protocol.

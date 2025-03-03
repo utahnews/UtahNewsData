@@ -86,6 +86,20 @@ public struct Source: AssociatedData, Codable, Identifiable, Hashable, Equatable
     public var description: String?
     /// JSON schema for parsing content from this source, if available
     public var JSONSchema: JSONSchema?
+    /// Type of the source
+    public var type: String
+    /// Whether the source is active
+    public var isActive: Bool
+    /// Last checked date
+    public var lastChecked: Date
+    /// Whether the source has robots.txt
+    public var hasRobotsTxt: Bool
+    /// Whether the source has sitemap
+    public var hasSitemap: Bool
+    /// Feed URLs
+    public var feedUrls: [String]
+    /// Metadata
+    public var metadata: [String: String]
 
     // If needed, a custom initializer to create a Source from a NewsSource instance:
 //    public init(
@@ -119,6 +133,13 @@ public struct Source: AssociatedData, Codable, Identifiable, Hashable, Equatable
     ///   - subCategory: Subcategory providing more specific classification
     ///   - description: Detailed description of the source
     ///   - JSONSchema: JSON schema for parsing content from this source
+    ///   - type: Type of the source
+    ///   - isActive: Whether the source is active
+    ///   - lastChecked: Last checked date
+    ///   - hasRobotsTxt: Whether the source has robots.txt
+    ///   - hasSitemap: Whether the source has sitemap
+    ///   - feedUrls: Feed URLs
+    ///   - metadata: Metadata
     public init(
         id: String = UUID().uuidString,
         name: String,
@@ -129,7 +150,14 @@ public struct Source: AssociatedData, Codable, Identifiable, Hashable, Equatable
         JSONSchema: JSONSchema? = nil,
         siteMapURL: URL? = nil,
         credibilityRating: Int? = nil,
-        relationships: [Relationship] = []
+        relationships: [Relationship] = [],
+        type: String,
+        isActive: Bool = true,
+        lastChecked: Date = Date(),
+        hasRobotsTxt: Bool = false,
+        hasSitemap: Bool = false,
+        feedUrls: [String] = [],
+        metadata: [String: String] = [:]
     ) {
         self.id = id
         self.name = name
@@ -141,6 +169,13 @@ public struct Source: AssociatedData, Codable, Identifiable, Hashable, Equatable
         self.siteMapURL = siteMapURL
         self.credibilityRating = credibilityRating
         self.relationships = relationships
+        self.type = type
+        self.isActive = isActive
+        self.lastChecked = lastChecked
+        self.hasRobotsTxt = hasRobotsTxt
+        self.hasSitemap = hasSitemap
+        self.feedUrls = feedUrls
+        self.metadata = metadata
     }
 }
 
