@@ -61,7 +61,7 @@
 import Foundation
 
 /// Represents a recurrence rule for repeating calendar events
-public struct RecurrenceRule: BaseEntity, Codable, Hashable, Equatable {
+public struct RecurrenceRule: BaseEntity, Codable, Hashable, Equatable, Sendable {
     /// Unique identifier for the recurrence rule
     public var id: String
 
@@ -115,7 +115,9 @@ public struct RecurrenceRule: BaseEntity, Codable, Hashable, Equatable {
 /// Represents a calendar event in the UtahNewsData system.
 /// CalEvents can be used to track scheduled events such as press conferences,
 /// meetings, hearings, and other time-based occurrences relevant to news coverage.
-public struct CalEvent: AssociatedData, EntityDetailsProvider, JSONSchemaProvider, BaseEntity {
+public struct CalEvent: AssociatedData, EntityDetailsProvider, JSONSchemaProvider, BaseEntity,
+    Sendable
+{
     /// Unique identifier for the calendar event
     public var id: String = UUID().uuidString
 

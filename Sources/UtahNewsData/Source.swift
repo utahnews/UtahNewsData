@@ -344,7 +344,7 @@ public enum NewsSourceSubcategory: String, CaseIterable, Codable {
 }
 
 /// Represents a specific news source with additional metadata
-public struct NewsSource: BaseEntity, Codable {
+public struct NewsSource: BaseEntity, Codable, Sendable {
     /// Unique identifier for the news source
     public var id: String
     /// Name of the news source

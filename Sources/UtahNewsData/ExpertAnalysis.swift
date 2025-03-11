@@ -8,30 +8,30 @@
 //           analyses, and commentary in the UtahNewsData system. Now conforms to JSONSchemaProvider
 //           to provide a static JSON schema for LLM responses.
 
-import SwiftUI
 import Foundation
+import SwiftUI
 
 /// Represents an expert's analysis or commentary on a topic or news event.
 /// Expert analyses provide authoritative perspectives from qualified individuals.
-public struct ExpertAnalysis: AssociatedData, Codable, JSONSchemaProvider { // Added JSONSchemaProvider conformance
+public struct ExpertAnalysis: AssociatedData, Codable, JSONSchemaProvider, Sendable {
     /// Unique identifier for the expert analysis
     public var id: String
-    
+
     /// Relationships to other entities in the system
     public var relationships: [Relationship] = []
-    
+
     /// The expert providing the analysis
     public var expert: Person
-    
+
     /// When the analysis was provided
     public var date: Date
-    
+
     /// Categories or topics covered in the analysis
     public var topics: [Category] = []
-    
+
     /// Professional credentials of the expert relevant to this analysis
     public var credentials: [Credential] = []
-    
+
     /// The name property required by the AssociatedData protocol.
     /// Returns a descriptive name based on the expert and date.
     public var name: String {
@@ -51,40 +51,40 @@ public struct ExpertAnalysis: AssociatedData, Codable, JSONSchemaProvider { // A
         self.expert = expert
         self.date = date
     }
-    
+
     // MARK: - JSON Schema Provider
     /// Provides the JSON schema for ExpertAnalysis.
     public static var jsonSchema: String {
         return """
-        {
-            "type": "object",
-            "properties": {
-                "id": {"type": "string"},
-                "relationships": {
-                    "type": "array",
-                    "items": {"type": "object"}
+            {
+                "type": "object",
+                "properties": {
+                    "id": {"type": "string"},
+                    "relationships": {
+                        "type": "array",
+                        "items": {"type": "object"}
+                    },
+                    "expert": {"type": "object"},
+                    "date": {"type": "string", "format": "date-time"},
+                    "topics": {
+                        "type": "array",
+                        "items": {"type": "object"}
+                    },
+                    "credentials": {
+                        "type": "array",
+                        "items": {"type": "string"}
+                    }
                 },
-                "expert": {"type": "object"},
-                "date": {"type": "string", "format": "date-time"},
-                "topics": {
-                    "type": "array",
-                    "items": {"type": "object"}
-                },
-                "credentials": {
-                    "type": "array",
-                    "items": {"type": "string"}
-                }
-            },
-            "required": ["id", "expert", "date"]
-        }
-        """
+                "required": ["id", "expert", "date"]
+            }
+            """
     }
 }
 
 /// Represents professional credentials, degrees, and certifications.
 /// Used to establish the qualifications and expertise of individuals
 /// providing expert analysis.
-public enum Credential: String, Codable {
+public enum Credential: String, Codable, Sendable {
     // Academic Degrees
     case PhD = "Doctor of Philosophy"
     case MD = "Doctor of Medicine"
@@ -103,7 +103,7 @@ public enum Credential: String, Codable {
     case BArch = "Bachelor of Architecture"
     case BBA_Marketing = "Bachelor of Business Administration in Marketing"
     case BBA_Finance = "Bachelor of Business Administration in Finance"
-    
+
     // Professional Certifications
     case CPA = "Certified Public Accountant"
     case CFA = "Chartered Financial Analyst"
@@ -126,11 +126,11 @@ public enum Credential: String, Codable {
     case LSSGB = "Lean Six Sigma Green Belt"
     case PRINCE2 = "PRINCE2 Practitioner"
     case TOGAF = "The Open Group Architecture Framework"
-    
+
     // Scrum Certifications
     case CSM = "Certified ScrumMaster (CSM)"
     case CSPO = "Certified Scrum Product Owner"
-    
+
     // Information Technology
     case CompTIA_A = "CompTIA A+"
     case CompTIA_Network = "CompTIA Network+"
@@ -146,7 +146,7 @@ public enum Credential: String, Codable {
     case CBlockchain_Dev = "Certified Blockchain Developer"
     case CVirtualization_Prof = "Certified Virtualization Professional"
     case CIoT_Specialist = "Certified Internet of Things Specialist"
-    
+
     // Healthcare Certifications
     case RN = "Registered Nurse"
     case NP = "Nurse Practitioner"
@@ -156,7 +156,7 @@ public enum Credential: String, Codable {
     case CHC = "Certified in Healthcare Compliance"
     case CPM = "Certified Project Manager"
     case CCC = "Certificate of Clinical Competence"
-    
+
     // Finance and Accounting
     case CPA_CGMA = "Certified Public Accountant - Chartered Global Management Accountant"
     case CFE = "Certified Fraud Examiner"
@@ -167,7 +167,7 @@ public enum Credential: String, Codable {
     case CFA_I = "Chartered Financial Analyst Level I"
     case CFA_II = "Chartered Financial Analyst Level II"
     case CFA_III = "Chartered Financial Analyst Level III"
-    
+
     // Marketing and Sales
     case CMO = "Chief Marketing Officer Certification"
     case CSMM = "Certified Social Media Marketing"
@@ -175,23 +175,23 @@ public enum Credential: String, Codable {
     case CPPM = "Certified Product Marketing Manager"
     case CPIM = "Certified Product Information Manager"
     case CSEM = "Certified Sales and Marketing Professional"
-    
+
     // Human Resources
     case PHR = "Professional in Human Resources"
     case SPHR = "Senior Professional in Human Resources"
     case GPHR = "Global Professional in Human Resources"
     case aPHR = "Associate Professional in Human Resources"
-    
+
     // Legal Certifications
     case LLM = "Master of Law"
     case BCL = "Bachelor of Civil Law"
     case JD_Specialization = "Juris Doctor - Specialization"
-    
+
     // Engineering Certifications
     case PE = "Professional Engineer"
     case CEng = "Chartered Engineer"
     case CPEng = "Certified Professional Engineer"
-    
+
     // Additional Certifications
     case CMC = "Certified Management Consultant"
     case ASQ_CQE = "Certified Quality Engineer"
@@ -204,7 +204,7 @@ public enum Credential: String, Codable {
     case CCEP = "Certified Compliance and Ethics Professional"
     case CPP = "Certified Protection Professional"
     case AICPA = "American Institute of Certified Public Accountants"
-    
+
     // Emerging and Specialized Fields
     case CDMP = "Certified Digital Marketing Professional"
     case CSM_Manager = "Certified Social Media Manager"
@@ -225,13 +225,13 @@ public enum Credential: String, Codable {
     case CAWS_Admin = "Certified Amazon Web Services Administrator"
     case CIBM_Cloud_Prof = "Certified IBM Cloud Professional"
     case CSAP_HANA_Prof = "Certified SAP HANA Professional"
-    
+
     // Research and Academia
     case CRA = "Clinical Research Associate"
     case CCRA = "Certified Clinical Research Associate"
     case CAPM = "Certified Associate in Project Management"
     case PgMP = "Program Management Professional"
-    
+
     // Miscellaneous
     case CLC = "Certified Life Coach"
     case CLU = "Chartered Life Underwriter"

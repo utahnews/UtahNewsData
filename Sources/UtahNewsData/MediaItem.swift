@@ -64,7 +64,7 @@
 import Foundation
 
 /// Represents the type of media content
-public enum MediaType: String, Codable {
+public enum MediaType: String, Codable, Sendable {
     case article
     case image
     case video

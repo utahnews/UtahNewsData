@@ -65,7 +65,7 @@ import SwiftUI
 /// This can be a company, government agency, non-profit, or any
 /// organizational entity relevant to news content.
 public struct Organization: AssociatedData, Codable, Identifiable, Hashable, EntityDetailsProvider,
-    JSONSchemaProvider
+    JSONSchemaProvider, Sendable
 {
     /// Unique identifier for the organization
     public var id: String
@@ -125,7 +125,7 @@ public struct Organization: AssociatedData, Codable, Identifiable, Hashable, Ent
             (try? container.decodeIfPresent(String.self, forKey: .orgDescription))
             ?? (try? container.decodeIfPresent(String.self, forKey: .oldDescription))
         self.orgDescription = (decodedDesc?.isEmpty ?? true) ? nil : decodedDesc
-        self.contactInfo = (try? container.decode([ContactInfo].self, forKey: .contactInfo)) ?? []
+        self.contactInfo = try? container.decode([ContactInfo].self, forKey: .contactInfo)
         self.website = try? container.decode(String.self, forKey: .website)
     }
 
@@ -225,29 +225,30 @@ public struct Organization: AssociatedData, Codable, Identifiable, Hashable, Ent
                 "contactInfo": {
                     "type": "array",
                     "items": {
-                        "type": "object",
-                        "properties": {
-                            "name": {"type": "string"},
-                            "email": {"type": "string", "format": "email", "optional": true},
-                            "phone": {"type": "string", "optional": true},
-                            "address": {"type": "string", "optional": true},
-                            "website": {"type": "string", "format": "uri", "optional": true},
-                            "socialMediaHandles": {
-                                "type": "object",
-                                "additionalProperties": {"type": "string"},
-                                "optional": true
-                            }
-                        },
-                        "required": ["name"]
+                        "$ref": "#/definitions/ContactInfo"
                     },
                     "optional": true
-                },
-                "type": {"type": "string", "optional": true},
-                "industry": {"type": "string", "optional": true},
-                "foundedYear": {"type": "integer", "optional": true},
-                "headquarters": {"type": "string", "optional": true}
+                }
             },
-            "required": ["id", "name"]
+            "required": ["id", "name"],
+            "definitions": {
+                "ContactInfo": {
+                    "type": "object",
+                    "properties": {
+                        "name": {"type": "string"},
+                        "email": {"type": "string", "format": "email", "optional": true},
+                        "phone": {"type": "string", "optional": true},
+                        "address": {"type": "string", "optional": true},
+                        "website": {"type": "string", "format": "uri", "optional": true},
+                        "socialMediaHandles": {
+                            "type": "object",
+                            "additionalProperties": {"type": "string"},
+                            "optional": true
+                        }
+                    },
+                    "required": ["name"]
+                }
+            }
         }
         """
     }

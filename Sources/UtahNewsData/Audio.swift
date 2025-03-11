@@ -10,38 +10,38 @@
 
 import Foundation
 
-// Updated to conform to JSONSchemaProvider
-public struct Audio: NewsContent, BaseEntity, JSONSchemaProvider {
+// Updated to conform to JSONSchemaProvider and Sendable
+public struct Audio: NewsContent, BaseEntity, JSONSchemaProvider, Sendable {
     /// Unique identifier for the audio clip
     public var id: String
-    
+
     /// The name of the entity (derived from the title)
     public var name: String { title }
-    
+
     /// Title or name of the audio clip
     public var title: String
-    
+
     /// URL where the audio can be accessed
     public var url: String
-    
+
     /// URL to an image representing the audio (e.g., podcast cover art)
     public var urlToImage: String?
-    
+
     /// When the audio was published
     public var publishedAt: Date
-    
+
     /// Description or transcript of the audio
     public var textContent: String?
-    
+
     /// Creator or producer of the audio
     public var author: String?
-    
+
     /// Length of the audio in seconds
     public var duration: TimeInterval
-    
+
     /// Audio quality in kilobits per second (kbps)
     public var bitrate: Int
-    
+
     /// Creates a new audio clip with the specified properties.
     ///
     /// - Parameters:
@@ -75,7 +75,7 @@ public struct Audio: NewsContent, BaseEntity, JSONSchemaProvider {
         self.duration = duration
         self.bitrate = bitrate
     }
-    
+
     /// Returns a formatted duration string in minutes and seconds.
     ///
     /// - Returns: A string in the format "MM:SS"
@@ -84,46 +84,46 @@ public struct Audio: NewsContent, BaseEntity, JSONSchemaProvider {
         let seconds = Int(duration) % 60
         return String(format: "%d:%02d", minutes, seconds)
     }
-    
+
     /// Returns a formatted bitrate string.
     ///
     /// - Returns: A string in the format "X kbps"
     public func formattedBitrate() -> String {
         return "\(bitrate) kbps"
     }
-    
+
     // MARK: - JSON Schema Provider
     // Provides the JSON schema for Audio.
     public static var jsonSchema: String {
         return """
-        {
-            "type": "object",
-            "properties": {
-                "id": {"type": "string"},
-                "title": {"type": "string"},
-                "url": {"type": "string"},
-                "urlToImage": {"type": ["string", "null"]},
-                "publishedAt": {"type": "string", "format": "date-time"},
-                "textContent": {"type": ["string", "null"]},
-                "author": {"type": ["string", "null"]},
-                "duration": {"type": "number"},
-                "bitrate": {"type": "integer"}
-            },
-            "required": ["id", "title", "url", "publishedAt", "duration", "bitrate"]
-        }
-        """
+            {
+                "type": "object",
+                "properties": {
+                    "id": {"type": "string"},
+                    "title": {"type": "string"},
+                    "url": {"type": "string"},
+                    "urlToImage": {"type": ["string", "null"]},
+                    "publishedAt": {"type": "string", "format": "date-time"},
+                    "textContent": {"type": ["string", "null"]},
+                    "author": {"type": ["string", "null"]},
+                    "duration": {"type": "number"},
+                    "bitrate": {"type": "integer"}
+                },
+                "required": ["id", "title", "url", "publishedAt", "duration", "bitrate"]
+            }
+            """
     }
 }
 
-public extension Audio {
+extension Audio {
     /// An example instance of `Audio` for previews and testing.
-    @MainActor static let example = Audio(
+    @MainActor public static let example = Audio(
         title: "Utah News Podcast Episode 1",
         url: "https://www.utahnews.com/podcast-episode-1",
         urlToImage: "https://picsum.photos/800/600",
         textContent: "Listen to the first episode of the Utah News podcast.",
         author: "Mark Evans",
-        duration: 1800, // Duration in seconds
-        bitrate: 256   // Bitrate in kbps
+        duration: 1800,  // Duration in seconds
+        bitrate: 256  // Bitrate in kbps
     )
 }

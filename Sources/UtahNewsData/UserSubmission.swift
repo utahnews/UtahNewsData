@@ -218,7 +218,7 @@ extension UserSubmission {
 
 /// A text-based media item in a user submission
 @available(*, deprecated, message: "Use MediaItem with type .text instead")
-public struct TextMedia: BaseEntity, Codable, Hashable {
+public struct TextMedia: BaseEntity, Codable, Hashable, Sendable {
     /// Unique identifier for the text media
     public var id: String
 
@@ -239,7 +239,7 @@ public struct TextMedia: BaseEntity, Codable, Hashable {
 
 /// An image media item in a user submission
 @available(*, deprecated, message: "Use MediaItem with type .image instead")
-public struct ImageMedia: BaseEntity, Codable, Hashable {
+public struct ImageMedia: BaseEntity, Codable, Hashable, Sendable {
     /// Unique identifier for the image media
     public var id: String
 
@@ -264,7 +264,7 @@ public struct ImageMedia: BaseEntity, Codable, Hashable {
 
 /// A video media item in a user submission
 @available(*, deprecated, message: "Use MediaItem with type .video instead")
-public struct VideoMedia: BaseEntity, Codable, Hashable {
+public struct VideoMedia: BaseEntity, Codable, Hashable, Sendable {
     /// Unique identifier for the video media
     public var id: String
 
@@ -296,7 +296,7 @@ public struct VideoMedia: BaseEntity, Codable, Hashable {
 
 /// An audio media item in a user submission
 @available(*, deprecated, message: "Use MediaItem with type .audio instead")
-public struct AudioMedia: BaseEntity, Codable, Hashable {
+public struct AudioMedia: BaseEntity, Codable, Hashable, Sendable {
     /// Unique identifier for the audio media
     public var id: String
 
@@ -328,7 +328,7 @@ public struct AudioMedia: BaseEntity, Codable, Hashable {
 
 /// A document media item in a user submission
 @available(*, deprecated, message: "Use MediaItem with type .document instead")
-public struct DocumentMedia: BaseEntity, Codable, Hashable {
+public struct DocumentMedia: BaseEntity, Codable, Hashable, Sendable {
     /// Unique identifier for the document media
     public var id: String
 

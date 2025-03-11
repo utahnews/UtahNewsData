@@ -10,7 +10,7 @@
 import Foundation
 
 /// Represents the verification status of a fact
-public enum VerificationStatus: String, Codable {
+public enum VerificationStatus: String, Codable, Sendable {
     case verified
     case unverified
     case disputed
@@ -18,7 +18,7 @@ public enum VerificationStatus: String, Codable {
 }
 
 /// Represents the confidence level in a fact's accuracy
-public enum ConfidenceLevel: String, Codable {
+public enum ConfidenceLevel: String, Codable, Sendable {
     case high
     case medium
     case low
@@ -27,7 +27,8 @@ public enum ConfidenceLevel: String, Codable {
 /// Represents a verified piece of information in the UtahNewsData system.
 /// Facts can be associated with articles, news events, and other content types,
 /// providing verified data points with proper attribution.
-public struct Fact: AssociatedData, EntityDetailsProvider, BaseEntity, JSONSchemaProvider {  // Added JSONSchemaProvider conformance
+public struct Fact: AssociatedData, EntityDetailsProvider, BaseEntity, JSONSchemaProvider, Sendable
+{  // Added JSONSchemaProvider and Sendable conformance
     /// Unique identifier for the fact
     public var id: String = UUID().uuidString
 

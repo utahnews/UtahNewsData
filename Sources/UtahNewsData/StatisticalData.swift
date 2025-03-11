@@ -69,7 +69,7 @@
 import Foundation
 
 /// Represents the type of visualization suitable for the statistical data
-public enum VisualizationType: String, Codable {
+public enum VisualizationType: String, Codable, Sendable {
     case barChart
     case lineChart
     case pieChart

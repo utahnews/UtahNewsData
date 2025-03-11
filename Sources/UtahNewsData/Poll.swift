@@ -203,7 +203,7 @@ public struct Poll: AssociatedData, JSONSchemaProvider {
 /// Represents a single response to a poll.
 /// Each response captures the selected option and optionally
 /// the person who responded.
-public struct PollResponse: BaseEntity, Codable, Hashable {
+public struct PollResponse: BaseEntity, Codable, Hashable, Sendable {
     /// Unique identifier for the poll response
     public var id: String
 

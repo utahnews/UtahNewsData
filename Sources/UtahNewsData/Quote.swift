@@ -65,7 +65,7 @@ import Foundation
 /// Represents a direct quotation from an individual in the UtahNewsData system.
 /// Quotes can be associated with articles, news events, and other content types,
 /// providing attribution and context for statements.
-public struct Quote: Identifiable, EntityDetailsProvider, JSONSchemaProvider {
+public struct Quote: Identifiable, EntityDetailsProvider, JSONSchemaProvider, Sendable {
     /// Unique identifier for the quote
     public var id: String = UUID().uuidString
 

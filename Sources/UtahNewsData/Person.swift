@@ -63,7 +63,7 @@ import SwiftUI
 /// This can be a journalist, public figure, expert, or any individual
 /// relevant to news content.
 public struct Person: AssociatedData, Codable, Identifiable, Hashable, EntityDetailsProvider,
-    JSONSchemaProvider
+    JSONSchemaProvider, Sendable
 {
     // MARK: - Core Properties
 
