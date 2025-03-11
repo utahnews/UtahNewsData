@@ -4,62 +4,17 @@
 //
 //  Created by Mark Evans on 2/12/25.
 //
-
-/*
- # ContactInfo Model
- 
- This file defines the ContactInfo model, which represents contact information
- for entities in the UtahNewsData system. It can be used with various entity types,
- particularly with Organization and Person entities.
- 
- ## Key Features:
- 
- 1. Basic contact details (name, email, phone)
- 2. Web presence (website)
- 3. Physical location (address)
- 4. Social media presence
- 
- ## Usage:
- 
- ```swift
- // Create basic contact information
- let contact = ContactInfo(
-     name: "Media Relations",
-     email: "media@example.com",
-     phone: "801-555-1234"
- )
- 
- // Create detailed contact information with social media
- let detailedContact = ContactInfo(
-     name: "John Smith",
-     email: "john@example.com",
-     website: "https://johnsmith.example",
-     phone: "801-555-5678",
-     address: "123 Main St, Salt Lake City, UT 84101",
-     socialMediaHandles: [
-         "Twitter": "@johnsmith",
-         "LinkedIn": "john-smith-utah"
-     ]
- )
- 
- // Use with an Organization
- let organization = Organization(
-     name: "Utah News Network",
-     orgDescription: "A news organization covering Utah news",
-     contactInfo: [contact, detailedContact]
- )
- ```
- 
- ContactInfo is designed to be flexible and can represent different types of
- contact points, from general department contacts to specific individual contacts.
- */
+//  Summary: Defines the ContactInfo model which represents contact information
+//           for entities in the UtahNewsData system. Now conforms to JSONSchemaProvider
+//           to provide a static JSON schema for LLM responses.
 
 import SwiftUI
+import Foundation
 
 /// Represents contact information for entities in the news data system.
 /// This can be used with various entity types, particularly with
 /// Organization and Person entities.
-public struct ContactInfo: BaseEntity, Codable, Hashable, Equatable {
+public struct ContactInfo: BaseEntity, Codable, Hashable, Equatable, JSONSchemaProvider { // Added JSONSchemaProvider conformance
     /// Unique identifier for the contact information
     public var id: String = UUID().uuidString
     
@@ -84,7 +39,7 @@ public struct ContactInfo: BaseEntity, Codable, Hashable, Equatable {
     
     /// Creates new contact information with the specified properties.
     /// All properties are optional to allow for flexible contact representation.
-    /// 
+    ///
     /// - Parameters:
     ///   - name: Name of the contact (person or department)
     ///   - email: Email address for contact
@@ -108,5 +63,28 @@ public struct ContactInfo: BaseEntity, Codable, Hashable, Equatable {
         self.phone = phone
         self.address = address
         self.socialMediaHandles = socialMediaHandles
+    }
+    
+    // MARK: - JSON Schema Provider
+    /// Provides the JSON schema for ContactInfo.
+    public static var jsonSchema: String {
+        return """
+        {
+            "type": "object",
+            "properties": {
+                "id": {"type": "string"},
+                "name": {"type": "string"},
+                "email": {"type": ["string", "null"]},
+                "website": {"type": ["string", "null"]},
+                "phone": {"type": ["string", "null"]},
+                "address": {"type": ["string", "null"]},
+                "socialMediaHandles": {
+                    "type": ["object", "null"],
+                    "additionalProperties": {"type": "string"}
+                }
+            },
+            "required": ["id", "name"]
+        }
+        """
     }
 }

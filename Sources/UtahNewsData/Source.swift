@@ -7,21 +7,21 @@
 
 /*
  # Source Model
- 
+
  This file defines the Source model, which represents news sources and information providers
  in the UtahNewsData system. Sources can include news organizations, government agencies,
  academic institutions, and other entities that produce or distribute news content.
- 
+
  ## Key Features:
- 
+
  1. Source identification and attribution
  2. Credibility assessment
  3. Categorization by type and subject area
  4. Metadata for content discovery (siteMapURL, JSONSchema)
  5. Relationship tracking with other entities
- 
+
  ## Usage:
- 
+
  ```swift
  // Create a news source
  let tribune = Source(
@@ -32,10 +32,10 @@
      subCategory: .newspaper,
      description: "Utah's largest newspaper, covering news, politics, business, and sports across the state."
  )
- 
+
  // Add sitemap information for content discovery
  tribune.siteMapURL = URL(string: "https://www.sltrib.com/sitemap.xml")
- 
+
  // Associate with related entities
  let ownerRelationship = Relationship(
      id: mediaGroup.id,
@@ -44,14 +44,13 @@
  )
  tribune.relationships.append(ownerRelationship)
  ```
- 
+
  The Source model implements AssociatedData, allowing it to maintain
  relationships with other entities in the system, such as parent companies,
  affiliated organizations, and key personnel.
  */
 
 import SwiftUI
-
 
 // By aligning the Source struct with the schema defined in NewsSource, you can decode
 // Firestore documents that match the NewsSource structure directly into Source.
@@ -62,7 +61,8 @@ import SwiftUI
 /// Represents a news source or information provider in the news system.
 /// Sources can include news organizations, government agencies, academic institutions,
 /// and other entities that produce or distribute news content.
-public struct Source: AssociatedData, Codable, Identifiable, Hashable, Equatable { // Adding Identifiable for convenience
+public struct Source: AssociatedData, Codable, Identifiable, Hashable, Equatable, JSONSchemaProvider
+{
     /// Unique identifier for the source
     public var id: String
     /// Relationships to other entities in the system
@@ -102,22 +102,22 @@ public struct Source: AssociatedData, Codable, Identifiable, Hashable, Equatable
     public var metadata: [String: String]
 
     // If needed, a custom initializer to create a Source from a NewsSource instance:
-//    public init(
-//        newsSource: NewsSource,
-//        credibilityRating: Int? = nil,
-//        relationships: [Relationship] = []
-//    ) {
-//        self.id = newsSource.id
-//        self.name = newsSource.name
-//        self.url = newsSource.url
-//        self.category = newsSource.category
-//        self.subCategory = newsSource.subCategory
-//        self.description = newsSource.description
-//        self.JSONSchema = newsSource.JSONSchema
-//        self.siteMapURL = newsSource.siteMapURL
-//        self.credibilityRating = credibilityRating
-//        self.relationships = relationships
-//    }
+    //    public init(
+    //        newsSource: NewsSource,
+    //        credibilityRating: Int? = nil,
+    //        relationships: [Relationship] = []
+    //    ) {
+    //        self.id = newsSource.id
+    //        self.name = newsSource.name
+    //        self.url = newsSource.url
+    //        self.category = newsSource.category
+    //        self.subCategory = newsSource.subCategory
+    //        self.description = newsSource.description
+    //        self.JSONSchema = newsSource.JSONSchema
+    //        self.siteMapURL = newsSource.siteMapURL
+    //        self.credibilityRating = credibilityRating
+    //        self.relationships = relationships
+    //    }
 
     // If you do not have a direct use for the old initializer, you can remove it,
     // or provide a default one that suits your Firestore decode scenario.
@@ -177,16 +177,48 @@ public struct Source: AssociatedData, Codable, Identifiable, Hashable, Equatable
         self.feedUrls = feedUrls
         self.metadata = metadata
     }
+
+    /// JSON schema for LLM responses
+    public static var jsonSchema: String {
+        """
+        {
+            "type": "object",
+            "properties": {
+                "id": {"type": "string"},
+                "name": {"type": "string"},
+                "url": {"type": "string", "format": "uri"},
+                "credibilityRating": {"type": "number", "minimum": 0, "maximum": 5, "optional": true},
+                "category": {"type": "string", "optional": true},
+                "subCategory": {"type": "string", "optional": true},
+                "description": {"type": "string", "optional": true},
+                "siteMapURL": {"type": "string", "format": "uri", "optional": true},
+                "rssFeeds": {
+                    "type": "array",
+                    "items": {"type": "string", "format": "uri"},
+                    "optional": true
+                },
+                "contactInfo": {
+                    "type": "object",
+                    "properties": {
+                        "email": {"type": "string", "format": "email"},
+                        "phone": {"type": "string"},
+                        "address": {"type": "string"}
+                    },
+                    "optional": true
+                }
+            },
+            "required": ["id", "name", "url"]
+        }
+        """
+    }
 }
-
-
 
 public enum JSONSchema: String, CaseIterable, Codable {
     case schema1
     case schema2
     // Add more schemas as needed
 
-   public var label: String {
+    public var label: String {
         switch self {
         case .schema1:
             return "Schema 1"
@@ -235,7 +267,7 @@ public enum NewsSourceCategory: String, CaseIterable, Codable {
     /// Human-readable label for the category
     case religion
 
-   public var label: String {
+    public var label: String {
         switch self {
         case .localGovernmentAndPolitics:
             return "Local Government and Politics"
@@ -310,7 +342,6 @@ public enum NewsSourceSubcategory: String, CaseIterable, Codable {
         }
     }
 }
-
 
 /// Represents a specific news source with additional metadata
 public struct NewsSource: BaseEntity, Codable {

@@ -33,168 +33,169 @@ func listFiles(in directory: String, withExtension ext: String) -> [String] {
 // MARK: - README Generation
 func generateReadme() -> String {
     var readme = """
-    # UtahNewsData Swift Package
+        # UtahNewsData Swift Package
 
-    A comprehensive Swift package for managing news data with support for relational database export and Retrieval-Augmented Generation (RAG).
+        A comprehensive Swift package for managing news data with support for relational database export and Retrieval-Augmented Generation (RAG).
 
-    ## Overview
+        ## Overview
 
-    UtahNewsData provides a rich set of data models for representing news entities such as articles, people, organizations, events, and more. It includes functionality for:
+        UtahNewsData provides a rich set of data models for representing news entities such as articles, people, organizations, events, and more. It includes functionality for:
 
-    - Creating and managing relationships between entities
-    - Exporting data to relational databases
-    - Preparing data for vector embeddings and RAG systems
-    - Generating knowledge graphs
-    - Creating rich context for AI systems
+        - Creating and managing relationships between entities
+        - Exporting data to relational databases
+        - Preparing data for vector embeddings and RAG systems
+        - Generating knowledge graphs
+        - Creating rich context for AI systems
 
-    ## Installation
+        ## Installation
 
-    Add UtahNewsData to your Swift package dependencies:
+        Add UtahNewsData to your Swift package dependencies:
 
-    ```swift
-    dependencies: [
-        .package(url: "https://github.com/yourusername/UtahNewsData.git", from: "1.0.0")
-    ]
-    ```
+        ```swift
+        dependencies: [
+            .package(url: "https://github.com/yourusername/UtahNewsData.git", from: "1.0.0")
+        ]
+        ```
 
-    ## Core Concepts
+        ## Core Concepts
 
-    ### Entity Models
+        ### Entity Models
 
-    The package includes the following entity models:
+        The package includes the following entity models:
 
-    """
-    
+        """
+
     // List all entity models
     let swiftFiles = listFiles(in: sourceDir, withExtension: ".swift")
-    let entityFiles = swiftFiles.filter { 
+    let entityFiles = swiftFiles.filter {
         let content = readFile(at: "\(sourceDir)/\($0)") ?? ""
-        return content.contains("AssociatedData") && 
-               !$0.contains("AssociatedData.swift") && 
-               !$0.contains("RAG") &&
-               !$0.contains("DataExporter")
+        return content.contains("AssociatedData") && !$0.contains("AssociatedData.swift")
+            && !$0.contains("RAG") && !$0.contains("DataExporter")
     }
-    
+
     for file in entityFiles {
         let entityName = file.replacingOccurrences(of: ".swift", with: "")
         readme += "- `\(entityName)`\n"
     }
-    
+
     readme += """
 
-    ### Relationship Model
+        ### Relationship Model
 
-    Entities can be connected through relationships using the `Relationship` struct:
+        Entities can be connected through relationships using the `Relationship` struct:
 
-    ```swift
-    public struct Relationship: BaseEntity, Codable, Hashable {
-        public var id: String                  // Unique identifier for the relationship
-        public var name: String                // Name or description of the relationship
-        public let targetId: String            // ID of the target entity
-        public let type: EntityType            // Type of the target entity
-        public var displayName: String?        // Human-readable relationship description
-        public let createdAt: Date             // When the relationship was created
-        public var context: String?            // Additional context about the relationship
-    }
-    ```
+        ```swift
+        public struct Relationship: BaseEntity, Codable, Hashable {
+            public var id: String                  // Unique identifier for the relationship
+            public var name: String                // Name or description of the relationship
+            public let targetId: String            // ID of the target entity
+            public let type: EntityType            // Type of the target entity
+            public var displayName: String?        // Human-readable relationship description
+            public let createdAt: Date             // When the relationship was created
+            public var context: String?            // Additional context about the relationship
+        }
+        ```
 
-    ### RAG Utilities
+        ### RAG Utilities
 
-    The package includes utilities for Retrieval-Augmented Generation:
+        The package includes utilities for Retrieval-Augmented Generation:
 
-    - Context generation for entities and relationships
-    - Vector record preparation for embedding
-    - Knowledge graph generation
-    - Combined context generation for multiple entities
+        - Context generation for entities and relationships
+        - Vector record preparation for embedding
+        - Knowledge graph generation
+        - Combined context generation for multiple entities
 
-    ### Data Export
+        ### Data Export
 
-    Utilities for exporting data to relational databases:
+        Utilities for exporting data to relational databases:
 
-    - SQL statement generation for entities
-    - SQL statement generation for relationships
-    - Table schema generation
+        - SQL statement generation for entities
+        - SQL statement generation for relationships
+        - Table schema generation
 
-    ## Usage Examples
+        ## Usage Examples
 
-    ### Creating Entities and Relationships
+        ### Creating Entities and Relationships
 
-    ```swift
-    // Create entities
-    let person = Person(
-        name: "Jane Doe",
-        details: "A reporter",
-        occupation: "Journalist"
-    )
+        ```swift
+        // Create entities
+        let person = Person(
+            name: "Jane Doe",
+            details: "A reporter",
+            occupation: "Journalist"
+        )
 
-    let organization = Organization(
-        name: "Utah News Network",
-        orgDescription: "A news organization"
-    )
+        let organization = Organization(
+            name: "Utah News Network",
+            orgDescription: "A news organization"
+        )
 
-    // Create a relationship
-    let relationship = Relationship(
-        id: organization.id,
-        type: .organization,
-        displayName: "Works at",
-        context: "Jane has been working here since 2020"
-    )
+        // Create a relationship
+        let relationship = Relationship(
+            id: organization.id,
+            type: .organization,
+            displayName: "Works at",
+            context: "Jane has been working here since 2020"
+        )
 
-    // Add the relationship to the person
-    var updatedPerson = person
-    updatedPerson.relationships.append(relationship)
-    ```
+        // Add the relationship to the person
+        var updatedPerson = person
+        updatedPerson.relationships.append(relationship)
+        ```
 
-    ### Generating Context for RAG
+        ### Generating Context for RAG
 
-    ```swift
-    // Generate context for a single entity
-    let personContext = RAGUtilities.generateEntityContext(updatedPerson)
+        ```swift
+        // Generate context for a single entity
+        let personContext = RAGUtilities.generateEntityContext(updatedPerson)
 
-    // Generate context for multiple entities
-    let combinedContext = RAGUtilities.generateCombinedContext([updatedPerson, organization])
-    ```
+        // Generate context for multiple entities
+        let combinedContext = RAGUtilities.generateCombinedContext([updatedPerson, organization])
+        ```
 
-    ### Preparing Data for Vector Embedding
+        ### Preparing Data for Vector Embedding
 
-    ```swift
-    // Generate vector records for entities
-    let vectorRecords = RAGUtilities.prepareEntitiesForEmbedding([updatedPerson, organization])
-    ```
+        ```swift
+        // Generate vector records for entities
+        let vectorRecords = RAGUtilities.prepareEntitiesForEmbedding([updatedPerson, organization])
+        ```
 
-    ### Creating a Knowledge Graph
+        ### Creating a Knowledge Graph
 
-    ```swift
-    // Generate a knowledge graph
-    let graph = RAGUtilities.generateKnowledgeGraph([updatedPerson, organization])
-    
-    // Export to JSON
-    let graphJSON = try graph.toJSON()
-    ```
+        ```swift
+        // Generate a knowledge graph
+        let graph = RAGUtilities.generateKnowledgeGraph([updatedPerson, organization])
 
-    ### Exporting to SQL
+        // Export to JSON
+        let graphJSON = try graph.toJSON()
+        ```
 
-    ```swift
-    // Generate SQL for an entity
-    let personSQL = DataExporter.exportEntityToSQL(updatedPerson)
-    
-    // Generate SQL for relationships
-    let relationshipSQL = DataExporter.exportRelationshipsToSQL(updatedPerson)
-    ```
+        ### Exporting to SQL
 
-    ## Entity Types
+        ```swift
+        // Generate SQL for an entity
+        let personSQL = DataExporter.exportEntityToSQL(updatedPerson)
 
-    The following entity types are supported in the `AssociatedDataType` enum:
+        // Generate SQL for relationships
+        let relationshipSQL = DataExporter.exportRelationshipsToSQL(updatedPerson)
+        ```
 
-    """
-    
+        ## Entity Types
+
+        The following entity types are supported in the `AssociatedDataType` enum:
+
+        """
+
     // Extract AssociatedDataType enum cases
     if let associatedDataContent = readFile(at: "\(sourceDir)/AssociatedData.swift") {
         let pattern = #"case\s+(\w+)\s*=\s*"([^"]+)""#
         let regex = try? NSRegularExpression(pattern: pattern, options: [])
         let nsString = associatedDataContent as NSString
-        let matches = regex?.matches(in: associatedDataContent, options: [], range: NSRange(location: 0, length: nsString.length)) ?? []
-        
+        let matches =
+            regex?.matches(
+                in: associatedDataContent, options: [],
+                range: NSRange(location: 0, length: nsString.length)) ?? []
+
         for match in matches {
             if match.numberOfRanges >= 2 {
                 let caseNameRange = match.range(at: 1)
@@ -203,30 +204,32 @@ func generateReadme() -> String {
             }
         }
     }
-    
+
     readme += """
 
-    ## RAG Example
+        ## RAG Example
 
-    Here's a complete example of using the RAG utilities:
+        Here's a complete example of using the RAG utilities:
 
-    ```swift
-    """
-    
+        ```swift
+        """
+
     // Include RAGExample.swift content
     if let ragExampleContent = readFile(at: "\(sourceDir)/RAGExample.swift") {
         let lines = ragExampleContent.components(separatedBy: .newlines)
         var inFunction = false
-        
+
         for line in lines {
             if line.contains("func prepareEntitiesForRAG()") {
                 inFunction = true
                 readme += line + "\n"
                 continue
             }
-            
+
             if inFunction {
-                if line.contains("}") && !line.contains("{") && line.trimmingCharacters(in: .whitespacesAndNewlines) == "}" {
+                if line.contains("}") && !line.contains("{")
+                    && line.trimmingCharacters(in: .whitespacesAndNewlines) == "}"
+                {
                     readme += line + "\n"
                     break
                 }
@@ -234,53 +237,80 @@ func generateReadme() -> String {
             }
         }
     }
-    
+
     readme += """
-    ```
-    ## Model Reference
+        ```
+        ## Model Reference
 
-    This package includes the following models:
+        This package includes the following models:
 
-    """
-    
+        """
+
+    // Add JSONSchemaProvider section
+    readme += """
+
+        ### JSON Schema Generation
+
+        Most models in this package conform to `JSONSchemaProvider`, enabling automatic JSON schema generation for LLM interactions:
+
+        ```swift
+        // Example of accessing a model's JSON schema
+        let schema = StatisticalData.jsonSchema
+
+        // Use this schema to instruct LLMs how to generate valid JSON
+        // for creating or updating StatisticalData instances
+        ```
+
+        The JSON schemas define:
+        - Required and optional properties
+        - Property types and formats
+        - Nested object structures
+        - Array specifications
+        - Validation rules
+
+        """
+
     // List all Swift files with brief descriptions
     for file in swiftFiles.sorted() {
         let fileName = file.replacingOccurrences(of: ".swift", with: "")
         let filePath = "\(sourceDir)/\(file)"
-        
+
         if let content = readFile(at: filePath) {
             let lines = content.components(separatedBy: .newlines)
             var description = "No description available."
-            
+
             // Try to extract a description from comments or struct/class definition
             for line in lines {
                 if line.contains("///") && !line.contains("example") {
-                    description = line.replacingOccurrences(of: "///", with: "").trimmingCharacters(in: .whitespacesAndNewlines)
+                    description = line.replacingOccurrences(of: "///", with: "").trimmingCharacters(
+                        in: .whitespacesAndNewlines)
                     break
                 }
-                
-                if line.contains("struct") || line.contains("class") || line.contains("protocol") || line.contains("enum") {
+
+                if line.contains("struct") || line.contains("class") || line.contains("protocol")
+                    || line.contains("enum")
+                {
                     if description == "No description available." {
                         description = line.trimmingCharacters(in: .whitespacesAndNewlines)
                     }
                     break
                 }
             }
-            
+
             readme += "### \(fileName)\n\n\(description)\n\n"
         }
     }
-    
+
     readme += """
-    ## Consolidated Models
+        ## Consolidated Models
 
-    For a complete reference of all models, see the `ConsolidatedModels.swift` file which is generated by the `scripts/consolidate_models.sh` script.
+        For a complete reference of all models, see the `ConsolidatedModels.swift` file which is generated by the `scripts/consolidate_models.sh` script.
 
-    ## License
+        ## License
 
-    This package is available under the MIT license.
-    """
-    
+        This package is available under the MIT license.
+        """
+
     return readme
 }
 
@@ -290,4 +320,4 @@ if writeFile(content: readme, to: outputPath) {
     print("README.md successfully generated!")
 } else {
     print("Failed to generate README.md")
-} 
+}

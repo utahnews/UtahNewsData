@@ -4,57 +4,17 @@
 //
 //  Created by Mark Evans on 10/25/24.
 //
-
-/*
- # LegalDocument Model
- 
- This file defines the LegalDocument model, which represents legal documents and
- official records in the UtahNewsData system. Legal documents can include court
- filings, legislation, regulations, and other official legal records relevant to
- news coverage.
- 
- ## Key Features:
- 
- 1. Document identification (title)
- 2. Publication tracking (dateIssued)
- 3. Relationship tracking with other entities
- 
- ## Usage:
- 
- ```swift
- // Create a legal document
- let legislation = LegalDocument(
-     title: "Senate Bill 101: Water Conservation Act",
-     dateIssued: Date()
- )
- 
- // Associate with related entities
- let legislatorRelationship = Relationship(
-     id: senator.id,
-     type: .person,
-     displayName: "Sponsored by"
- )
- legislation.relationships.append(legislatorRelationship)
- 
- let topicRelationship = Relationship(
-     id: waterCategory.id,
-     type: .category,
-     displayName: "Related to"
- )
- legislation.relationships.append(topicRelationship)
- ```
- 
- The LegalDocument model implements AssociatedData, allowing it to maintain
- relationships with other entities in the system, such as people, organizations,
- and categories.
- */
+//  Summary: Defines the LegalDocument model which represents legal documents and
+//           official records in the UtahNewsData system. Now conforms to JSONSchemaProvider
+//           to provide a static JSON schema for LLM responses.
 
 import SwiftUI
+import Foundation
 
 /// Represents a legal document or official record in the news system.
 /// Legal documents can include court filings, legislation, regulations,
 /// and other official legal records relevant to news coverage.
-public struct LegalDocument: AssociatedData {
+public struct LegalDocument: AssociatedData, JSONSchemaProvider { // Added JSONSchemaProvider conformance
     /// Unique identifier for the legal document
     public var id: String
     
@@ -105,5 +65,28 @@ public struct LegalDocument: AssociatedData {
         self.documentType = documentType
         self.documentNumber = documentNumber
         self.documentURL = documentURL
+    }
+    
+    // MARK: - JSON Schema Provider
+    /// Provides the JSON schema for LegalDocument.
+    public static var jsonSchema: String {
+        return """
+        {
+            "type": "object",
+            "properties": {
+                "id": {"type": "string"},
+                "relationships": {
+                    "type": "array",
+                    "items": {"type": "object"}
+                },
+                "title": {"type": "string"},
+                "dateIssued": {"type": "string", "format": "date-time"},
+                "documentType": {"type": ["string", "null"]},
+                "documentNumber": {"type": ["string", "null"]},
+                "documentURL": {"type": ["string", "null"]}
+            },
+            "required": ["id", "title", "dateIssued"]
+        }
+        """
     }
 }

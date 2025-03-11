@@ -4,55 +4,16 @@
 //
 //  Created by Mark Evans on 10/25/24.
 //
-
-/*
- # NewsAlert Model
- 
- This file defines the NewsAlert model, which represents time-sensitive alerts and
- notifications in the UtahNewsData system. News alerts can include breaking news,
- emergency notifications, weather alerts, and other time-critical information.
- 
- ## Key Features:
- 
- 1. Alert content (title, message)
- 2. Severity classification (level)
- 3. Timing information (dateIssued)
- 4. Relationship tracking with other entities
- 
- ## Usage:
- 
- ```swift
- // Create a high-priority news alert
- let alert = NewsAlert(
-     title: "Flash Flood Warning",
-     message: "The National Weather Service has issued a flash flood warning for Salt Lake County until 8:00 PM.",
-     dateIssued: Date(),
-     level: .high
- )
- 
- // Associate with related entities
- let locationRelationship = Relationship(
-     id: saltLakeCounty.id,
-     type: .jurisdiction,
-     displayName: "Affects"
- )
- alert.relationships.append(locationRelationship)
- 
- // Publish the alert
- alertService.publishAlert(alert)
- ```
- 
- The NewsAlert model implements AssociatedData, allowing it to maintain
- relationships with other entities in the system, such as locations, events,
- or categories.
- */
+//  Summary: Defines the NewsAlert model which represents time-sensitive alerts and notifications
+//           in the UtahNewsData system. Now conforms to JSONSchemaProvider to provide a static JSON schema for LLM responses.
 
 import SwiftUI
+import Foundation
 
 /// Represents a time-sensitive alert or notification in the news system.
 /// News alerts can include breaking news, emergency notifications, weather
 /// alerts, and other time-critical information.
-public struct NewsAlert: AssociatedData {
+public struct NewsAlert: AssociatedData, JSONSchemaProvider { // Added JSONSchemaProvider conformance
     /// Unique identifier for the alert
     public var id: String
     
@@ -109,6 +70,30 @@ public struct NewsAlert: AssociatedData {
         self.level = level
         self.source = source
         self.expirationDate = expirationDate
+    }
+    
+    // MARK: - JSON Schema Provider
+    /// Provides the JSON schema for NewsAlert.
+    public static var jsonSchema: String {
+        return """
+        {
+            "type": "object",
+            "properties": {
+                "id": {"type": "string"},
+                "relationships": {
+                    "type": "array",
+                    "items": {"type": "object"}
+                },
+                "title": {"type": "string"},
+                "message": {"type": "string"},
+                "dateIssued": {"type": "string", "format": "date-time"},
+                "level": {"type": "string"},
+                "source": {"type": ["string", "null"]},
+                "expirationDate": {"type": ["string", "null"], "format": "date-time"}
+            },
+            "required": ["id", "title", "message", "dateIssued", "level"]
+        }
+        """
     }
 }
 

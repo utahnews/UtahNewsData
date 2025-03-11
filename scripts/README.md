@@ -1,151 +1,95 @@
-# UtahNewsData Swift Package
+# UtahNewsData Scripts
 
-A comprehensive Swift package for managing news data with support for relational database export and Retrieval-Augmented Generation (RAG).
+This directory contains utility scripts for maintaining the UtahNewsData package documentation and code organization.
 
-## Overview
+## Available Scripts
 
-UtahNewsData provides a rich set of data models for representing news entities such as articles, people, organizations, events, and more. It includes functionality for:
+### `consolidate_models.sh`
 
-- Creating and managing relationships between entities
-- Exporting data to relational databases
-- Preparing data for vector embeddings and RAG systems
-- Generating knowledge graphs
-- Creating rich context for AI systems
+A shell script that consolidates all model definitions into a single reference file.
 
-## Installation
+**Purpose:**
+- Creates a comprehensive reference of all model definitions in one place
+- Helps maintain documentation and code review
+- Useful for understanding the full model hierarchy
 
-Add UtahNewsData to your Swift package dependencies:
-
-```swift
-dependencies: [
-    .package(url: "https://github.com/yourusername/UtahNewsData.git", from: "1.0.0")
-]
+**Usage:**
+```bash
+./consolidate_models.sh
 ```
 
-## Core Concepts
+**When to use:**
+- After adding new models
+- After making significant changes to existing models
+- After updating model conformances (e.g., adding JSONSchemaProvider)
+- Before submitting pull requests that modify models
 
-### Entity Models
+**Output:**
+- Creates/updates `Sources/UtahNewsData/ConsolidatedModels.swift`
+- All model definitions are commented out to prevent accidental usage
+- Includes timestamps and file origins
 
-The package includes the following entity models:
+### `generate_readme.swift`
 
-### Relationship Model
+A Swift script that automatically generates the project's main README.md file.
 
-Entities can be connected through relationships using the `Relationship` struct:
+**Purpose:**
+- Maintains up-to-date project documentation
+- Ensures consistency between code and documentation
+- Automatically includes all models and their descriptions
+- Generates usage examples and API documentation
 
-```swift
-public struct Relationship: BaseEntity, Codable, Hashable {
-    public var id: String                  // Unique identifier for the relationship
-    public var name: String                // Name or description of the relationship
-    public let targetId: String            // ID of the target entity
-    public let type: EntityType            // Type of the target entity
-    public var displayName: String?        // Human-readable relationship description
-    public let createdAt: Date             // When the relationship was created
-    public var context: String?            // Additional context about the relationship
-}
+**Usage:**
+```bash
+./generate_readme.swift
 ```
 
-### RAG Utilities
+**When to use:**
+- After adding new features or models
+- After updating model conformances
+- After adding new usage examples
+- Before releasing new versions
+- After significant codebase changes
 
-The package includes utilities for Retrieval-Augmented Generation:
+**Output:**
+- Creates/updates the main project `README.md`
+- Includes:
+  - Package overview
+  - Installation instructions
+  - Core concepts
+  - Entity models list
+  - Usage examples
+  - RAG utilities documentation
+  - JSON schema generation information
+  - Model reference
+  - License information
 
-- Context generation for entities and relationships
-- Vector record preparation for embedding
-- Knowledge graph generation
-- Combined context generation for multiple entities
+## Best Practices
 
-### Data Export
+1. **Run Order:**
+   - Run `consolidate_models.sh` first to update the model reference
+   - Then run `generate_readme.swift` to update documentation
 
-Utilities for exporting data to relational databases:
+2. **Version Control:**
+   - Commit the script outputs (`ConsolidatedModels.swift` and `README.md`)
+   - Review the changes before committing
 
-- SQL statement generation for entities
-- SQL statement generation for relationships
-- Table schema generation
+3. **Maintenance:**
+   - Keep scripts up to date with new features
+   - Update script documentation when changing functionality
+   - Test scripts after making modifications
 
-## Usage Examples
+## Script Maintenance
 
-### Creating Entities and Relationships
+When modifying these scripts:
 
-```swift
-// Create entities
-let person = Person(
-    name: "Jane Doe",
-    details: "A reporter",
-    occupation: "Journalist"
-)
+1. **consolidate_models.sh:**
+   - Update the model list in `FILES` array when adding new models
+   - Maintain the comment format for consistency
+   - Ensure proper file paths and permissions
 
-let organization = Organization(
-    name: "Utah News Network",
-    orgDescription: "A news organization"
-)
-
-// Create a relationship
-let relationship = Relationship(
-    id: organization.id,
-    type: .organization,
-    displayName: "Works at",
-    context: "Jane has been working here since 2020",
-    confidence: 0.95,
-    source: .userInput
-)
-
-// Add the relationship to the person
-var updatedPerson = person
-updatedPerson.relationships.append(relationship)
-```
-
-### Generating Context for RAG
-
-```swift
-// Generate context for a single entity
-let personContext = RAGUtilities.generateEntityContext(updatedPerson)
-
-// Generate context for multiple entities
-let combinedContext = RAGUtilities.generateCombinedContext([updatedPerson, organization])
-```
-
-### Preparing Data for Vector Embedding
-
-```swift
-// Generate vector records for entities
-let vectorRecords = RAGUtilities.prepareEntitiesForEmbedding([updatedPerson, organization])
-```
-
-### Creating a Knowledge Graph
-
-```swift
-// Generate a knowledge graph
-let graph = RAGUtilities.generateKnowledgeGraph([updatedPerson, organization])
-
-// Export to JSON
-let graphJSON = try graph.toJSON()
-```
-
-### Exporting to SQL
-
-```swift
-// Generate SQL for an entity
-let personSQL = DataExporter.exportEntityToSQL(updatedPerson)
-
-// Generate SQL for relationships
-let relationshipSQL = DataExporter.exportRelationshipsToSQL(updatedPerson)
-```
-
-## Entity Types
-
-The following entity types are supported in the `AssociatedDataType` enum:
-
-## RAG Example
-
-Here's a complete example of using the RAG utilities:
-
-```swift```
-## Model Reference
-
-This package includes the following models:
-## Consolidated Models
-
-For a complete reference of all models, see the `ConsolidatedModels.swift` file which is generated by the `scripts/consolidate_models.sh` script.
-
-## License
-
-This package is available under the MIT license.
+2. **generate_readme.swift:**
+   - Update sections when adding new features
+   - Maintain consistent formatting
+   - Add new examples when appropriate
+   - Update regex patterns if comment styles change

@@ -4,61 +4,18 @@
 //
 //  Created by Mark Evans on 11/18/24.
 //
-
-/*
- # Audio Model
- 
- This file defines the Audio model, which represents audio content in the UtahNewsData
- system. The Audio struct implements the NewsContent protocol, providing a consistent
- interface for working with audio content alongside other news content types.
- 
- ## Key Features:
- 
- 1. Core news content properties (title, URL, publication date)
- 2. Audio-specific metadata (duration, bitrate)
- 3. Preview support with example instance
- 
- ## Usage:
- 
- ```swift
- // Create an audio instance
- let podcast = Audio(
-     title: "Utah Politics Weekly Podcast",
-     url: "https://www.utahnews.com/podcasts/politics-weekly-ep45",
-     urlToImage: "https://www.utahnews.com/images/podcast-cover.jpg",
-     publishedAt: Date(),
-     textContent: "This week we discuss the latest developments in Utah politics",
-     author: "Jane Smith",
-     duration: 2400, // 40 minutes in seconds
-     bitrate: 192 // 192 kbps
- )
- 
- // Access audio properties
- print("Podcast: \(podcast.title)")
- print("Duration: \(Int(podcast.duration / 60)) minutes")
- print("Audio Quality: \(podcast.bitrate) kbps")
- 
- // Use in a list with other news content types
- let newsItems: [NewsContent] = [article1, podcast, video]
- for item in newsItems {
-     print(item.basicInfo())
- }
- ```
- 
- The Audio model is designed to work seamlessly with UI components that display
- news content, while providing additional properties specific to audio content.
- */
+//  Summary: Defines the Audio model which represents audio content in the UtahNewsData system.
+//           Now conforms to JSONSchemaProvider to provide a static JSON schema for LLM responses.
+//           (Changes: Added JSONSchemaProvider conformance and static jsonSchema property.)
 
 import Foundation
 
-/// A struct representing an audio clip in the news app.
-/// Audio clips are a type of news content with additional properties for
-/// duration and audio quality (bitrate).
-public struct Audio: NewsContent, BaseEntity {
+// Updated to conform to JSONSchemaProvider
+public struct Audio: NewsContent, BaseEntity, JSONSchemaProvider {
     /// Unique identifier for the audio clip
     public var id: String
     
-    /// The name of the entity (required by BaseEntity)
+    /// The name of the entity (derived from the title)
     public var name: String { title }
     
     /// Title or name of the audio clip
@@ -134,12 +91,32 @@ public struct Audio: NewsContent, BaseEntity {
     public func formattedBitrate() -> String {
         return "\(bitrate) kbps"
     }
+    
+    // MARK: - JSON Schema Provider
+    // Provides the JSON schema for Audio.
+    public static var jsonSchema: String {
+        return """
+        {
+            "type": "object",
+            "properties": {
+                "id": {"type": "string"},
+                "title": {"type": "string"},
+                "url": {"type": "string"},
+                "urlToImage": {"type": ["string", "null"]},
+                "publishedAt": {"type": "string", "format": "date-time"},
+                "textContent": {"type": ["string", "null"]},
+                "author": {"type": ["string", "null"]},
+                "duration": {"type": "number"},
+                "bitrate": {"type": "integer"}
+            },
+            "required": ["id", "title", "url", "publishedAt", "duration", "bitrate"]
+        }
+        """
+    }
 }
 
 public extension Audio {
     /// An example instance of `Audio` for previews and testing.
-    /// This provides a convenient way to use a realistic audio instance
-    /// in SwiftUI previews and unit tests.
     @MainActor static let example = Audio(
         title: "Utah News Podcast Episode 1",
         url: "https://www.utahnews.com/podcast-episode-1",

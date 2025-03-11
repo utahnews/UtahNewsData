@@ -4,56 +4,11 @@
 //
 //  Created by Mark Evans on 12/10/24.
 //
-
-/*
- # Jurisdiction Model
- 
- This file defines the Jurisdiction model, which represents governmental jurisdictions
- in the UtahNewsData system, such as cities, counties, and states. Jurisdictions are
- important entities for categorizing and organizing news content by geographic and
- administrative boundaries.
- 
- ## Key Features:
- 
- 1. Jurisdiction type classification (city, county, state)
- 2. Geographic location association
- 3. Website linking
- 4. Relationship tracking with other entities
- 
- ## Usage:
- 
- ```swift
- // Create a city jurisdiction
- let saltLakeCity = Jurisdiction(
-     type: .city,
-     name: "Salt Lake City",
-     location: Location(name: "Salt Lake City, Utah")
- )
- 
- // Create a county jurisdiction
- let saltLakeCounty = Jurisdiction(
-     type: .county,
-     name: "Salt Lake County"
- )
- 
- // Add website information
- saltLakeCity.website = "https://www.slc.gov"
- 
- // Create relationships between jurisdictions
- let relationship = Relationship(
-     id: saltLakeCounty.id,
-     type: .jurisdiction,
-     displayName: "Located in"
- )
- saltLakeCity.relationships.append(relationship)
- ```
- 
- The Jurisdiction model implements AssociatedData, allowing it to maintain
- relationships with other entities in the system, such as news stories, events,
- or other jurisdictions.
- */
+//  Summary: Defines the Jurisdiction model which represents governmental jurisdictions
+//           in the UtahNewsData system. Now conforms to JSONSchemaProvider to provide a static JSON schema for LLM responses.
 
 import SwiftUI
+import Foundation
 
 /// Represents the type of governmental jurisdiction.
 /// Used to categorize jurisdictions by their administrative level.
@@ -80,7 +35,7 @@ public enum JurisdictionType: String, Codable, CaseIterable {
 /// Represents a governmental jurisdiction such as a city, county, or state.
 /// Jurisdictions are important entities for categorizing and organizing news
 /// content by geographic and administrative boundaries.
-public struct Jurisdiction: AssociatedData, Identifiable, Codable {
+public struct Jurisdiction: AssociatedData, Identifiable, Codable, JSONSchemaProvider { // Added JSONSchemaProvider conformance
     /// Unique identifier for the jurisdiction
     public var id: String
     
@@ -139,5 +94,27 @@ public struct Jurisdiction: AssociatedData, Identifiable, Codable {
         // Use decodeIfPresent for location so it's nil if field is missing or can't decode
         self.location = try? container.decodeIfPresent(Location.self, forKey: .location)
         self.website = try? container.decodeIfPresent(String.self, forKey: .website)
+    }
+    
+    // MARK: - JSON Schema Provider
+    /// Provides the JSON schema for Jurisdiction.
+    public static var jsonSchema: String {
+        return """
+        {
+            "type": "object",
+            "properties": {
+                "id": {"type": "string"},
+                "relationships": {
+                    "type": "array",
+                    "items": {"type": "object"}
+                },
+                "type": {"type": "string"},
+                "name": {"type": "string"},
+                "location": {"type": ["object", "null"]},
+                "website": {"type": ["string", "null"]}
+            },
+            "required": ["id", "type", "name"]
+        }
+        """
     }
 }

@@ -7,21 +7,21 @@
 
 /*
  # StatisticalData Model
- 
+
  This file defines the StatisticalData model, which represents numerical data points
  in the UtahNewsData system. StatisticalData can be associated with articles, news events,
  and other content types, providing quantitative information with proper attribution.
- 
+
  ## Key Features:
- 
+
  1. Core data (title, value, unit)
  2. Source attribution
  3. Contextual information (date, methodology, margin of error)
  4. Visualization hints
  5. Related entities
- 
+
  ## Usage:
- 
+
  ```swift
  // Create a basic statistical data point
  let basicStat = StatisticalData(
@@ -29,7 +29,7 @@
      value: "3.3",
      unit: "million people"
  )
- 
+
  // Create a detailed statistical data point
  let detailedStat = StatisticalData(
      title: "Utah Unemployment Rate",
@@ -44,24 +44,24 @@
      topics: ["Economy", "Employment"],
      relatedEntities: [saltLakeCounty, utahState] // Location entities
  )
- 
+
  // Associate statistical data with an article
  let article = Article(
      title: "Utah's Economy Continues Strong Performance",
      body: ["Utah's economy showed strong performance in the latest economic indicators..."]
  )
- 
+
  // Create relationship between statistical data and article
  let relationship = Relationship(
      fromEntity: detailedStat,
      toEntity: article,
      type: .supportedBy
  )
- 
+
  detailedStat.relationships.append(relationship)
  article.relationships.append(relationship)
  ```
- 
+
  The StatisticalData model implements EntityDetailsProvider, allowing it to generate
  rich text descriptions for RAG (Retrieval Augmented Generation) systems.
  */
@@ -81,51 +81,51 @@ public enum VisualizationType: String, Codable {
 /// Represents a numerical data point in the UtahNewsData system.
 /// StatisticalData can be associated with articles, news events, and other content types,
 /// providing quantitative information with proper attribution.
-public struct StatisticalData: EntityDetailsProvider {
+public struct StatisticalData: AssociatedData, EntityDetailsProvider, JSONSchemaProvider {
     /// Unique identifier for the statistical data
     public var id: String = UUID().uuidString
-    
+
     /// The name property required by the BaseEntity protocol
     public var name: String {
         return title
     }
-    
+
     /// Relationships to other entities in the system
     public var relationships: [Relationship] = []
-    
+
     /// The name or description of the statistical data
     public var title: String
-    
+
     /// The numerical value of the statistic
     public var value: String
-    
+
     /// The unit of measurement (e.g., "percent", "million dollars")
     public var unit: String
-    
+
     /// Organization or person that is the source of this data
     public var source: (any EntityDetailsProvider)?
-    
+
     /// When the data was collected or published
     public var date: Date?
-    
+
     /// Information about how the data was collected or calculated
     public var methodology: String?
-    
+
     /// Statistical margin of error if applicable
     public var marginOfError: String?
-    
+
     /// Recommended visualization type for this data
     public var visualizationType: VisualizationType?
-    
+
     /// A comparison value for context (e.g., previous year, national average)
     public var comparisonValue: String?
-    
+
     /// Subject areas or keywords related to the data
     public var topics: [String]?
-    
+
     /// Entities (people, organizations, locations) related to this data
     public var relatedEntities: [any EntityDetailsProvider]?
-    
+
     /// Creates a new StatisticalData with the specified properties.
     ///
     /// - Parameters:
@@ -165,7 +165,7 @@ public struct StatisticalData: EntityDetailsProvider {
         self.topics = topics
         self.relatedEntities = relatedEntities
     }
-    
+
     /// Generates a detailed text description of the statistical data for use in RAG systems.
     /// The description includes the title, value, unit, source, and contextual information.
     ///
@@ -173,11 +173,11 @@ public struct StatisticalData: EntityDetailsProvider {
     public func getDetailedDescription() -> String {
         var description = "STATISTICAL DATA: \(title)"
         description += "\nValue: \(value) \(unit)"
-        
+
         if let marginOfError = marginOfError {
             description += " (±\(marginOfError))"
         }
-        
+
         if let source = source {
             if let organization = source as? Organization {
                 description += "\nSource: \(organization.name)"
@@ -185,45 +185,90 @@ public struct StatisticalData: EntityDetailsProvider {
                 description += "\nSource: \(person.name)"
             }
         }
-        
+
         if let date = date {
             let formatter = DateFormatter()
             formatter.dateStyle = .medium
             description += "\nDate: \(formatter.string(from: date))"
         }
-        
+
         if let methodology = methodology {
             description += "\nMethodology: \(methodology)"
         }
-        
+
         if let comparisonValue = comparisonValue {
             description += "\nComparison Value: \(comparisonValue) \(unit)"
         }
-        
+
         if let topics = topics, !topics.isEmpty {
             description += "\nTopics: \(topics.joined(separator: ", "))"
         }
-        
+
         return description
+    }
+
+    /// JSON schema for LLM responses
+    public static var jsonSchema: String {
+        """
+        {
+            "type": "object",
+            "properties": {
+                "id": {"type": "string"},
+                "title": {"type": "string"},
+                "value": {"type": "string"},
+                "unit": {"type": "string"},
+                "source": {"$ref": "#/definitions/Organization", "optional": true},
+                "date": {"type": "string", "format": "date-time", "optional": true},
+                "methodology": {"type": "string", "optional": true},
+                "marginOfError": {"type": "string", "optional": true},
+                "visualizationType": {
+                    "type": "string",
+                    "enum": ["barChart", "lineChart", "pieChart", "scatterPlot", "table"],
+                    "optional": true
+                },
+                "comparisonValue": {"type": "string", "optional": true},
+                "topics": {
+                    "type": "array",
+                    "items": {"type": "string"},
+                    "optional": true
+                },
+                "relatedEntities": {
+                    "type": "array",
+                    "items": {
+                        "oneOf": [
+                            {"$ref": "#/definitions/Location"},
+                            {"$ref": "#/definitions/Organization"}
+                        ]
+                    },
+                    "optional": true
+                },
+                "metadata": {
+                    "type": "object",
+                    "additionalProperties": true,
+                    "optional": true
+                }
+            },
+            "required": ["id", "title", "value", "unit"],
+            "definitions": {
+                "Organization": {"$ref": "Organization.jsonSchema"},
+                "Location": {"$ref": "Location.jsonSchema"}
+            }
+        }
+        """
     }
 }
 
 // MARK: - Equatable & Hashable
 extension StatisticalData: Equatable, Hashable {
     public static func == (lhs: StatisticalData, rhs: StatisticalData) -> Bool {
-        lhs.id == rhs.id &&
-        lhs.title == rhs.title &&
-        lhs.value == rhs.value &&
-        lhs.unit == rhs.unit &&
-        lhs.date == rhs.date &&
-        lhs.methodology == rhs.methodology &&
-        lhs.marginOfError == rhs.marginOfError &&
-        lhs.visualizationType == rhs.visualizationType &&
-        lhs.comparisonValue == rhs.comparisonValue &&
-        lhs.topics == rhs.topics
+        lhs.id == rhs.id && lhs.title == rhs.title && lhs.value == rhs.value && lhs.unit == rhs.unit
+            && lhs.date == rhs.date && lhs.methodology == rhs.methodology
+            && lhs.marginOfError == rhs.marginOfError
+            && lhs.visualizationType == rhs.visualizationType
+            && lhs.comparisonValue == rhs.comparisonValue && lhs.topics == rhs.topics
         // Note: source and relatedEntities are not compared as they're EntityDetailsProvider which doesn't conform to Equatable
     }
-    
+
     public func hash(into hasher: inout Hasher) {
         hasher.combine(id)
         hasher.combine(title)
@@ -242,13 +287,14 @@ extension StatisticalData: Equatable, Hashable {
 // MARK: - Codable
 extension StatisticalData: Codable {
     private enum CodingKeys: String, CodingKey {
-        case id, relationships, title, value, unit, date, methodology, marginOfError, visualizationType, comparisonValue, topics
+        case id, relationships, title, value, unit, date, methodology, marginOfError,
+            visualizationType, comparisonValue, topics
         // Note: source and relatedEntities are excluded as they're EntityDetailsProvider which doesn't conform to Codable
     }
-    
+
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        
+
         id = try container.decode(String.self, forKey: .id)
         relationships = try container.decode([Relationship].self, forKey: .relationships)
         title = try container.decode(String.self, forKey: .title)
@@ -257,16 +303,17 @@ extension StatisticalData: Codable {
         date = try container.decodeIfPresent(Date.self, forKey: .date)
         methodology = try container.decodeIfPresent(String.self, forKey: .methodology)
         marginOfError = try container.decodeIfPresent(String.self, forKey: .marginOfError)
-        visualizationType = try container.decodeIfPresent(VisualizationType.self, forKey: .visualizationType)
+        visualizationType = try container.decodeIfPresent(
+            VisualizationType.self, forKey: .visualizationType)
         comparisonValue = try container.decodeIfPresent(String.self, forKey: .comparisonValue)
         topics = try container.decodeIfPresent([String].self, forKey: .topics)
-        source = nil // Cannot decode EntityDetailsProvider
-        relatedEntities = nil // Cannot decode [EntityDetailsProvider]
+        source = nil  // Cannot decode EntityDetailsProvider
+        relatedEntities = nil  // Cannot decode [EntityDetailsProvider]
     }
-    
+
     public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
-        
+
         try container.encode(id, forKey: .id)
         try container.encode(relationships, forKey: .relationships)
         try container.encode(title, forKey: .title)

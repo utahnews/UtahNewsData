@@ -7,22 +7,22 @@
 
 /*
  # CalEvent Model
- 
+
  This file defines the CalEvent model, which represents calendar events
  in the UtahNewsData system. CalEvents can be used to track scheduled events
  such as press conferences, meetings, hearings, and other time-based occurrences
  relevant to news coverage.
- 
+
  ## Key Features:
- 
+
  1. Core event information (title, description, date/time range)
  2. Location data
  3. Organizer and attendee information
  4. Recurrence rules
  5. Related entities
- 
+
  ## Usage:
- 
+
  ```swift
  // Create a basic calendar event
  let basicEvent = CalEvent(
@@ -30,7 +30,7 @@
      startDate: Date(), // March 15, 2023, 19:00
      endDate: Date().addingTimeInterval(7200) // 2 hours later
  )
- 
+
  // Create a detailed calendar event
  let detailedEvent = CalEvent(
      title: "Public Hearing on Downtown Development",
@@ -45,15 +45,15 @@
      recurrenceRule: nil, // One-time event
      relatedEntities: [downtownProject] // Other entities
  )
- 
+
  // Access event information
  let eventTitle = detailedEvent.title
  let eventDuration = Calendar.current.dateComponents([.minute], from: detailedEvent.startDate, to: detailedEvent.endDate).minute
- 
+
  // Generate context for RAG
  let context = detailedEvent.generateContext()
  ```
- 
+
  The CalEvent model implements EntityDetailsProvider, allowing it to generate
  rich text descriptions for RAG (Retrieval Augmented Generation) systems.
  */
@@ -64,25 +64,25 @@ import Foundation
 public struct RecurrenceRule: BaseEntity, Codable, Hashable, Equatable {
     /// Unique identifier for the recurrence rule
     public var id: String
-    
+
     /// The name or description of this recurrence rule
     public var name: String
-    
+
     /// Frequency of recurrence (daily, weekly, monthly, yearly)
     public var frequency: String
-    
+
     /// Interval between occurrences (e.g., every 2 weeks)
     public var interval: Int
-    
+
     /// When the recurrence ends (specific date or after a number of occurrences)
     public var endDate: Date?
-    
+
     /// Number of occurrences after which the recurrence ends
     public var occurrences: Int?
-    
+
     /// Days of the week when the event occurs (for weekly recurrence)
     public var daysOfWeek: [Int]?
-    
+
     /// Creates a new RecurrenceRule with the specified properties.
     ///
     /// - Parameters:
@@ -115,49 +115,49 @@ public struct RecurrenceRule: BaseEntity, Codable, Hashable, Equatable {
 /// Represents a calendar event in the UtahNewsData system.
 /// CalEvents can be used to track scheduled events such as press conferences,
 /// meetings, hearings, and other time-based occurrences relevant to news coverage.
-public struct CalEvent: AssociatedData, EntityDetailsProvider, BaseEntity {
+public struct CalEvent: AssociatedData, EntityDetailsProvider, JSONSchemaProvider, BaseEntity {
     /// Unique identifier for the calendar event
     public var id: String = UUID().uuidString
-    
+
     /// The name of the entity (required by BaseEntity)
     public var name: String { title }
-    
+
     /// Relationships to other entities in the system
     public var relationships: [Relationship] = []
-    
+
     /// The title of the event
     public var title: String
-    
+
     /// Detailed description of the event
     public var description: String?
-    
+
     /// When the event begins
     public var startDate: Date
-    
+
     /// When the event ends
     public var endDate: Date
-    
+
     /// Where the event takes place
     public var location: Location?
-    
+
     /// Person or organization organizing the event
     public var organizer: (any EntityDetailsProvider)?
-    
+
     /// People or organizations attending the event
     public var attendees: [any EntityDetailsProvider]?
-    
+
     /// Whether the event is open to the public
     public var isPublic: Bool?
-    
+
     /// URL with more information about the event
     public var url: String?
-    
+
     /// Rule for recurring events
     public var recurrenceRule: RecurrenceRule?
-    
+
     /// Entities related to this event
     public var relatedEntities: [any EntityDetailsProvider]?
-    
+
     /// Creates a new CalEvent with the specified properties.
     ///
     /// - Parameters:
@@ -197,15 +197,13 @@ public struct CalEvent: AssociatedData, EntityDetailsProvider, BaseEntity {
         self.recurrenceRule = recurrenceRule
         self.relatedEntities = relatedEntities
     }
-    
+
     // Implement Equatable manually since we have properties that don't conform to Equatable
     public static func == (lhs: CalEvent, rhs: CalEvent) -> Bool {
-        return lhs.id == rhs.id &&
-               lhs.title == rhs.title &&
-               lhs.startDate == rhs.startDate &&
-               lhs.endDate == rhs.endDate
+        return lhs.id == rhs.id && lhs.title == rhs.title && lhs.startDate == rhs.startDate
+            && lhs.endDate == rhs.endDate
     }
-    
+
     // Implement Hashable manually
     public func hash(into hasher: inout Hasher) {
         hasher.combine(id)
@@ -213,11 +211,11 @@ public struct CalEvent: AssociatedData, EntityDetailsProvider, BaseEntity {
         hasher.combine(startDate)
         hasher.combine(endDate)
     }
-    
+
     // Implement Codable manually
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        
+
         id = try container.decode(String.self, forKey: .id)
         title = try container.decode(String.self, forKey: .title)
         description = try container.decodeIfPresent(String.self, forKey: .description)
@@ -227,17 +225,18 @@ public struct CalEvent: AssociatedData, EntityDetailsProvider, BaseEntity {
         isPublic = try container.decodeIfPresent(Bool.self, forKey: .isPublic)
         url = try container.decodeIfPresent(String.self, forKey: .url)
         recurrenceRule = try container.decodeIfPresent(RecurrenceRule.self, forKey: .recurrenceRule)
-        relationships = try container.decodeIfPresent([Relationship].self, forKey: .relationships) ?? []
-        
+        relationships =
+            try container.decodeIfPresent([Relationship].self, forKey: .relationships) ?? []
+
         // Skip decoding organizer, attendees, and relatedEntities as they use protocol types
         organizer = nil
         attendees = nil
         relatedEntities = nil
     }
-    
+
     public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
-        
+
         try container.encode(id, forKey: .id)
         try container.encode(title, forKey: .title)
         try container.encodeIfPresent(description, forKey: .description)
@@ -248,39 +247,40 @@ public struct CalEvent: AssociatedData, EntityDetailsProvider, BaseEntity {
         try container.encodeIfPresent(url, forKey: .url)
         try container.encodeIfPresent(recurrenceRule, forKey: .recurrenceRule)
         try container.encode(relationships, forKey: .relationships)
-        
+
         // Skip encoding organizer, attendees, and relatedEntities as they use protocol types
     }
-    
+
     private enum CodingKeys: String, CodingKey {
-        case id, title, description, startDate, endDate, location, isPublic, url, recurrenceRule, relationships
+        case id, title, description, startDate, endDate, location, isPublic, url, recurrenceRule,
+            relationships
     }
-    
+
     /// Generates a detailed text description of the calendar event for use in RAG systems.
     /// The description includes the title, date/time, location, and other event details.
     ///
     /// - Returns: A formatted string containing the calendar event's details
     public func getDetailedDescription() -> String {
         var description = "CALENDAR EVENT: \(title)"
-        
+
         if let eventDescription = self.description {
             description += "\nDescription: \(eventDescription)"
         }
-        
+
         let dateFormatter = DateFormatter()
         dateFormatter.dateStyle = .medium
         dateFormatter.timeStyle = .short
-        
+
         description += "\nStart: \(dateFormatter.string(from: startDate))"
         description += "\nEnd: \(dateFormatter.string(from: endDate))"
-        
+
         if let location = location {
             description += "\nLocation: \(location.name)"
             if let address = location.address {
                 description += " (\(address))"
             }
         }
-        
+
         if let organizer = organizer {
             if let person = organizer as? Person {
                 description += "\nOrganizer: \(person.name)"
@@ -288,7 +288,7 @@ public struct CalEvent: AssociatedData, EntityDetailsProvider, BaseEntity {
                 description += "\nOrganizer: \(organization.name)"
             }
         }
-        
+
         if let attendees = attendees, !attendees.isEmpty {
             description += "\nAttendees:"
             for attendee in attendees {
@@ -299,17 +299,18 @@ public struct CalEvent: AssociatedData, EntityDetailsProvider, BaseEntity {
                 }
             }
         }
-        
+
         if let isPublic = isPublic {
             description += "\nPublic Event: \(isPublic ? "Yes" : "No")"
         }
-        
+
         if let url = url {
             description += "\nMore Information: \(url)"
         }
-        
+
         if let recurrenceRule = recurrenceRule {
-            description += "\nRecurrence: Every \(recurrenceRule.interval) \(recurrenceRule.frequency)"
+            description +=
+                "\nRecurrence: Every \(recurrenceRule.interval) \(recurrenceRule.frequency)"
             if let occurrences = recurrenceRule.occurrences {
                 description += " for \(occurrences) occurrences"
             } else if let endDate = recurrenceRule.endDate {
@@ -319,7 +320,62 @@ public struct CalEvent: AssociatedData, EntityDetailsProvider, BaseEntity {
                 description += " until \(formatter.string(from: endDate))"
             }
         }
-        
+
         return description
+    }
+
+    /// JSON schema for LLM responses
+    public static var jsonSchema: String {
+        """
+        {
+            "type": "object",
+            "properties": {
+                "id": {"type": "string"},
+                "title": {"type": "string"},
+                "description": {"type": "string", "optional": true},
+                "startDate": {"type": "string", "format": "date-time"},
+                "endDate": {"type": "string", "format": "date-time"},
+                "location": {"$ref": "#/definitions/Location", "optional": true},
+                "organizer": {"$ref": "#/definitions/Organization", "optional": true},
+                "attendees": {
+                    "type": "array",
+                    "items": {
+                        "oneOf": [
+                            {"$ref": "#/definitions/Organization"},
+                            {"$ref": "#/definitions/Person"}
+                        ]
+                    },
+                    "optional": true
+                },
+                "isPublic": {"type": "boolean", "optional": true},
+                "url": {"type": "string", "format": "uri", "optional": true},
+                "recurrenceRule": {
+                    "type": "object",
+                    "properties": {
+                        "id": {"type": "string"},
+                        "name": {"type": "string"},
+                        "frequency": {"type": "string", "enum": ["daily", "weekly", "monthly", "yearly"]},
+                        "interval": {"type": "integer", "minimum": 1},
+                        "endDate": {"type": "string", "format": "date-time", "optional": true},
+                        "count": {"type": "integer", "minimum": 1, "optional": true}
+                    },
+                    "required": ["id", "name", "frequency", "interval"],
+                    "optional": true
+                },
+                "status": {"type": "string", "enum": ["scheduled", "cancelled", "postponed", "completed"], "optional": true},
+                "tags": {
+                    "type": "array",
+                    "items": {"type": "string"},
+                    "optional": true
+                }
+            },
+            "required": ["id", "title", "startDate", "endDate"],
+            "definitions": {
+                "Location": {"$ref": "Location.jsonSchema"},
+                "Organization": {"$ref": "Organization.jsonSchema"},
+                "Person": {"$ref": "Person.jsonSchema"}
+            }
+        }
+        """
     }
 }

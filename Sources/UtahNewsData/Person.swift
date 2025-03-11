@@ -8,29 +8,29 @@
 
 /*
  # Person Model
- 
+
  This file defines the Person model, which represents individuals in the UtahNewsData system.
  The Person model is one of the core entity types and can be related to many other entities
  such as organizations, news stories, quotes, and more.
- 
+
  ## Key Features:
- 
+
  1. Core identification (id, name, details)
  2. Biographical information (biography, birth/death dates, nationality)
  3. Professional details (occupation, achievements)
  4. Contact information (email, phone, website, address)
  5. Location data (string representation and coordinates)
  6. Social media presence
- 
+
  ## Usage:
- 
+
  ```swift
  // Create a basic person
  let person = Person(
      name: "Jane Doe",
      details: "Reporter for Utah News Network"
  )
- 
+
  // Create a person with more details
  let detailedPerson = Person(
      name: "John Smith",
@@ -40,7 +40,7 @@
      nationality: "American",
      notableAchievements: ["Published 3 books", "Regular contributor to major news outlets"]
  )
- 
+
  // Add a relationship to another entity
  var updatedPerson = person
  updatedPerson.relationships.append(
@@ -52,7 +52,7 @@
      )
  )
  ```
- 
+
  The Person model implements EntityDetailsProvider, which allows it to generate
  rich text descriptions for RAG systems.
  */
@@ -62,71 +62,73 @@ import SwiftUI
 /// Represents a person in the news data system.
 /// This can be a journalist, public figure, expert, or any individual
 /// relevant to news content.
-public struct Person: AssociatedData, Codable, Identifiable, Hashable, EntityDetailsProvider {
+public struct Person: AssociatedData, Codable, Identifiable, Hashable, EntityDetailsProvider,
+    JSONSchemaProvider
+{
     // MARK: - Core Properties
-    
+
     /// Unique identifier for the person
     public var id: String
-    
+
     /// Relationships to other entities (organizations, locations, etc.)
     public var relationships: [Relationship] = []
-    
+
     /// The person's full name
     public var name: String
-    
+
     /// Brief description or summary of the person
     public var details: String
 
     // MARK: - Additional Public Figure Properties
-    
+
     /// Detailed biography or background information
     public var biography: String?
-    
+
     /// Date of birth, if known
     public var birthDate: Date?
-    
+
     /// Date of death, if applicable
     public var deathDate: Date?
-    
+
     /// Professional occupation or role
     public var occupation: String?
-    
+
     /// Nationality or citizenship
     public var nationality: String?
-    
+
     /// List of significant achievements or contributions
     public var notableAchievements: [String]?
-    
+
     /// URL to a profile image or photo
     public var imageURL: String?
-    
+
     /// Text description of location (e.g., "Salt Lake City, Utah")
     public var locationString: String?
-    
+
     /// Latitude coordinate for precise location
     public var locationLatitude: Double?
-    
+
     /// Longitude coordinate for precise location
     public var locationLongitude: Double?
-    
+
     /// Email address for contact
     public var email: String?
-    
+
     /// Personal or professional website
     public var website: String?
-    
+
     /// Phone number for contact
     public var phone: String?
-    
+
     /// Physical address
     public var address: String?
-    
+
     /// Dictionary of social media platforms and corresponding handles
     /// Example: ["Twitter": "@janedoe", "LinkedIn": "jane-doe"]
     public var socialMediaHandles: [String: String]?
 
     // MARK: - Initializer
-    
+
     /// Creates a new Person instance with the specified properties.
     ///
     /// - Parameters:
@@ -192,9 +194,9 @@ public struct Person: AssociatedData, Codable, Identifiable, Hashable, EntityDet
         self.address = address
         self.socialMediaHandles = socialMediaHandles
     }
-    
+
     // MARK: - Decodable
-    
+
     /// Creates a Person instance by decoding from the given decoder.
     /// Provides fallbacks for optional properties and generates a UUID if id is missing.
     ///
@@ -205,14 +207,16 @@ public struct Person: AssociatedData, Codable, Identifiable, Hashable, EntityDet
         self.name = try container.decode(String.self, forKey: .name)
         self.details = try container.decode(String.self, forKey: .details)
         self.id = (try? container.decode(String.self, forKey: .id)) ?? UUID().uuidString
-        self.relationships = (try? container.decode([Relationship].self, forKey: .relationships)) ?? []
-        
+        self.relationships =
+            (try? container.decode([Relationship].self, forKey: .relationships)) ?? []
+
         self.biography = try? container.decode(String.self, forKey: .biography)
         self.birthDate = try? container.decode(Date.self, forKey: .birthDate)
         self.deathDate = try? container.decode(Date.self, forKey: .deathDate)
         self.occupation = try? container.decode(String.self, forKey: .occupation)
         self.nationality = try? container.decode(String.self, forKey: .nationality)
-        self.notableAchievements = try? container.decode([String].self, forKey: .notableAchievements)
+        self.notableAchievements = try? container.decode(
+            [String].self, forKey: .notableAchievements)
 
         // New properties decoding
         self.imageURL = try? container.decode(String.self, forKey: .imageURL)
@@ -223,11 +227,12 @@ public struct Person: AssociatedData, Codable, Identifiable, Hashable, EntityDet
         self.website = try? container.decode(String.self, forKey: .website)
         self.phone = try? container.decode(String.self, forKey: .phone)
         self.address = try? container.decode(String.self, forKey: .address)
-        self.socialMediaHandles = try? container.decode([String: String].self, forKey: .socialMediaHandles)
+        self.socialMediaHandles = try? container.decode(
+            [String: String].self, forKey: .socialMediaHandles)
     }
-    
+
     // MARK: - Encodable
-    
+
     /// Encodes the Person instance to the given encoder.
     ///
     /// - Parameter encoder: The encoder to write data to
@@ -238,14 +243,14 @@ public struct Person: AssociatedData, Codable, Identifiable, Hashable, EntityDet
         try container.encode(relationships, forKey: .relationships)
         try container.encode(name, forKey: .name)
         try container.encode(details, forKey: .details)
-        
+
         try container.encode(biography, forKey: .biography)
         try container.encode(birthDate, forKey: .birthDate)
         try container.encode(deathDate, forKey: .deathDate)
         try container.encode(occupation, forKey: .occupation)
         try container.encode(nationality, forKey: .nationality)
         try container.encode(notableAchievements, forKey: .notableAchievements)
-        
+
         // New properties encoding
         try container.encode(imageURL, forKey: .imageURL)
         try container.encode(locationString, forKey: .locationString)
@@ -257,19 +262,20 @@ public struct Person: AssociatedData, Codable, Identifiable, Hashable, EntityDet
         try container.encode(address, forKey: .address)
         try container.encode(socialMediaHandles, forKey: .socialMediaHandles)
     }
-    
+
     // MARK: - Coding Keys
-    
+
     /// Keys used for encoding and decoding Person instances
     enum CodingKeys: String, CodingKey {
         case id, relationships, name, details
         case biography, birthDate, deathDate, occupation, nationality, notableAchievements
         // New keys added
-        case imageURL, locationString, locationLatitude, locationLongitude, email, website, phone, address, socialMediaHandles
+        case imageURL, locationString, locationLatitude, locationLongitude, email, website, phone,
+            address, socialMediaHandles
     }
-    
+
     // MARK: - EntityDetailsProvider Implementation
-    
+
     /// Generates a detailed description of the person for RAG context.
     /// This includes biographical information, professional details,
     /// achievements, location, and contact information.
@@ -277,23 +283,23 @@ public struct Person: AssociatedData, Codable, Identifiable, Hashable, EntityDet
     /// - Returns: A formatted string containing the person's details
     public func getDetailedDescription() -> String {
         var description = details + "\n\n"
-        
+
         if let bio = biography {
             description += "**Biography**: \(bio)\n\n"
         }
-        
+
         if let occupation = occupation {
             description += "**Occupation**: \(occupation)\n"
         }
-        
+
         if let nationality = nationality {
             description += "**Nationality**: \(nationality)\n"
         }
-        
+
         // Add birth/death dates if available
         let dateFormatter = DateFormatter()
         dateFormatter.dateStyle = .medium
-        
+
         if let birthDate = birthDate {
             description += "**Born**: \(dateFormatter.string(from: birthDate))"
             if let deathDate = deathDate {
@@ -303,7 +309,7 @@ public struct Person: AssociatedData, Codable, Identifiable, Hashable, EntityDet
         } else if let deathDate = deathDate {
             description += "**Died**: \(dateFormatter.string(from: deathDate))\n"
         }
-        
+
         // Add notable achievements
         if let achievements = notableAchievements, !achievements.isEmpty {
             description += "\n**Notable Achievements**:\n"
@@ -312,12 +318,12 @@ public struct Person: AssociatedData, Codable, Identifiable, Hashable, EntityDet
             }
             description += "\n"
         }
-        
+
         // Add location information
         if let location = locationString {
             description += "**Location**: \(location)\n"
         }
-        
+
         // Add contact information
         var contactInfo = ""
         if let email = email {
@@ -329,13 +335,13 @@ public struct Person: AssociatedData, Codable, Identifiable, Hashable, EntityDet
         if let website = website {
             contactInfo += "Website: \(website) | "
         }
-        
+
         if !contactInfo.isEmpty {
             // Remove trailing separator
             contactInfo = String(contactInfo.dropLast(3))
             description += "\n**Contact**: \(contactInfo)\n"
         }
-        
+
         // Add social media handles
         if let socialMedia = socialMediaHandles, !socialMedia.isEmpty {
             description += "\n**Social Media**:\n"
@@ -343,7 +349,41 @@ public struct Person: AssociatedData, Codable, Identifiable, Hashable, EntityDet
                 description += "- \(platform): \(handle)\n"
             }
         }
-        
+
         return description
+    }
+
+    /// JSON schema for LLM responses
+    public static var jsonSchema: String {
+        """
+        {
+            "type": "object",
+            "properties": {
+                "id": {"type": "string"},
+                "name": {"type": "string"},
+                "details": {"type": "string"},
+                "biography": {"type": "string", "optional": true},
+                "birthDate": {"type": "string", "format": "date-time", "optional": true},
+                "deathDate": {"type": "string", "format": "date-time", "optional": true},
+                "occupation": {"type": "string", "optional": true},
+                "nationality": {"type": "string", "optional": true},
+                "notableAchievements": {"type": "array", "items": {"type": "string"}, "optional": true},
+                "imageURL": {"type": "string", "optional": true},
+                "locationString": {"type": "string", "optional": true},
+                "locationLatitude": {"type": "number", "optional": true},
+                "locationLongitude": {"type": "number", "optional": true},
+                "email": {"type": "string", "format": "email", "optional": true},
+                "website": {"type": "string", "format": "uri", "optional": true},
+                "phone": {"type": "string", "optional": true},
+                "address": {"type": "string", "optional": true},
+                "socialMediaHandles": {
+                    "type": "object",
+                    "additionalProperties": {"type": "string"},
+                    "optional": true
+                }
+            },
+            "required": ["id", "name", "details"]
+        }
+        """
     }
 }
