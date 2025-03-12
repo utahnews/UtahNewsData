@@ -39,6 +39,18 @@ public protocol HTMLParsable {
     ///   - attribute: The name of the attribute to extract.
     /// - Returns: The attribute value, if found.
     static func extractAttribute(from element: Element, selector: String, attribute: String) throws -> String?
+    
+    /// Validate that a required field is not empty
+    /// - Parameter value: The value to validate
+    /// - Parameter fieldName: The name of the field being validated
+    /// - Throws: ParsingError.missingRequiredField if the value is empty
+    static func validateRequiredField(_ value: String?, fieldName: String) throws
+    
+    /// Validate that a required field is not empty
+    /// - Parameter value: The value to validate
+    /// - Parameter fieldName: The name of the field being validated
+    /// - Returns: The validated value or nil if empty
+    static func validateOptionalField(_ value: String?) -> String?
 }
 
 extension String {
@@ -71,5 +83,18 @@ public extension HTMLParsable {
         } catch {
             throw ParsingError.invalidHTML
         }
+    }
+    
+    static func validateRequiredField(_ value: String?, fieldName: String) throws {
+        guard let value = value, !value.isEmpty else {
+            throw ParsingError.missingRequiredField(fieldName)
+        }
+    }
+    
+    static func validateOptionalField(_ value: String?) -> String? {
+        guard let value = value, !value.isEmpty else {
+            return nil
+        }
+        return value
     }
 } 

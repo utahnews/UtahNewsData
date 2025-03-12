@@ -86,6 +86,155 @@ extension Article: HTMLParsable {
             category: category
         )
     }
+    
+    // MARK: - Private Helper Methods
+    
+    private static func extractURL(from document: Document) throws -> String {
+        // Try canonical URL first
+        if let canonicalUrl = try document.select("link[rel=canonical]").first()?.attr("href"),
+           !canonicalUrl.isEmpty {
+            return canonicalUrl
+        }
+        
+        // Try og:url
+        if let ogUrl = try document.select("meta[property='og:url']").first()?.attr("content"),
+           !ogUrl.isEmpty {
+            return ogUrl
+        }
+        
+        // Use document location as last resort
+        let url = document.location()
+        if !url.isEmpty {
+            return url
+        }
+        
+        throw ParsingError.missingRequiredField("url")
+    }
+    
+    private static func extractTitle(from document: Document) throws -> String {
+        // Try article title first
+        if let title = try document.select("h1.article-title").first()?.text(),
+           !title.isEmpty {
+            return title
+        }
+        
+        // Try og:title
+        if let ogTitle = try document.select("meta[property='og:title']").first()?.attr("content"),
+           !ogTitle.isEmpty {
+            return ogTitle
+        }
+        
+        // Use document title as last resort
+        let title = try document.title()
+        if !title.isEmpty {
+            return title
+        }
+        
+        throw ParsingError.missingRequiredField("title")
+    }
+    
+    private static func extractContent(from document: Document) throws -> String {
+        // Try article content first
+        if let content = try document.select(".article-content").first()?.text(),
+           !content.isEmpty {
+            return content
+        }
+        
+        // Try article body
+        if let content = try document.select("[itemprop='articleBody']").first()?.text(),
+           !content.isEmpty {
+            return content
+        }
+        
+        // Try main content area
+        if let content = try document.select("main").first()?.text(),
+           !content.isEmpty {
+            return content
+        }
+        
+        throw ParsingError.missingRequiredField("content")
+    }
+    
+    private static func extractAuthor(from document: Document) throws -> String? {
+        // Try author tag
+        if let author = try document.select(".author").first()?.text(),
+           !author.isEmpty {
+            return author
+        }
+        
+        // Try author meta
+        if let author = try document.select("meta[name='author']").first()?.attr("content"),
+           !author.isEmpty {
+            return author
+        }
+        
+        // Try article:author
+        if let author = try document.select("meta[property='article:author']").first()?.attr("content"),
+           !author.isEmpty {
+            return author
+        }
+        
+        return nil
+    }
+    
+    private static func extractPublicationDate(from document: Document) throws -> Date {
+        // Try published time meta
+        if let dateStr = try document.select("meta[property='article:published_time']").first()?.attr("content"),
+           let date = DateFormatter.iso8601Full.date(from: dateStr) {
+            return date
+        }
+        
+        // Try datePublished
+        if let dateStr = try document.select("[itemprop='datePublished']").first()?.attr("datetime"),
+           let date = DateFormatter.iso8601Full.date(from: dateStr) {
+            return date
+        }
+        
+        return Date()
+    }
+    
+    private static func extractImages(from document: Document) throws -> (String?, [String]) {
+        var mainImage: String? = nil
+        var additionalImages: [String] = []
+        
+        // Try og:image for main image
+        mainImage = try document.select("meta[property='og:image']").first()?.attr("content")
+        
+        // If no og:image, try article image
+        if mainImage == nil {
+            mainImage = try document.select("[itemprop='image']").first()?.attr("src") ??
+                       document.select(".article-image img").first()?.attr("src")
+        }
+        
+        // Get additional images
+        let imageElements = try document.select(".article-content img")
+        for element in imageElements {
+            if let src = try? element.attr("src"),
+               !src.isEmpty,
+               src != mainImage {
+                additionalImages.append(src)
+            }
+        }
+        
+        return (mainImage, additionalImages)
+    }
+    
+    private static func extractCategory(from document: Document) throws -> String? {
+        // Try article section
+        if let category = try document.select("[itemprop='articleSection']").first()?.text(),
+           !category.isEmpty {
+            return category
+        }
+        
+        // Try category class
+        if let category = try document.select(".category").first()?.text(),
+           !category.isEmpty {
+            return category
+        }
+        
+        // Try article:section meta
+        return try document.select("meta[property='article:section']").first()?.attr("content")
+    }
 }
 
 // MARK: - Helper Extensions
