@@ -98,7 +98,7 @@ public class AdaptiveParser: @unchecked Sendable {
     ///   - url: The URL of the content
     ///   - type: The type to parse into
     /// - Returns: The parsing result, indicating success/failure and the source
-    public func parseWithFallback<T: HTMLParsable>(html: String, from url: URL? = nil, as type: T.Type) throws -> ParsingResult<T> {
+    public func parseWithFallback<T: HTMLParsable>(html: String, from url: URL? = nil, as type: T.Type) async throws -> ParsingResult<T> {
         do {
             // First try HTML parsing
             let document = try SwiftSoup.parse(html)
