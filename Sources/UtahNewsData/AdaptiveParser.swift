@@ -104,29 +104,42 @@ public class AdaptiveParser: @unchecked Sendable {
             let document = try SwiftSoup.parse(html)
             let parsedContent = try T.parse(from: document)
             
-            // Check for empty content based on type
-            if T.self == Article.self {
-                // For Articles, check if we got any content from article selectors
-                let articleContent = try document.select(".article-content").text().trimmingCharacters(in: .whitespacesAndNewlines)
-                let articleBody = try document.select("[itemprop='articleBody']").text().trimmingCharacters(in: .whitespacesAndNewlines)
-                let mainContent = try document.select("main").text().trimmingCharacters(in: .whitespacesAndNewlines)
-                
-                if articleContent.isEmpty && articleBody.isEmpty && mainContent.isEmpty {
-                    throw ParsingError.invalidHTML
+            // Check if we got meaningful content
+            var shouldUseLLM = false
+            
+            if let article = parsedContent as? Article {
+                // For Articles, check if we got any meaningful content
+                if article.textContent?.isEmpty ?? true {
+                    shouldUseLLM = true
                 }
-            } else if T.self == NewsStory.self {
-                // For NewsStory, check story content
-                let storyContent = try document.select(".story-content, .article-body, [itemprop='articleBody']").text().trimmingCharacters(in: .whitespacesAndNewlines)
-                
-                if storyContent.isEmpty {
-                    throw ParsingError.invalidHTML
+            } else if let newsStory = parsedContent as? NewsStory {
+                // For NewsStory, check if we got any meaningful content
+                if newsStory.content?.isEmpty ?? true {
+                    shouldUseLLM = true
+                }
+            }
+            
+            // If we should use LLM and it's enabled, do LLM extraction
+            if shouldUseLLM && useLLMFallback {
+                do {
+                    // Extract title and content using LLM
+                    let title = try await llmManager.extractContent(from: html, contentType: "title")
+                    let content = try await llmManager.extractContent(from: html, contentType: "main content")
+                    
+                    // Create appropriate type based on extracted content
+                    if let result = try? createInstance(ofType: T.self, withTitle: title, content: content) {
+                        return .success(result, source: .llmExtraction)
+                    }
+                } catch {
+                    // If LLM fails, return the original parsed content rather than failing completely
+                    return .success(parsedContent, source: .htmlParsing)
                 }
             }
             
             return .success(parsedContent, source: .htmlParsing)
             
         } catch {
-            // If HTML parsing fails and LLM fallback is enabled, try LLM extraction
+            // If HTML parsing completely fails and LLM fallback is enabled, try LLM extraction
             if useLLMFallback {
                 do {
                     // Extract title and content using LLM
