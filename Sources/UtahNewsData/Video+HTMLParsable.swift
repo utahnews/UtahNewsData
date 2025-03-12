@@ -22,19 +22,19 @@ extension Video: HTMLParsable {
         let ogUrl = try document.select("meta[property='og:url']").first()?.attr("content")
         let url = canonicalUrl ?? ogUrl ?? ""
         
-        // Validate that we have a URL
-        guard !url.isEmpty else {
-            throw ParsingError.invalidHTML
-        }
-        
         // Get the title from various possible locations
         let title = try document.select("meta[property='og:title']").first()?.attr("content") ??
                    document.select("meta[name='title']").first()?.attr("content") ??
                    document.title()
         
+        // Validate that we have a URL
+        guard !url.isEmpty else {
+            throw ParsingError.missingRequiredField("url")
+        }
+        
         // Validate that we have a title
         guard !title.isEmpty else {
-            throw ParsingError.invalidHTML
+            throw ParsingError.missingRequiredField("title")
         }
         
         // Get the video duration
@@ -84,5 +84,14 @@ extension Video: HTMLParsable {
             duration: duration,
             resolution: resolution
         )
+    }
+    
+    public static func parse(from html: String) throws -> Video {
+        do {
+            let document = try SwiftSoup.parse(html)
+            return try parse(from: document)
+        } catch {
+            throw ParsingError.invalidHTML
+        }
     }
 } 

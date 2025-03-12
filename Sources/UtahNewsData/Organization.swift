@@ -63,8 +63,38 @@ import SwiftUI
 import Foundation
 import SwiftSoup
 
+/// Represents the type of organization
+public enum OrganizationType: String, Codable, CaseIterable, Sendable {
+    /// For-profit corporation
+    case corporation
+    /// Non-profit organization
+    case nonProfit
+    /// Government agency or department
+    case government
+    /// Educational institution
+    case educational
+    /// Media outlet or news organization
+    case mediaOutlet
+    
+    /// Returns a human-readable label for the organization type
+    public var label: String {
+        switch self {
+        case .corporation:
+            return "Corporation"
+        case .nonProfit:
+            return "Non-Profit Organization"
+        case .government:
+            return "Government Agency"
+        case .educational:
+            return "Educational Institution"
+        case .mediaOutlet:
+            return "Media Outlet"
+        }
+    }
+}
+
 /// Represents an organization in the UtahNewsData system
-public struct Organization: AssociatedData, Codable, Identifiable, Hashable, Equatable, EntityDetailsProvider, HTMLParsable, Sendable {
+public struct Organization: AssociatedData, Codable, Identifiable, Hashable, Equatable, EntityDetailsProvider, Sendable {
     /// Unique identifier for the organization
     public var id: String
 
@@ -175,182 +205,104 @@ public struct Organization: AssociatedData, Codable, Identifiable, Hashable, Equ
         case contactInfo, website, logoURL, location, type
     }
 
-    // MARK: - EntityDetailsProvider Implementation
-
-    /// Generates a detailed description of the organization for RAG context.
-    /// This includes the organization's description, website, and contact information.
-    ///
-    /// - Returns: A formatted string containing the organization's details
-    public func getDetailedDescription() -> String {
-        var description = ""
-
-        if let desc = orgDescription {
-            description += desc + "\n\n"
-        }
-
-        if let website = website {
-            description += "**Website**: \(website)\n\n"
-        }
-
-        // Add contact information
-        if let contacts = contactInfo, !contacts.isEmpty {
-            description += "**Contact Information**:\n\n"
-
-            for (index, contact) in contacts.enumerated() {
-                if contacts.count > 1 {
-                    description += "### Contact \(index + 1)\n"
-                }
-
-                description += "**Name**: \(contact.name)\n"
-
-                if let email = contact.email {
-                    description += "**Email**: \(email)\n"
-                }
-
-                if let phone = contact.phone {
-                    description += "**Phone**: \(phone)\n"
-                }
-
-                if let address = contact.address {
-                    description += "**Address**: \(address)\n"
-                }
-
-                if let website = contact.website {
-                    description += "**Website**: \(website)\n"
-                }
-
-                // Add social media handles
-                if let socialMedia = contact.socialMediaHandles, !socialMedia.isEmpty {
-                    description += "\n**Social Media**:\n"
-                    for (platform, handle) in socialMedia {
-                        description += "- \(platform): \(handle)\n"
-                    }
-                }
-
-                description += "\n"
-            }
-        }
-
-        return description
-    }
-
-    /// JSON schema for LLM responses
+    // MARK: - JSONSchemaProvider Implementation
+    
     public static var jsonSchema: String {
         """
         {
             "type": "object",
             "properties": {
-                "id": {"type": "string"},
-                "name": {"type": "string"},
-                "orgDescription": {"type": "string", "optional": true},
-                "website": {"type": "string", "format": "uri", "optional": true},
-                "contactInfo": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/ContactInfo"
-                    },
-                    "optional": true
+                "id": { "type": "string", "format": "uuid" },
+                "name": { "type": "string" },
+                "type": { "type": "string", "enum": ["corporation", "nonProfit", "government", "educational", "mediaOutlet"] },
+                "description": { "type": "string" },
+                "website": { "type": "string", "format": "uri" },
+                "location": { "$ref": "#/definitions/Location" },
+                "foundingDate": { "type": "string", "format": "date-time" },
+                "employees": { "type": "integer", "minimum": 0 },
+                "industry": { "type": "string" },
+                "socialMediaProfiles": {
+                    "type": "object",
+                    "additionalProperties": { "type": "string", "format": "uri" }
                 },
-                "logoURL": {"type": "string", "format": "uri", "optional": true},
-                "location": {"$ref": "#/definitions/Location"},
-                "type": {"type": "string", "optional": true}
+                "contactInfo": { "$ref": "#/definitions/ContactInfo" }
             },
-            "required": ["id", "name"],
-            "definitions": {
-                "ContactInfo": {
-                    "type": "object",
-                    "properties": {
-                        "name": {"type": "string"},
-                        "email": {"type": "string", "format": "email", "optional": true},
-                        "phone": {"type": "string", "optional": true},
-                        "address": {"type": "string", "optional": true},
-                        "website": {"type": "string", "format": "uri", "optional": true},
-                        "socialMediaHandles": {
-                            "type": "object",
-                            "additionalProperties": {"type": "string"},
-                            "optional": true
-                        }
-                    },
-                    "required": ["name"]
-                },
-                "Location": {
-                    "type": "object",
-                    "properties": {
-                        "latitude": {"type": "number"},
-                        "longitude": {"type": "number"},
-                        "address": {"type": "string"},
-                        "city": {"type": "string"},
-                        "state": {"type": "string"},
-                        "zipCode": {"type": "string"},
-                        "country": {"type": "string"}
-                    },
-                    "required": ["latitude", "longitude", "address", "city", "state", "zipCode", "country"]
-                }
-            }
+            "required": ["id", "name", "type"]
         }
         """
     }
-
-    // MARK: - HTMLParsable Implementation
     
-    public static func parse(from document: Document) throws -> Self {
-        // Try to find the organization name
-        let nameOpt = try document.select("[itemprop='name'], .org-name, .organization-name").first()?.text()
-            ?? document.select("meta[property='og:site_name']").first()?.attr("content")
-            ?? document.select("title").first()?.text()
+    // MARK: - EntityDetailsProvider Implementation
+    
+    public var entityType: EntityType {
+        .organization
+    }
+    
+    public var entityName: String {
+        name
+    }
+    
+    public var entityDescription: String? {
+        orgDescription
+    }
+    
+    public var entityLocation: Location? {
+        location
+    }
+    
+    public var entityURL: URL? {
+        if let websiteStr = website {
+            return URL(string: websiteStr)
+        }
+        return nil
+    }
+    
+    public var entityImageURL: URL? {
+        nil // Organizations don't have a direct image URL in the current model
+    }
+    
+    public var entityIdentifier: String {
+        id
+    }
+    
+    public var entityMetadata: [String: String] {
+        var metadata: [String: String] = [
+            "type": type ?? "Unknown"
+        ]
+        return metadata
+    }
+
+    public func getDetailedDescription() -> String {
+        var description = "\(name)"
         
-        guard let name = nameOpt else {
-            throw ParsingError.invalidHTML
+        if let desc = orgDescription {
+            description += "\n\n\(desc)"
         }
         
-        // Try to find description
-        let description = try document.select("[itemprop='description'], .org-description").first()?.text()
-            ?? document.select("meta[name='description']").first()?.attr("content")
-        
-        // Try to find website
-        let website = try document.select("[itemprop='url'], link[rel='canonical']").first()?.attr("href")
-            ?? document.select("meta[property='og:url']").first()?.attr("content")
-        
-        // Try to find logo URL
-        let logoURL = try document.select("[itemprop='logo'], img.org-logo").first()?.attr("src")
-            ?? document.select("meta[property='og:image']").first()?.attr("content")
-        
-        // Try to find organization type
-        let type = try document.select("[itemprop='organizationType'], .org-type").first()?.text()
-        
-        // Try to find location
-        var location: Location? = nil
-        if let locationElement = try document.select("[itemprop='location'], .org-location").first() {
-            let locationDoc = try SwiftSoup.parse(try locationElement.html())
-            location = try? Location.parse(from: locationDoc)
+        if let type = type {
+            description += "\nType: \(type)"
         }
         
-        // Try to find contact info
-        var contactInfo: [ContactInfo] = []
-        let contactElements = try document.select("[itemprop='contactPoint'], .contact-info")
-        for element in contactElements {
-            let name = try element.select("[itemprop='name'], .contact-name").first()?.text() ?? "Main Contact"
-            let email = try element.select("[itemprop='email']").first()?.text()
-            let phone = try element.select("[itemprop='telephone']").first()?.text()
-            let address = try element.select("[itemprop='address']").first()?.text()
-            
-            contactInfo.append(ContactInfo(
-                name: name,
-                email: email,
-                phone: phone,
-                address: address
-            ))
+        if let website = website {
+            description += "\nWebsite: \(website)"
         }
         
-        return Organization(
-            id: UUID().uuidString,
-            name: name,
-            orgDescription: description,
-            contactInfo: contactInfo.isEmpty ? nil : contactInfo,
-            website: website,
-            logoURL: logoURL,
-            location: location,
-            type: type
-        )
+        if let location = location {
+            description += "\nLocation: \(location.name)"
+        }
+        
+        if let contacts = contactInfo, !contacts.isEmpty {
+            description += "\n\nContact Information:"
+            for contact in contacts {
+                if let email = contact.email {
+                    description += "\nEmail: \(email)"
+                }
+                if let phone = contact.phone {
+                    description += "\nPhone: \(phone)"
+                }
+            }
+        }
+        
+        return description
     }
 }

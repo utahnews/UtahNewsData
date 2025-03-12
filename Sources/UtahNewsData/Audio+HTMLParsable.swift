@@ -24,7 +24,7 @@ extension Audio: HTMLParsable {
         
         // Validate that we have a URL
         guard !url.isEmpty else {
-            throw ParsingError.invalidHTML
+            throw ParsingError.missingRequiredField("url")
         }
         
         // Get the title from various possible locations
@@ -34,7 +34,7 @@ extension Audio: HTMLParsable {
         
         // Validate that we have a title
         guard !title.isEmpty else {
-            throw ParsingError.invalidHTML
+            throw ParsingError.missingRequiredField("title")
         }
         
         // Get the audio duration
@@ -49,9 +49,9 @@ extension Audio: HTMLParsable {
                         "128"
         let bitrate = Int(bitrateStr) ?? 128
         
-        // Get the cover art URL
-        let coverArtUrl = try document.select("meta[property='og:image']").first()?.attr("content") ??
-                         document.select("[itemprop='image']").first()?.attr("src")
+        // Get the thumbnail URL
+        let thumbnailUrl = try document.select("meta[property='og:image']").first()?.attr("content") ??
+                          document.select("[itemprop='thumbnailUrl']").first()?.attr("src")
         
         // Get the description/text content
         let description = try document.select("meta[property='og:description']").first()?.attr("content") ??
@@ -72,12 +72,21 @@ extension Audio: HTMLParsable {
         return Audio(
             title: title,
             url: url,
-            urlToImage: coverArtUrl,
+            urlToImage: thumbnailUrl,
             publishedAt: publishedAt,
             textContent: description,
             author: author,
             duration: duration,
             bitrate: bitrate
         )
+    }
+    
+    public static func parse(from html: String) throws -> Audio {
+        do {
+            let document = try SwiftSoup.parse(html)
+            return try parse(from: document)
+        } catch {
+            throw ParsingError.invalidHTML
+        }
     }
 } 

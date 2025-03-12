@@ -22,7 +22,7 @@ public final class WebPageLoader: @unchecked Sendable {
         if let html = html {
             return try cleanHTMLContent(html)
         } else {
-            throw ParsingError.invalidHTML
+            throw ParsingError.invalidFormat("Failed to decode HTML content")
         }
     }
     

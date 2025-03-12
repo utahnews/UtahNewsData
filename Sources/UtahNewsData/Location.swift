@@ -13,7 +13,7 @@ import SwiftUI
 import SwiftSoup
 
 /// Represents a physical location in the UtahNewsData system
-public struct Location: Codable, Identifiable, Hashable, Equatable, AssociatedData, HTMLParsable, Sendable, JSONSchemaProvider {
+public struct Location: Codable, Identifiable, Hashable, Equatable, AssociatedData, Sendable, JSONSchemaProvider {
     /// Unique identifier for the location
     public var id: String
 
@@ -105,60 +105,20 @@ public struct Location: Codable, Identifiable, Hashable, Equatable, AssociatedDa
     // MARK: - JSON Schema Provider
     /// Provides the JSON schema for Location.
     public static var jsonSchema: String {
-        return """
-            {
-                "type": "object",
-                "properties": {
-                    "id": {"type": "string"},
-                    "relationships": {
-                        "type": "array",
-                        "items": {"type": "object"}
-                    },
-                    "name": {"type": "string"},
-                    "address": {"type": ["string", "null"]},
-                    "coordinates": {"type": ["object", "null"]},
-                    "latitude": {"type": ["number", "null"]},
-                    "longitude": {"type": ["number", "null"]},
-                    "city": {"type": ["string", "null"]},
-                    "state": {"type": ["string", "null"]},
-                    "zipCode": {"type": ["string", "null"]},
-                    "country": {"type": ["string", "null"]}
-                },
-                "required": ["id", "name"]
-            }
-            """
-    }
-
-    // MARK: - HTMLParsable Implementation
-    
-    public static func parse(from document: Document) throws -> Self {
-        // Try to find coordinates
-        let latitudeStr = try document.select("[itemprop='latitude'], meta[property='place:location:latitude']").first()?.attr("content")
-        let longitudeStr = try document.select("[itemprop='longitude'], meta[property='place:location:longitude']").first()?.attr("content")
-        
-        let latitude = latitudeStr.flatMap { Double($0) }
-        let longitude = longitudeStr.flatMap { Double($0) }
-        
-        // Try to find address components
-        let streetAddress = try document.select("[itemprop='streetAddress']").first()?.text()
-        let city = try document.select("[itemprop='addressLocality']").first()?.text()
-        let state = try document.select("[itemprop='addressRegion']").first()?.text()
-        let zipCode = try document.select("[itemprop='postalCode']").first()?.text()
-        let country = try document.select("[itemprop='addressCountry']").first()?.text()
-        
-        // Try to construct full address (excluding country)
-        let addressComponents = [streetAddress, city, state, zipCode].compactMap { $0 }
-        let fullAddress = addressComponents.isEmpty ? nil : addressComponents.joined(separator: ", ")
-        
-        return Location(
-            latitude: latitude,
-            longitude: longitude,
-            address: fullAddress,
-            city: city,
-            state: state,
-            zipCode: zipCode,
-            country: country
-        )
+        """
+        {
+            "type": "object",
+            "properties": {
+                "id": { "type": "string", "format": "uuid" },
+                "street": { "type": "string" },
+                "city": { "type": "string" },
+                "state": { "type": "string" },
+                "postalCode": { "type": "string" },
+                "country": { "type": "string" }
+            },
+            "required": ["id"]
+        }
+        """
     }
 }
 

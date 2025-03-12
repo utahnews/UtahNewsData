@@ -24,7 +24,7 @@ extension StatisticalData: HTMLParsable {
         
         // Validate that we have a title
         guard !title.isEmpty else {
-            throw ParsingError.invalidHTML
+            throw ParsingError.missingRequiredField("title")
         }
         
         // Get the statistical value
@@ -49,32 +49,26 @@ extension StatisticalData: HTMLParsable {
         let marginOfError = try document.select("[itemprop='marginOfError']").first()?.text() ??
                            document.select(".stat-margin").first()?.text()
         
-        // Get the date
-        let dateString = try document.select("[itemprop='dateCreated']").first()?.attr("datetime") ??
-                        document.select("meta[property='article:published_time']").first()?.attr("content") ??
-                        ""
+        // Create the source person if we have a name
+        let source = sourceName.map { Person(name: $0, details: "Source", biography: nil) }
         
-        // Parse the date string if available
-        let date = DateFormatter.iso8601Full.date(from: dateString) ?? Date()
-        
-        // Create the statistical data object
-        var statisticalData = StatisticalData(
+        return StatisticalData(
             title: title,
             value: value,
-            unit: unit
+            unit: unit,
+            source: source,
+            date: Date(),
+            methodology: methodology,
+            marginOfError: marginOfError
         )
-        
-        // Set optional properties if available
-        statisticalData.date = date
-        statisticalData.methodology = methodology
-        statisticalData.marginOfError = marginOfError
-        
-        // If we have a source name, create an Organization and set it
-        if let sourceName = sourceName {
-            let org = Organization(name: sourceName)
-            statisticalData.source = org as any EntityDetailsProvider
+    }
+    
+    public static func parse(from html: String) throws -> StatisticalData {
+        do {
+            let document = try SwiftSoup.parse(html)
+            return try parse(from: document)
+        } catch {
+            throw ParsingError.invalidHTML
         }
-        
-        return statisticalData
     }
 } 

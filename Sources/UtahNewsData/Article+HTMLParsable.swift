@@ -14,7 +14,7 @@ extension Article: HTMLParsable {
         // Validate that the document has a proper structure
         guard try !document.select("body").isEmpty(),
               try !document.select("head").isEmpty() else {
-            throw ParsingError.invalidHTML
+            throw ParsingError.invalidFormat("Invalid HTML document structure")
         }
         
         // Get the canonical URL if available, otherwise use the og:url or current URL
@@ -24,7 +24,7 @@ extension Article: HTMLParsable {
         
         // Validate that we have a URL
         guard !url.isEmpty else {
-            throw ParsingError.invalidHTML
+            throw ParsingError.missingRequiredField("url")
         }
         
         // Get the title from various possible locations
@@ -34,7 +34,7 @@ extension Article: HTMLParsable {
         
         // Validate that we have a title
         guard !title.isEmpty else {
-            throw ParsingError.invalidHTML
+            throw ParsingError.missingRequiredField("title")
         }
         
         // Get the main content

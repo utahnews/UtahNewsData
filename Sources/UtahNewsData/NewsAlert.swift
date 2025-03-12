@@ -14,7 +14,7 @@ import SwiftSoup
 /// Represents a time-sensitive alert or notification in the news system.
 /// News alerts can include breaking news, emergency notifications, weather
 /// alerts, and other time-critical information.
-public struct NewsAlert: AssociatedData, JSONSchemaProvider, HTMLParsable, Sendable {
+public struct NewsAlert: AssociatedData, JSONSchemaProvider, Sendable {
     /// Unique identifier for the alert
     public var id: String
     
@@ -76,85 +76,25 @@ public struct NewsAlert: AssociatedData, JSONSchemaProvider, HTMLParsable, Senda
         self.source = source
     }
     
-    // MARK: - JSON Schema Provider
-    /// Provides the JSON schema for NewsAlert.
+    // MARK: - JSONSchemaProvider Implementation
+    
     public static var jsonSchema: String {
-        return """
+        """
         {
             "type": "object",
             "properties": {
-                "id": {"type": "string"},
-                "relationships": {
-                    "type": "array",
-                    "items": {"type": "object"}
-                },
-                "title": {"type": "string"},
-                "message": {"type": "string"},
-                "dateIssued": {"type": "string", "format": "date-time"},
-                "level": {"type": "string"},
-                "source": {"type": ["string", "null"]},
-                "expirationDate": {"type": ["string", "null"], "format": "date-time"}
+                "id": { "type": "string", "format": "uuid" },
+                "title": { "type": "string" },
+                "content": { "type": "string" },
+                "urgencyLevel": { "type": "string", "enum": ["low", "medium", "high", "critical"] },
+                "category": { "type": "string" },
+                "location": { "$ref": "#/definitions/Location" },
+                "timestamp": { "type": "string", "format": "date-time" },
+                "source": { "type": "string" }
             },
-            "required": ["id", "title", "message", "dateIssued", "level"]
+            "required": ["id", "title", "content"]
         }
         """
-    }
-    
-    // MARK: - HTMLParsable Implementation
-    
-    public static func parse(from document: Document) throws -> Self {
-        // Try to find the alert title
-        let titleOpt = try document.select("[itemprop='headline'], .alert-title, .breaking-news").first()?.text()
-            ?? document.select("meta[property='og:title']").first()?.attr("content")
-            ?? document.select("title").first()?.text()
-        
-        guard let title = titleOpt else {
-            throw ParsingError.invalidHTML
-        }
-        
-        // Try to find content
-        let content = try document.select("[itemprop='articleBody'], .alert-content").first()?.text()
-            ?? document.select("meta[name='description']").first()?.attr("content")
-            ?? title
-        
-        // Try to find alert type
-        let alertType = try document.select("[itemprop='alertType'], .alert-type").first()?.text()
-            ?? "Breaking News"  // Default type
-        
-        // Try to find severity
-        let severityStr = try document.select("[itemprop='severity'], .alert-severity").first()?.text()
-        let severity: AlertSeverity
-        switch severityStr?.lowercased() {
-        case let str where str?.contains("high") ?? false:
-            severity = .high
-        case let str where str?.contains("medium") ?? false:
-            severity = .medium
-        default:
-            severity = .low
-        }
-        
-        // Try to find publication date
-        let dateStr = try document.select("[itemprop='datePublished']").first()?.text()
-            ?? document.select("[itemprop='datePublished']").first()?.attr("datetime")
-            ?? document.select("[itemprop='datePublished']").first()?.attr("content")
-            ?? document.select("meta[property='article:published_time']").first()?.attr("content")
-        
-        let publishedAt = dateStr.flatMap { DateFormatter.iso8601Full.date(from: $0) } ?? Date()
-        
-        // Try to find source
-        let source = try document.select("[itemprop='publisher'], .alert-source").first()?.text()
-            ?? document.select("meta[property='og:site_name']").first()?.attr("content")
-            ?? "Unknown Source"
-        
-        return NewsAlert(
-            id: UUID().uuidString,
-            title: title,
-            content: content,
-            alertType: alertType,
-            severity: severity,
-            publishedAt: publishedAt,
-            source: source
-        )
     }
 }
 
@@ -191,6 +131,46 @@ public enum AlertSeverity: String, Codable, CaseIterable, Sendable {
             return "yellow"
         case .high:
             return "orange"
+        }
+    }
+}
+
+/// Represents the urgency level of a news alert
+public enum UrgencyLevel: String, Codable, CaseIterable, Sendable {
+    /// Immediate attention required
+    case immediate
+    /// High priority but not immediate
+    case high
+    /// Medium priority
+    case medium
+    /// Low priority
+    case low
+    
+    /// Returns a human-readable description of the urgency level
+    public var description: String {
+        switch self {
+        case .immediate:
+            return "Immediate"
+        case .high:
+            return "High"
+        case .medium:
+            return "Medium"
+        case .low:
+            return "Low"
+        }
+    }
+    
+    /// Returns a color associated with this urgency level for UI display
+    public var color: String {
+        switch self {
+        case .immediate:
+            return "red"
+        case .high:
+            return "orange"
+        case .medium:
+            return "yellow"
+        case .low:
+            return "blue"
         }
     }
 }

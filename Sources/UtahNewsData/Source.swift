@@ -63,7 +63,7 @@ import SwiftSoup
 /// Represents a news source or information provider in the news system.
 /// Sources can include news organizations, government agencies, academic institutions,
 /// and other entities that produce or distribute news content.
-public struct Source: AssociatedData, Codable, Identifiable, Hashable, Equatable, JSONSchemaProvider, HTMLParsable, Sendable
+public struct Source: AssociatedData, Codable, Identifiable, Hashable, Equatable, JSONSchemaProvider, Sendable
 {
     /// Unique identifier for the source
     public var id: String
@@ -157,86 +157,31 @@ public struct Source: AssociatedData, Codable, Identifiable, Hashable, Equatable
         self.metadata = [:] // Empty dictionary
     }
 
-    /// JSON schema for LLM responses
+    // MARK: - JSONSchemaProvider Implementation
+    
     public static var jsonSchema: String {
         """
         {
             "type": "object",
             "properties": {
-                "id": {"type": "string"},
-                "name": {"type": "string"},
-                "url": {"type": "string", "format": "uri"},
-                "credibilityRating": {"type": "number", "minimum": 0, "maximum": 5, "optional": true},
-                "category": {"type": "string", "optional": true},
-                "subCategory": {"type": "string", "optional": true},
-                "description": {"type": "string", "optional": true},
-                "siteMapURL": {"type": "string", "format": "uri", "optional": true},
-                "rssFeeds": {
-                    "type": "array",
-                    "items": {"type": "string", "format": "uri"},
-                    "optional": true
-                },
-                "contactInfo": {
+                "id": { "type": "string", "format": "uuid" },
+                "name": { "type": "string" },
+                "description": { "type": "string" },
+                "url": { "type": "string", "format": "uri" },
+                "category": { "type": "string" },
+                "language": { "type": "string" },
+                "country": { "type": "string" },
+                "reliability": {
                     "type": "object",
                     "properties": {
-                        "email": {"type": "string", "format": "email"},
-                        "phone": {"type": "string"},
-                        "address": {"type": "string"}
-                    },
-                    "optional": true
+                        "score": { "type": "number", "minimum": 0, "maximum": 1 },
+                        "lastUpdated": { "type": "string", "format": "date-time" }
+                    }
                 }
             },
             "required": ["id", "name", "url"]
         }
         """
-    }
-
-    // MARK: - HTMLParsable Implementation
-    
-    public static func parse(from document: Document) throws -> Self {
-        // Try to find the source name
-        let nameOpt = try document.select(".source h2[itemprop='name']").first()?.text()
-            ?? document.select("[itemprop='name'], .source-name").first()?.text()
-            ?? document.select("meta[property='og:site_name']").first()?.attr("content")
-            ?? document.select("meta[name='author']").first()?.attr("content")
-            ?? document.select("title").first()?.text()
-        
-        guard let name = nameOpt else {
-            throw ParsingError.invalidHTML
-        }
-        
-        // Try to find URL
-        let url = try document.select(".source a[itemprop='url']").first()?.attr("href")
-            ?? document.select("[itemprop='url']").first()?.attr("href")
-            ?? document.select("meta[property='og:url']").first()?.attr("content")
-            ?? document.select("link[rel='canonical']").first()?.attr("href")
-            ?? ""
-        
-        // Try to find description
-        let description = try document.select(".source p[itemprop='description']").first()?.text()
-            ?? document.select("[itemprop='description'], .source-description").first()?.text()
-            ?? document.select("meta[name='description']").first()?.attr("content")
-        
-        // Try to find category
-        let category = try document.select(".source [itemprop='category']").first()?.text()
-            ?? document.select("[itemprop='category'], .source-category").first()?.text()
-            ?? document.select("meta[property='article:section']").first()?.attr("content")
-        
-        // Try to find language
-        let language = try document.select(".source meta[itemprop='inLanguage']").first()?.attr("content")
-            ?? document.select("[itemprop='inLanguage']").first()?.text()
-            ?? document.select("[itemprop='inLanguage']").first()?.attr("content")
-            ?? document.select("html").first()?.attr("lang")
-            ?? "en"  // Default to English
-        
-        return Source(
-            id: UUID().uuidString,
-            name: name,
-            url: url,
-            description: description,
-            category: category,
-            language: language
-        )
     }
 }
 

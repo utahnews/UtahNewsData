@@ -10,6 +10,32 @@
 
 import SwiftUI
 import Foundation
+import SwiftSoup
+
+/// Represents different types of legal documents
+public enum LegalDocumentType: String, Codable, CaseIterable, Sendable {
+    /// Legislative bill
+    case bill = "Bill"
+    /// Court ruling or decision
+    case courtRuling = "Court Ruling"
+    /// Executive order
+    case executiveOrder = "Executive Order"
+    /// Administrative regulation
+    case regulation = "Regulation"
+    /// Legal statute
+    case statute = "Statute"
+    /// Legal opinion or advisory
+    case legalOpinion = "Legal Opinion"
+    /// Policy document
+    case policy = "Policy"
+    /// Other legal document types
+    case other = "Other"
+    
+    /// Returns a human-readable description of the document type
+    public var description: String {
+        return self.rawValue
+    }
+}
 
 /// Represents a legal document or official record in the news system.
 /// Legal documents can include court filings, legislation, regulations,

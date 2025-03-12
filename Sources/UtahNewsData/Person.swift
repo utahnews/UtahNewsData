@@ -61,11 +61,44 @@ import SwiftUI
 import Foundation
 import SwiftSoup
 
+/// Represents an educational qualification or degree
+public struct Education: Codable, Hashable, Equatable, Sendable {
+    /// Name of the educational institution
+    public var institution: String
+    
+    /// Type of degree or qualification (e.g., "Bachelor's", "Master's", "Ph.D.")
+    public var degree: String?
+    
+    /// Field of study
+    public var field: String?
+    
+    /// Year the degree was awarded
+    public var year: Int?
+    
+    /// Creates a new Education instance
+    /// - Parameters:
+    ///   - institution: Name of the educational institution
+    ///   - degree: Type of degree or qualification
+    ///   - field: Field of study
+    ///   - year: Year the degree was awarded
+    public init(
+        institution: String,
+        degree: String? = nil,
+        field: String? = nil,
+        year: Int? = nil
+    ) {
+        self.institution = institution
+        self.degree = degree
+        self.field = field
+        self.year = year
+    }
+}
+
 /// Represents a person in the news data system.
 /// This can be a journalist, public figure, expert, or any individual
 /// relevant to news content.
 public struct Person: AssociatedData, Codable, Identifiable, Hashable, EntityDetailsProvider,
-    JSONSchemaProvider, Sendable, HTMLParsable
+    JSONSchemaProvider, Sendable
 {
     // MARK: - Core Properties
 
@@ -355,72 +388,47 @@ public struct Person: AssociatedData, Codable, Identifiable, Hashable, EntityDet
         return description
     }
 
-    /// JSON schema for LLM responses
+    // MARK: - JSONSchemaProvider Implementation
+    
     public static var jsonSchema: String {
         """
         {
             "type": "object",
             "properties": {
-                "id": {"type": "string"},
-                "name": {"type": "string"},
-                "details": {"type": "string"},
-                "biography": {"type": "string", "optional": true},
-                "birthDate": {"type": "string", "format": "date-time", "optional": true},
-                "deathDate": {"type": "string", "format": "date-time", "optional": true},
-                "occupation": {"type": "string", "optional": true},
-                "nationality": {"type": "string", "optional": true},
-                "notableAchievements": {"type": "array", "items": {"type": "string"}, "optional": true},
-                "imageURL": {"type": "string", "optional": true},
-                "locationString": {"type": "string", "optional": true},
-                "locationLatitude": {"type": "number", "optional": true},
-                "locationLongitude": {"type": "number", "optional": true},
-                "email": {"type": "string", "format": "email", "optional": true},
-                "website": {"type": "string", "format": "uri", "optional": true},
-                "phone": {"type": "string", "optional": true},
-                "address": {"type": "string", "optional": true},
-                "socialMediaHandles": {
+                "id": { "type": "string", "format": "uuid" },
+                "name": { "type": "string" },
+                "title": { "type": "string" },
+                "biography": { "type": "string" },
+                "organization": { "$ref": "#/definitions/Organization" },
+                "expertise": {
+                    "type": "array",
+                    "items": { "type": "string" }
+                },
+                "education": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "institution": { "type": "string" },
+                            "degree": { "type": "string" },
+                            "field": { "type": "string" },
+                            "year": { "type": "integer" }
+                        }
+                    }
+                },
+                "contactInfo": { "$ref": "#/definitions/ContactInfo" },
+                "socialMediaProfiles": {
                     "type": "object",
-                    "additionalProperties": {"type": "string"},
-                    "optional": true
+                    "additionalProperties": { "type": "string", "format": "uri" }
+                },
+                "imageURL": { "type": "string", "format": "uri" },
+                "achievements": {
+                    "type": "array",
+                    "items": { "type": "string" }
                 }
             },
-            "required": ["id", "name", "details"]
+            "required": ["id", "name"]
         }
         """
-    }
-
-    // MARK: - HTMLParsable Implementation
-    
-    public static func parse(from document: Document) throws -> Self {
-        // Try to find the person's name
-        let nameOpt = try document.select("[itemprop='name'], .person-name").first()?.text()
-            ?? document.select("meta[property='og:title']").first()?.attr("content")
-            ?? document.select("title").first()?.text()
-        
-        guard let name = nameOpt else {
-            throw ParsingError.invalidHTML
-        }
-        
-        // Try to find role or title
-        let details = try document.select("[itemprop='jobTitle'], .role, .title, .position").first()?.text()
-            ?? document.select("meta[name='author:role']").first()?.attr("content")
-            ?? "Unknown Role"
-        
-        // Try to find biography
-        let biography = try document.select("[itemprop='description'], .biography").first()?.text()
-            ?? document.select("meta[name='description']").first()?.attr("content")
-        
-        // Try to find image URL
-        let imageURL = try document.select("[itemprop='image'], img.person-image").first()?.attr("src")
-            ?? document.select("meta[property='og:image']").first()?.attr("content")
-        
-        return Person(
-            id: UUID().uuidString,
-            relationships: [],
-            name: name,
-            details: details,
-            biography: biography,
-            imageURL: imageURL
-        )
     }
 }

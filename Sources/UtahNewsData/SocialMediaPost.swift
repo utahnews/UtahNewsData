@@ -51,6 +51,54 @@
  */
 
 import SwiftUI
+import Foundation
+import SwiftSoup
+
+/// Represents different social media platforms
+public enum SocialPlatform: String, Codable, CaseIterable, Sendable {
+    /// Twitter/X platform
+    case twitter = "Twitter"
+    /// Facebook platform
+    case facebook = "Facebook"
+    /// Instagram platform
+    case instagram = "Instagram"
+    /// LinkedIn platform
+    case linkedin = "LinkedIn"
+    /// YouTube platform
+    case youtube = "YouTube"
+    /// TikTok platform
+    case tiktok = "TikTok"
+    /// Threads platform
+    case threads = "Threads"
+    /// Mastodon platform
+    case mastodon = "Mastodon"
+    /// Other social media platforms
+    case other = "Other"
+    
+    /// Returns the base URL for the platform
+    public var baseURL: String {
+        switch self {
+        case .twitter:
+            return "https://twitter.com"
+        case .facebook:
+            return "https://facebook.com"
+        case .instagram:
+            return "https://instagram.com"
+        case .linkedin:
+            return "https://linkedin.com"
+        case .youtube:
+            return "https://youtube.com"
+        case .tiktok:
+            return "https://tiktok.com"
+        case .threads:
+            return "https://threads.net"
+        case .mastodon:
+            return "" // Varies by instance
+        case .other:
+            return ""
+        }
+    }
+}
 
 /// Represents a social media post in the news system.
 /// Social media posts can include tweets, Facebook posts, Instagram posts,

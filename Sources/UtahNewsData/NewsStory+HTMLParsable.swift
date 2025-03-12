@@ -45,6 +45,15 @@ extension NewsStory: HTMLParsable {
         )
     }
     
+    public static func parse(from html: String) throws -> NewsStory {
+        do {
+            let document = try SwiftSoup.parse(html)
+            return try parse(from: document)
+        } catch {
+            throw ParsingError.invalidHTML
+        }
+    }
+    
     // MARK: - Private Helper Methods
     
     private static func extractHeadline(from document: Document) throws -> String {
@@ -77,7 +86,7 @@ extension NewsStory: HTMLParsable {
             return title
         }
         
-        throw ParsingError.invalidHTML
+        throw ParsingError.elementNotFound("headline")
     }
     
     private static func extractURL(from document: Document) throws -> String {
@@ -93,7 +102,7 @@ extension NewsStory: HTMLParsable {
             return ogUrl
         }
         
-        throw ParsingError.invalidHTML
+        throw ParsingError.missingRequiredField("url")
     }
     
     private static func extractContent(from document: Document) throws -> String? {

@@ -88,7 +88,7 @@ public struct PollOption: Codable, Hashable, Equatable, Sendable {
 /// Represents a poll or survey in the news system.
 /// Polls capture public opinion on various topics and issues,
 /// providing valuable data for news reporting and analysis.
-public struct Poll: AssociatedData, JSONSchemaProvider, HTMLParsable, Codable, Identifiable, Hashable, Equatable, Sendable {
+public struct Poll: AssociatedData, JSONSchemaProvider, Codable, Identifiable, Hashable, Equatable, Sendable {
     /// Unique identifier for the poll
     public var id: String
     
@@ -177,116 +177,48 @@ public struct Poll: AssociatedData, JSONSchemaProvider, HTMLParsable, Codable, I
         return results
     }
 
-    /// Provides the JSON schema for Poll.
+    // MARK: - JSONSchemaProvider Implementation
+    
     public static var jsonSchema: String {
-        return """
+        """
         {
             "type": "object",
             "properties": {
-                "id": {"type": "string"},
-                "relationships": {
-                    "type": "array",
-                    "items": {"type": "object"}
-                },
-                "question": {"type": "string"},
+                "id": { "type": "string", "format": "uuid" },
+                "title": { "type": "string" },
+                "question": { "type": "string" },
                 "options": {
                     "type": "array",
                     "items": {
                         "type": "object",
                         "properties": {
-                            "text": {"type": "string"},
-                            "votes": {"type": "integer"}
+                            "text": { "type": "string" },
+                            "votes": { "type": "integer", "minimum": 0 },
+                            "percentage": { "type": "number", "minimum": 0, "maximum": 100 }
                         },
-                        "required": ["text", "votes"]
+                        "required": ["text"]
                     }
                 },
-                "responses": {
-                    "type": "array",
-                    "items": {
-                        "type": "object",
-                        "properties": {
-                            "selectedOption": {"type": "string"},
-                            "timestamp": {"type": "string", "format": "date-time", "optional": true},
-                            "respondentId": {"type": "string", "optional": true},
-                            "metadata": {
-                                "type": "object",
-                                "additionalProperties": true,
-                                "optional": true
-                            }
-                        },
-                        "required": ["selectedOption"]
-                    }
+                "totalResponses": { "type": "integer", "minimum": 0 },
+                "methodology": { "type": "string" },
+                "dateRange": {
+                    "type": "object",
+                    "properties": {
+                        "start": { "type": "string", "format": "date-time" },
+                        "end": { "type": "string", "format": "date-time" }
+                    },
+                    "required": ["start", "end"]
                 },
-                "dateConducted": {"type": "string", "format": "date-time"},
-                "source": {"type": "string"},
-                "marginOfError": {"type": ["number", "null"]},
-                "sampleSize": {"type": ["integer", "null"]},
-                "demographics": {"type": ["string", "null"]}
+                "marginOfError": { "type": "number", "minimum": 0 },
+                "demographics": {
+                    "type": "object",
+                    "additionalProperties": { "type": "string" }
+                },
+                "source": { "type": "string" }
             },
-            "required": ["id", "question", "options", "dateConducted", "source"]
+            "required": ["id", "title", "question", "options"]
         }
         """
-    }
-
-    // MARK: - HTMLParsable Implementation
-    
-    public static func parse(from document: Document) throws -> Self {
-        // Try to find the poll question
-        let questionOpt = try document.select("[itemprop='question'], .poll-question").first()?.text()
-            ?? document.select("meta[property='og:title']").first()?.attr("content")
-            ?? document.select("title").first()?.text()
-        
-        guard let question = questionOpt else {
-            throw ParsingError.invalidHTML
-        }
-        
-        // Try to find poll options
-        var options: [PollOption] = []
-        let optionElements = try document.select("[itemprop='option'], .poll-option")
-        for element in optionElements {
-            let text = try element.text()
-            let votes = Int(try element.attr("data-votes")) ?? 0
-            options.append(PollOption(text: text, votes: votes))
-        }
-        
-        // If no options found, try looking for list items
-        if options.isEmpty {
-            let listItems = try document.select("ul.poll-options li, ol.poll-options li")
-            for item in listItems {
-                options.append(PollOption(text: try item.text(), votes: 0))
-            }
-        }
-        
-        // Try to find source
-        let source = try document.select("[itemprop='sourceOrganization'], .poll-source").first()?.text()
-            ?? document.select("meta[property='og:site_name']").first()?.attr("content")
-            ?? "Unknown Source"
-        
-        // Try to find date
-        let dateStr = try document.select("[itemprop='datePublished']").first()?.attr("datetime")
-            ?? document.select("meta[property='article:published_time']").first()?.attr("content")
-        
-        let dateConducted = dateStr.flatMap { DateFormatter.iso8601Full.date(from: $0) } ?? Date()
-        
-        // Try to find margin of error
-        let marginOfError = try Double(document.select(".margin-of-error").first()?.text().replacingOccurrences(of: "%", with: "") ?? "")
-        
-        // Try to find sample size
-        let sampleSize = try Int(document.select(".sample-size").first()?.text() ?? "")
-        
-        // Try to find demographics
-        let demographics = try document.select(".demographics").first()?.text()
-        
-        return Poll(
-            id: UUID().uuidString,
-            question: question,
-            options: options,
-            dateConducted: dateConducted,
-            source: source,
-            marginOfError: marginOfError,
-            sampleSize: sampleSize,
-            demographics: demographics
-        )
     }
 }
 

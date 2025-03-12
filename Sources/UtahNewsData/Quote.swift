@@ -201,62 +201,192 @@ public struct Quote: Identifiable, EntityDetailsProvider, JSONSchemaProvider, Se
 
     // MARK: - HTMLParsable Implementation
     
-    public static func parse(from document: Document) throws -> Self {
-        // Try to find quote text
-        let textOpt = try document.select("[itemprop='text'], .quote-text, blockquote").first()?.text()
-            ?? document.select("meta[property='og:description']").first()?.attr("content")
-            ?? document.select("title").first()?.text()
-        
-        guard let text = textOpt else {
-            throw ParsingError.invalidHTML
+    public static func parse(from document: Document) throws -> Quote {
+        let text = try extractQuoteText(from: document)
+        let speaker = try extractSpeaker(from: document)
+        let sourceString = try extractSource(from: document)
+        var source: (any EntityDetailsProvider)?
+        if let str = sourceString {
+            source = NewsEvent(
+                title: str,
+                date: Date(),  // Use current date since we don't have a specific date from the source
+                description: nil,
+                startDate: nil,
+                endDate: nil,
+                location: nil,
+                participants: nil,
+                organizations: nil,
+                relatedEvents: nil,
+                relationships: []
+            ) as any EntityDetailsProvider
+        } else {
+            source = nil
         }
-        
-        // Try to find speaker
-        let speakerName = try document.select("[itemprop='author'], .quote-author").first()?.text()
-            ?? document.select("meta[name='author']").first()?.attr("content")
-        
-        // Create Person object from speaker name if available
-        var speaker: Person? = nil
-        if let speakerName = speakerName {
-            speaker = Person(name: speakerName, details: "Speaker of the quote")
-        }
-        
-        // Try to find source
-        let source = try document.select("[itemprop='publisher'], .quote-source").first()?.text()
-            ?? document.select("meta[property='og:site_name']").first()?.attr("content")
-        
-        // Try to find date
-        let dateStr = try document.select("[itemprop='datePublished']").first()?.attr("datetime")
-            ?? document.select("meta[property='article:published_time']").first()?.attr("content")
-        
-        let date = dateStr.flatMap { DateFormatter.iso8601Full.date(from: $0) }
-        
-        // Try to find context
-        let context = try document.select("[itemprop='description'], .quote-context").first()?.text()
-            ?? document.select("meta[name='description']").first()?.attr("content")
-        
-        // Try to find topics
-        let keywordsText = try document.select("[itemprop='keywords'], .quote-topics").first()?.text()
-            ?? document.select("meta[name='keywords']").first()?.attr("content")
-        
-        let topics = keywordsText?.components(separatedBy: ",").map { $0.trimmingCharacters(in: .whitespaces) } ?? []
-        
-        // Try to find location
-        var location: Location? = nil
-        if let locationElement = try document.select("[itemprop='location'], .quote-location").first() {
-            let locationDoc = try SwiftSoup.parse(try locationElement.html())
-            location = try? Location.parse(from: locationDoc)
-        }
+        let date = try extractDate(from: document)
+        let context = try extractContext(from: document)
+        let location = try extractLocation(from: document)
         
         return Quote(
             text: text,
             speaker: speaker,
-            source: nil, // TODO: Create appropriate source object based on source string
+            source: source,
             date: date,
             context: context,
-            topics: topics.isEmpty ? nil : topics,
+            topics: [],
             location: location
         )
+    }
+    
+    // MARK: - Private Helper Methods
+    
+    private static func extractQuoteText(from document: Document) throws -> String {
+        let textSelectors = [
+            "[itemprop='text']",
+            ".quote-text",
+            ".quote-content",
+            "blockquote"
+        ]
+        
+        for selector in textSelectors {
+            if let text = try document.select(selector).first()?.text(),
+               !text.isEmpty {
+                return text
+            }
+        }
+        
+        throw ParsingError.missingRequiredField("quote text")
+    }
+    
+    private static func extractSpeaker(from document: Document) throws -> Person? {
+        let speakerSelectors = [
+            "[itemprop='speaker']",
+            ".quote-speaker",
+            ".quote-author",
+            ".speaker-info"
+        ]
+        
+        for selector in speakerSelectors {
+            if let element = try document.select(selector).first() {
+                let name = try element.select("[itemprop='name']").first()?.text()
+                let title = try element.select("[itemprop='jobTitle']").first()?.text()
+                let organization = try element.select("[itemprop='affiliation']").first()?.text()
+                
+                if let name = name {
+                    return Person(
+                        name: name,
+                        details: title ?? "",
+                        biography: nil,
+                        birthDate: nil,
+                        deathDate: nil,
+                        occupation: organization,
+                        nationality: nil,
+                        notableAchievements: nil,
+                        imageURL: nil,
+                        locationString: nil,
+                        locationLatitude: nil,
+                        locationLongitude: nil,
+                        email: nil,
+                        website: nil,
+                        phone: nil,
+                        address: nil,
+                        socialMediaHandles: nil
+                    )
+                }
+            }
+        }
+        
+        return nil
+    }
+    
+    private static func extractSource(from document: Document) throws -> String? {
+        let sourceSelectors = [
+            "[itemprop='source']",
+            ".quote-source",
+            ".source-info",
+            "meta[property='article:publisher']"
+        ]
+        
+        for selector in sourceSelectors {
+            if selector.contains("meta") {
+                if let source = try document.select(selector).first()?.attr("content"),
+                   !source.isEmpty {
+                    return source
+                }
+            } else {
+                if let source = try document.select(selector).first()?.text(),
+                   !source.isEmpty {
+                    return source
+                }
+            }
+        }
+        
+        return nil
+    }
+    
+    private static func extractDate(from document: Document) throws -> Date? {
+        let dateSelectors = [
+            "[itemprop='dateCreated']",
+            ".quote-date",
+            "time[datetime]",
+            "meta[property='article:published_time']"
+        ]
+        
+        for selector in dateSelectors {
+            if let dateStr = try document.select(selector).first()?.attr(selector.contains("meta") ? "content" : "datetime") {
+                for formatter in [DateFormatter.iso8601Full, DateFormatter.iso8601, DateFormatter.standardDate] {
+                    if let date = formatter.date(from: dateStr) {
+                        return date
+                    }
+                }
+            }
+        }
+        
+        return nil
+    }
+    
+    private static func extractContext(from document: Document) throws -> String? {
+        let contextSelectors = [
+            "[itemprop='context']",
+            ".quote-context",
+            ".context-info",
+            ".quote-background"
+        ]
+        
+        for selector in contextSelectors {
+            if let context = try document.select(selector).first()?.text(),
+               !context.isEmpty {
+                return context
+            }
+        }
+        
+        return nil
+    }
+    
+    private static func extractLocation(from document: Document) throws -> Location? {
+        for selector in ["[itemprop='location']", ".quote-location", ".location-info"] {
+            if let element = try document.select(selector).first() {
+                let address = try element.select("[itemprop='streetAddress']").first()?.text()
+                let city = try element.select("[itemprop='addressLocality']").first()?.text()
+                let state = try element.select("[itemprop='addressRegion']").first()?.text()
+                let zipCode = try element.select("[itemprop='postalCode']").first()?.text()
+                let country = try element.select("[itemprop='addressCountry']").first()?.text()
+                
+                if address != nil || city != nil || state != nil || zipCode != nil || country != nil {
+                    return Location(
+                        latitude: nil,
+                        longitude: nil,
+                        address: address,
+                        city: city,
+                        state: state,
+                        zipCode: zipCode,
+                        country: country,
+                        relationships: []
+                    )
+                }
+            }
+        }
+        
+        return nil
     }
 }
 

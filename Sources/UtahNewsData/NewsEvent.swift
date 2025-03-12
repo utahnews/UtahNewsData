@@ -79,8 +79,8 @@ import SwiftSoup
 /// Represents a significant event covered in the news in the UtahNewsData system.
 /// NewsEvents can be associated with articles, people, organizations, and locations,
 /// providing a way to track and organize coverage of specific occurrences.
-public struct NewsEvent: Codable, Identifiable, Hashable, Equatable, AssociatedData, HTMLParsable, Sendable,
-    JSONSchemaProvider
+public struct NewsEvent: Codable, Identifiable, Hashable, Equatable, AssociatedData, Sendable,
+    JSONSchemaProvider, EntityDetailsProvider
 {
     /// Unique identifier for the news event
     public var id: String
@@ -178,108 +178,79 @@ public struct NewsEvent: Codable, Identifiable, Hashable, Equatable, AssociatedD
         {
             "type": "object",
             "properties": {
-                "id": {"type": "string"},
-                "title": {"type": "string"},
-                "date": {"type": "string", "format": "date-time"},
-                "quotes": {
+                "id": { "type": "string", "format": "uuid" },
+                "title": { "type": "string" },
+                "description": { "type": "string" },
+                "startDate": { "type": "string", "format": "date-time" },
+                "endDate": { "type": "string", "format": "date-time" },
+                "location": { "$ref": "#/definitions/Location" },
+                "organizer": { "$ref": "#/definitions/Organization" },
+                "participants": {
                     "type": "array",
-                    "items": {"$ref": "#/definitions/Quote"},
-                    "optional": true
+                    "items": { "$ref": "#/definitions/Person" }
                 },
-                "facts": {
+                "category": { "type": "string" },
+                "tags": {
                     "type": "array",
-                    "items": {"$ref": "#/definitions/Fact"},
-                    "optional": true
+                    "items": { "type": "string" }
                 },
-                "statisticalData": {
-                    "type": "array",
-                    "items": {"$ref": "#/definitions/StatisticalData"},
-                    "optional": true
-                },
-                "categories": {
-                    "type": "array",
-                    "items": {"$ref": "#/definitions/Category"},
-                    "optional": true
-                },
-                "metadata": {
-                    "type": "object",
-                    "additionalProperties": true,
-                    "optional": true
-                }
+                "status": { "type": "string", "enum": ["scheduled", "inProgress", "completed", "cancelled"] },
+                "url": { "type": "string", "format": "uri" }
             },
-            "required": ["id", "title", "date"],
-            "definitions": {
-                "Quote": {"$ref": "Quote.jsonSchema"},
-                "Fact": {"$ref": "Fact.jsonSchema"},
-                "StatisticalData": {"$ref": "StatisticalData.jsonSchema"},
-                "Category": {"$ref": "Category.jsonSchema"}
-            }
+            "required": ["id", "title", "startDate"]
         }
         """
     }
-
-    // MARK: - HTMLParsable Implementation
     
-    public static func parse(from document: Document) throws -> Self {
-        // Try to find the event title
-        let titleOpt = try document.select("[itemprop='name'], .event-title, h1").first()?.text()
-            ?? document.select("meta[property='og:title']").first()?.attr("content")
-            ?? document.select("title").first()?.text()
+    // MARK: - EntityDetailsProvider Implementation
+    
+    public func getDetailedDescription() -> String {
+        var description = "EVENT: \(title)"
         
-        guard let title = titleOpt else {
-            throw ParsingError.invalidHTML
+        if let desc = self.description {
+            description += "\nDescription: \(desc)"
         }
         
-        // Try to find description
-        let description = try document.select("[itemprop='description'], .event-description").first()?.text()
-            ?? document.select("meta[name='description']").first()?.attr("content")
+        let formatter = DateFormatter()
+        formatter.dateStyle = .medium
+        description += "\nDate: \(formatter.string(from: date))"
         
-        // Try to find dates
-        let startDateStr = try document.select("[itemprop='startDate'], .event-start-date").first()?.attr("datetime")
-            ?? document.select("time").first()?.attr("datetime")
-        
-        let endDateStr = try document.select("[itemprop='endDate'], .event-end-date").first()?.attr("datetime")
-        
-        let dateFormatter = ISO8601DateFormatter()
-        let startDate = startDateStr.flatMap { dateFormatter.date(from: $0) }
-        let endDate = endDateStr.flatMap { dateFormatter.date(from: $0) }
-        
-        // Try to find location
-        var location: Location? = nil
-        if let locationElement = try document.select("[itemprop='location'], .event-location").first() {
-            let locationDoc = try SwiftSoup.parse(try locationElement.html())
-            location = try Location.parse(from: locationDoc)
+        if let startDate = startDate {
+            description += "\nStart Date: \(formatter.string(from: startDate))"
         }
         
-        // Try to find participants
-        var participants: [Person] = []
-        let participantElements = try document.select("[itemprop='performer'], .event-participant")
-        for element in participantElements {
-            let personDoc = try SwiftSoup.parse(try element.html())
-            if let person = try? Person.parse(from: personDoc) {
-                participants.append(person)
-            }
+        if let endDate = endDate {
+            description += "\nEnd Date: \(formatter.string(from: endDate))"
         }
         
-        // Try to find organizations
-        var organizations: [Organization] = []
-        let organizationElements = try document.select("[itemprop='organizer'], .event-organizer")
-        for element in organizationElements {
-            let orgDoc = try SwiftSoup.parse(try element.html())
-            if let org = try? Organization.parse(from: orgDoc) {
-                organizations.append(org)
-            }
+        if let location = location {
+            description += "\nLocation: \(location.name)"
         }
         
-        return NewsEvent(
-            title: title,
-            date: startDate ?? Date(),
-            description: description,
-            startDate: startDate,
-            endDate: endDate,
-            location: location,
-            participants: participants.isEmpty ? nil : participants,
-            organizations: organizations.isEmpty ? nil : organizations
-        )
+        if let participants = participants, !participants.isEmpty {
+            description += "\nParticipants: \(participants.map { $0.name }.joined(separator: ", "))"
+        }
+        
+        if let organizations = organizations, !organizations.isEmpty {
+            description += "\nOrganizations: \(organizations.map { $0.name }.joined(separator: ", "))"
+        }
+        
+        if !quotes.isEmpty {
+            description += "\nQuotes: \(quotes.count)"
+        }
+        
+        if !facts.isEmpty {
+            description += "\nFacts: \(facts.count)"
+        }
+        
+        if !statisticalData.isEmpty {
+            description += "\nStatistical Data Points: \(statisticalData.count)"
+        }
+        
+        if !categories.isEmpty {
+            description += "\nCategories: \(categories.map { $0.name }.joined(separator: ", "))"
+        }
+        
+        return description
     }
 }

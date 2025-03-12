@@ -59,7 +59,17 @@ public extension HTMLParsable {
     }
     
     static func parse(from html: String) throws -> Self {
-        let document = try SwiftSoup.parse(html)
-        return try parse(from: document)
+        do {
+            let document = try SwiftSoup.parse(html)
+            guard try !document.select("body").isEmpty(),
+                  try !document.select("head").isEmpty() else {
+                throw ParsingError.invalidHTML
+            }
+            return try parse(from: document)
+        } catch let error as ParsingError {
+            throw error
+        } catch {
+            throw ParsingError.invalidHTML
+        }
     }
 } 
