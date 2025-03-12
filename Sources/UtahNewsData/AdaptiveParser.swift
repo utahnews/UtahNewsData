@@ -100,6 +100,7 @@ public class AdaptiveParser: @unchecked Sendable {
     /// - Returns: The parsing result, indicating success/failure and the source
     public func parseWithFallback<T: HTMLParsable>(html: String, from url: URL? = nil, as type: T.Type) async throws -> ParsingResult<T> {
         do {
+            print("🔍 Starting HTML parsing for type: \(T.self)")
             // First try HTML parsing
             let document = try SwiftSoup.parse(html)
             let parsedContent = try T.parse(from: document)
@@ -110,39 +111,42 @@ public class AdaptiveParser: @unchecked Sendable {
             
             // Check common properties based on type
             if let article = parsedContent as? Article {
+                print("📄 Parsed Article - Title: \(article.title)")
+                print("📄 Article textContent is: \(article.textContent == nil ? "nil" : "\(article.textContent!.isEmpty ? "empty string" : "has content")")")
+                
                 if article.textContent?.isEmpty ?? true {
+                    print("⚠️ Article content is empty or nil, should trigger LLM")
                     shouldUseLLM = true
                     emptyProperties.append("main content")
-                }
-                if article.title.isEmpty {
-                    shouldUseLLM = true
-                    emptyProperties.append("title")
                 }
             } else if let newsStory = parsedContent as? NewsStory {
+                print("📰 Parsed NewsStory - Headline: \(newsStory.headline)")
+                print("📰 NewsStory content is: \(newsStory.content == nil ? "nil" : "\(newsStory.content!.isEmpty ? "empty string" : "has content")")")
+                
                 if newsStory.content?.isEmpty ?? true {
+                    print("⚠️ NewsStory content is empty or nil, should trigger LLM")
                     shouldUseLLM = true
                     emptyProperties.append("main content")
                 }
-                if newsStory.headline.isEmpty {
-                    shouldUseLLM = true
-                    emptyProperties.append("title")
-                }
             }
-            // Add other type checks as needed
             
             // If we have empty properties and LLM is enabled, extract them
             if shouldUseLLM && useLLMFallback {
+                print("🤖 Attempting LLM extraction for empty properties: \(emptyProperties)")
                 do {
                     var updatedContent = parsedContent
                     
                     // Extract each missing property
                     for property in emptyProperties {
+                        print("🤖 Extracting \(property) using LLM")
                         let extracted = try await llmManager.extractContent(from: html, contentType: property)
+                        print("🤖 LLM extracted content length: \(extracted.count) characters")
                         
                         // Update the appropriate property
                         if let article = updatedContent as? Article {
                             switch property {
                             case "main content":
+                                print("✍️ Updating Article with LLM-extracted content")
                                 updatedContent = Article(
                                     id: article.id,
                                     title: article.title,
@@ -154,37 +158,29 @@ public class AdaptiveParser: @unchecked Sendable {
                                     author: article.author,
                                     category: article.category
                                 ) as! T
-                            case "title":
-                                updatedContent = Article(
-                                    id: article.id,
-                                    title: extracted,
-                                    url: article.url,
-                                    urlToImage: article.urlToImage,
-                                    additionalImages: article.additionalImages,
-                                    publishedAt: article.publishedAt,
-                                    textContent: article.textContent,
-                                    author: article.author,
-                                    category: article.category
-                                ) as! T
                             default:
                                 break
                             }
                         }
-                        // Add other type handling as needed
                     }
                     
+                    print("✅ Successfully updated content with LLM extraction")
                     return .success(updatedContent, source: .llmExtraction)
                 } catch {
-                    // If LLM extraction fails, return the original parsed content
+                    print("❌ LLM extraction failed: \(error)")
+                    print("⚠️ Falling back to original parsed content")
                     return .success(parsedContent, source: .htmlParsing)
                 }
             }
             
+            print("✅ Returning HTML parsed content")
             return .success(parsedContent, source: .htmlParsing)
             
         } catch {
+            print("❌ HTML parsing failed completely: \(error)")
             // If HTML parsing completely fails and LLM fallback is enabled, try LLM extraction
             if useLLMFallback {
+                print("�� Attempting full LLM extraction after HTML parsing failure")
                 do {
                     // Extract title and content using LLM
                     let title = try await llmManager.extractContent(from: html, contentType: "title")
@@ -192,11 +188,14 @@ public class AdaptiveParser: @unchecked Sendable {
                     
                     // Create appropriate type based on extracted content
                     if let result = try? createInstance(ofType: T.self, withTitle: title, content: content) {
+                        print("✅ Successfully created instance from LLM extraction")
                         return .success(result, source: .llmExtraction)
                     }
                     
+                    print("❌ Failed to create instance from LLM extraction")
                     throw ParsingError.llmExtractionFailed
                 } catch {
+                    print("❌ LLM extraction failed: \(error)")
                     throw ParsingError.llmExtractionFailed
                 }
             } else {
