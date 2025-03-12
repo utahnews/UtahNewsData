@@ -104,34 +104,78 @@ public class AdaptiveParser: @unchecked Sendable {
             let document = try SwiftSoup.parse(html)
             let parsedContent = try T.parse(from: document)
             
-            // Check if we got meaningful content
+            // Check for empty required properties
             var shouldUseLLM = false
+            var emptyProperties: [String] = []
             
+            // Check common properties based on type
             if let article = parsedContent as? Article {
-                // For Articles, check if we got any meaningful content
                 if article.textContent?.isEmpty ?? true {
                     shouldUseLLM = true
+                    emptyProperties.append("main content")
+                }
+                if article.title.isEmpty {
+                    shouldUseLLM = true
+                    emptyProperties.append("title")
                 }
             } else if let newsStory = parsedContent as? NewsStory {
-                // For NewsStory, check if we got any meaningful content
                 if newsStory.content?.isEmpty ?? true {
                     shouldUseLLM = true
+                    emptyProperties.append("main content")
+                }
+                if newsStory.headline.isEmpty {
+                    shouldUseLLM = true
+                    emptyProperties.append("title")
                 }
             }
+            // Add other type checks as needed
             
-            // If we should use LLM and it's enabled, do LLM extraction
+            // If we have empty properties and LLM is enabled, extract them
             if shouldUseLLM && useLLMFallback {
                 do {
-                    // Extract title and content using LLM
-                    let title = try await llmManager.extractContent(from: html, contentType: "title")
-                    let content = try await llmManager.extractContent(from: html, contentType: "main content")
+                    var updatedContent = parsedContent
                     
-                    // Create appropriate type based on extracted content
-                    if let result = try? createInstance(ofType: T.self, withTitle: title, content: content) {
-                        return .success(result, source: .llmExtraction)
+                    // Extract each missing property
+                    for property in emptyProperties {
+                        let extracted = try await llmManager.extractContent(from: html, contentType: property)
+                        
+                        // Update the appropriate property
+                        if let article = updatedContent as? Article {
+                            switch property {
+                            case "main content":
+                                updatedContent = Article(
+                                    id: article.id,
+                                    title: article.title,
+                                    url: article.url,
+                                    urlToImage: article.urlToImage,
+                                    additionalImages: article.additionalImages,
+                                    publishedAt: article.publishedAt,
+                                    textContent: extracted,
+                                    author: article.author,
+                                    category: article.category
+                                ) as! T
+                            case "title":
+                                updatedContent = Article(
+                                    id: article.id,
+                                    title: extracted,
+                                    url: article.url,
+                                    urlToImage: article.urlToImage,
+                                    additionalImages: article.additionalImages,
+                                    publishedAt: article.publishedAt,
+                                    textContent: article.textContent,
+                                    author: article.author,
+                                    category: article.category
+                                ) as! T
+                            default:
+                                break
+                            }
+                        }
+                        // Add other type handling as needed
                     }
+                    
+                    return .success(updatedContent, source: .llmExtraction)
                 } catch {
-                    // If LLM fails, return the original parsed content rather than failing completely
+                    // If LLM extraction fails, return the original parsed content
                     return .success(parsedContent, source: .htmlParsing)
                 }
             }

@@ -134,25 +134,40 @@ extension Article: HTMLParsable {
     }
     
     private static func extractContent(from document: Document) throws -> String {
-        // Try article content first
-        if let content = try document.select(".article-content").first()?.text(),
-           !content.isEmpty {
-            return content
+        // Try article content first with more comprehensive selectors
+        let contentSelectors = [
+            ".article-content",
+            "[itemprop='articleBody']",
+            "main",
+            ".entry-content",
+            "article",
+            // Select paragraphs that are direct children of the article or main content area
+            "article > p",
+            ".post-content > p",
+            // Fallback to any paragraph with substantial content
+            "p"
+        ]
+        
+        for selector in contentSelectors {
+            let elements = try document.select(selector)
+            if !elements.isEmpty() {
+                let content = elements.text().trimmingCharacters(in: .whitespacesAndNewlines)
+                if !content.isEmpty {
+                    return content
+                }
+            }
         }
         
-        // Try article body
-        if let content = try document.select("[itemprop='articleBody']").first()?.text(),
-           !content.isEmpty {
-            return content
+        // If we still haven't found content, try to get all paragraphs that aren't in the header or footer
+        let allParagraphs = try document.select("body > :not(header):not(footer) p")
+        if !allParagraphs.isEmpty() {
+            let content = allParagraphs.text().trimmingCharacters(in: .whitespacesAndNewlines)
+            if !content.isEmpty {
+                return content
+            }
         }
         
-        // Try main content area
-        if let content = try document.select("main").first()?.text(),
-           !content.isEmpty {
-            return content
-        }
-        
-        throw ParsingError.missingRequiredField("content")
+        return ""
     }
     
     private static func extractAuthor(from document: Document) throws -> String? {
