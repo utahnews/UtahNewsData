@@ -105,95 +105,100 @@ public class AdaptiveParser: @unchecked Sendable {
                 throw ParsingError.invalidHTML
             }
             
-            // Try HTML parsing
-            let content = try T.parse(from: document)
-            return .success(content, source: .htmlParsing)
-        } catch {
-            if useLLMFallback {
-                // Try LLM extraction
-                let title = try await llmManager.extractContent(from: html, contentType: "title")
-                let content = try await llmManager.extractContent(from: html, contentType: "main content")
-                let author = try await llmManager.extractContent(from: html, contentType: "author")
-                let publishedAtStr = try await llmManager.extractContent(from: html, contentType: "publication date")
-                let category = try await llmManager.extractContent(from: html, contentType: "category")
-                let imageURL = try? await llmManager.extractContent(from: html, contentType: "featured image URL")
-                
-                // Try to parse the date string, fallback to current date
-                let dateFormatter = DateFormatter()
-                dateFormatter.locale = Locale(identifier: "en_US_POSIX")
-                dateFormatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ssZ"
-                let publishedAt = dateFormatter.date(from: publishedAtStr) ?? Date()
-                
-                // Create the appropriate type based on T
-                if T.self == NewsStory.self {
-                    let story = NewsStory(
-                        headline: title,
-                        author: Person(name: author, details: "Author", biography: nil),
-                        publishedDate: publishedAt,
-                        content: content,
-                        url: url.absoluteString,
-                        featuredImageURL: imageURL
-                    )
-                    return .success(story as! T, source: .llmExtraction)
-                } else if T.self == Article.self {
-                    let article = Article(
-                        id: UUID().uuidString,
-                        title: title,
-                        url: url.absoluteString,
-                        urlToImage: imageURL,
-                        additionalImages: [],
-                        publishedAt: publishedAt,
-                        textContent: content,
-                        author: author,
-                        category: category,
-                        videoURL: nil,
-                        location: nil,
-                        relationships: []
-                    )
-                    return .success(article as! T, source: .llmExtraction)
-                } else if T.self == Video.self {
-                    let video = Video(
-                        id: UUID().uuidString,
-                        title: title,
-                        url: url.absoluteString,
-                        urlToImage: imageURL,
-                        publishedAt: publishedAt,
-                        textContent: content,
-                        author: author,
-                        duration: 0,  // Default duration since we can't extract it reliably
-                        resolution: "Unknown"  // Default resolution since we can't extract it reliably
-                    )
-                    return .success(video as! T, source: .llmExtraction)
-                } else if T.self == Audio.self {
-                    let audio = Audio(
-                        id: UUID().uuidString,
-                        title: title,
-                        url: url.absoluteString,
-                        urlToImage: imageURL,
-                        publishedAt: publishedAt,
-                        textContent: content,
-                        author: author,
-                        duration: 0,  // Default duration since we can't extract it reliably
-                        bitrate: 128  // Default bitrate since we can't extract it reliably
-                    )
-                    return .success(audio as! T, source: .llmExtraction)
-                } else if T.self == StatisticalData.self {
-                    let stats = StatisticalData(
-                        title: title,
-                        value: content,  // Use the main content as the value
-                        unit: category.isEmpty ? "Unknown" : category,
-                        source: Person(name: author, details: "Source", biography: nil),
-                        date: publishedAt,
-                        methodology: nil,
-                        marginOfError: nil
-                    )
-                    return .success(stats as! T, source: .llmExtraction)
+            // Try HTML parsing first
+            do {
+                let content = try T.parse(from: document)
+                return .success(content, source: .htmlParsing)
+            } catch {
+                // If HTML parsing fails and LLM fallback is enabled, try LLM extraction
+                if useLLMFallback {
+                    // Try LLM extraction
+                    let title = try await llmManager.extractContent(from: html, contentType: "title")
+                    let content = try await llmManager.extractContent(from: html, contentType: "main content")
+                    let author = try await llmManager.extractContent(from: html, contentType: "author")
+                    let publishedAtStr = try await llmManager.extractContent(from: html, contentType: "publication date")
+                    let category = try await llmManager.extractContent(from: html, contentType: "category")
+                    let imageURL = try? await llmManager.extractContent(from: html, contentType: "featured image URL")
+                    
+                    // Try to parse the date string, fallback to current date
+                    let dateFormatter = DateFormatter()
+                    dateFormatter.locale = Locale(identifier: "en_US_POSIX")
+                    dateFormatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ssZ"
+                    let publishedAt = dateFormatter.date(from: publishedAtStr) ?? Date()
+                    
+                    // Create the appropriate type based on T
+                    if T.self == NewsStory.self {
+                        let story = NewsStory(
+                            headline: title,
+                            author: Person(name: author, details: "Author", biography: nil),
+                            publishedDate: publishedAt,
+                            content: content,
+                            url: url.absoluteString,
+                            featuredImageURL: imageURL
+                        )
+                        return .success(story as! T, source: .llmExtraction)
+                    } else if T.self == Article.self {
+                        let article = Article(
+                            id: UUID().uuidString,
+                            title: title,
+                            url: url.absoluteString,
+                            urlToImage: imageURL,
+                            additionalImages: [],
+                            publishedAt: publishedAt,
+                            textContent: content,
+                            author: author,
+                            category: category,
+                            videoURL: nil,
+                            location: nil,
+                            relationships: []
+                        )
+                        return .success(article as! T, source: .llmExtraction)
+                    } else if T.self == Video.self {
+                        let video = Video(
+                            id: UUID().uuidString,
+                            title: title,
+                            url: url.absoluteString,
+                            urlToImage: imageURL,
+                            publishedAt: publishedAt,
+                            textContent: content,
+                            author: author,
+                            duration: 0,  // Default duration since we can't extract it reliably
+                            resolution: "Unknown"  // Default resolution since we can't extract it reliably
+                        )
+                        return .success(video as! T, source: .llmExtraction)
+                    } else if T.self == Audio.self {
+                        let audio = Audio(
+                            id: UUID().uuidString,
+                            title: title,
+                            url: url.absoluteString,
+                            urlToImage: imageURL,
+                            publishedAt: publishedAt,
+                            textContent: content,
+                            author: author,
+                            duration: 0,  // Default duration since we can't extract it reliably
+                            bitrate: 128  // Default bitrate since we can't extract it reliably
+                        )
+                        return .success(audio as! T, source: .llmExtraction)
+                    } else if T.self == StatisticalData.self {
+                        let stats = StatisticalData(
+                            title: title,
+                            value: content,  // Use the main content as the value
+                            unit: category.isEmpty ? "Unknown" : category,
+                            source: Person(name: author, details: "Source", biography: nil),
+                            date: publishedAt,
+                            methodology: nil,
+                            marginOfError: nil
+                        )
+                        return .success(stats as! T, source: .llmExtraction)
+                    }
+                    
+                    throw ParsingError.invalidType
+                } else {
+                    throw error
                 }
-                
-                throw ParsingError.invalidType
-            } else {
-                throw error
             }
+        } catch {
+            throw error
         }
     }
     
