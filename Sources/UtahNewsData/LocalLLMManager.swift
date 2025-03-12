@@ -28,10 +28,19 @@ public class LocalLLMManager: @unchecked Sendable {
         Follow these specific rules for each content type:
         
         For titles:
-        1. ALWAYS prioritize <h1> tags within <article> or main content area
+        1. ALWAYS prioritize <h1> tags within <article> or main content area - this is the most important rule
         2. If no <h1> in article, look for meta tags (og:title, twitter:title)
-        3. Only use <title> tag as a last resort
+        3. ONLY use <title> tag if no <h1> or meta tags are found
         4. Return ONLY the text content of the most relevant tag
+        5. NEVER return the <title> tag content if an <h1> tag exists
+        
+        Examples for title extraction:
+        - If HTML has: <title>Site Title</title> and <h1>Main Headline</h1>
+          Return: "Main Headline"
+        - If HTML has: <title>Site Title</title> and no <h1>
+          Return: "Site Title"
+        - If HTML has: <title>Site Title</title>, <h1>Main Headline</h1>, and <meta property="og:title" content="OG Title">
+          Return: "Main Headline"
         
         For main content:
         1. Focus on content within <article> or main content area
@@ -66,7 +75,7 @@ public class LocalLLMManager: @unchecked Sendable {
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         
         let parameters: [String: Any] = [
-            "model": "mistral-nemo-instruct-2407",
+            "model": contentType.lowercased() == "main content" ? "mistral-nemo-instruct-2407" : "llama-3.2-3b-instruct",
             "messages": [
                 ["role": "system", "content": systemPrompt],
                 ["role": "user", "content": userPrompt]
