@@ -1,6 +1,6 @@
 // This file consolidates model definitions (commented out) from targeted files.
-// Generated on Tue Mar 11 20:55:59 MDT 2025
-// Current time: March 11, 2025 at 08:55:59 PM MDT
+// Generated on Wed Mar 12 09:12:30 MDT 2025
+// Current time: March 12, 2025 at 09:12:30 AM MDT
 // Do NOT uncomment this file into your code base.
 
 // File: Article.swift
@@ -1719,7 +1719,7 @@
 // /// Represents a governmental jurisdiction such as a city, county, or state.
 // /// Jurisdictions are important entities for categorizing and organizing news
 // /// content by geographic and administrative boundaries.
-// public struct Jurisdiction: AssociatedData, Identifiable, Codable, JSONSchemaProvider, HTMLParsable, Sendable {
+// public struct Jurisdiction: AssociatedData, Identifiable, Codable, JSONSchemaProvider, Sendable {
 //     /// Unique identifier for the jurisdiction
 //     public var id: String
 //     
@@ -1783,78 +1783,24 @@
 //     // MARK: - JSON Schema Provider
 //     /// Provides the JSON schema for Jurisdiction.
 //     public static var jsonSchema: String {
-//         return """
+//         """
 //         {
 //             "type": "object",
 //             "properties": {
-//                 "id": {"type": "string"},
-//                 "relationships": {
-//                     "type": "array",
-//                     "items": {"type": "object"}
-//                 },
-//                 "type": {"type": "string"},
-//                 "name": {"type": "string"},
-//                 "location": {"type": ["object", "null"]},
-//                 "website": {"type": ["string", "null"]}
+//                 "id": { "type": "string", "format": "uuid" },
+//                 "name": { "type": "string" },
+//                 "level": { "type": "string" },
+//                 "details": { "type": "string" }
 //             },
-//             "required": ["id", "type", "name"]
+//             "required": ["id", "name"]
 //         }
 //         """
 //     }
-// 
-//     // MARK: - HTMLParsable Implementation
-//     
-//     public static func parse(from document: Document) throws -> Self {
-//         // Try to find the jurisdiction name
-//         let nameOpt = try document.select(".jurisdiction h2[itemprop='name']").first()?.text()
-//             ?? document.select("[itemprop='name'], .jurisdiction-name").first()?.text()
-//             ?? document.select("meta[property='og:site_name']").first()?.attr("content")
-//             ?? document.select("title").first()?.text()
-//         
-//         guard let name = nameOpt else {
-//             throw ParsingError.invalidHTML
-//         }
-//         
-//         // Try to find jurisdiction type
-//         let typeStr = try document.select("[itemprop='jurisdictionType'], .jurisdiction-type").first()?.text()
-//             ?? document.select("meta[name='jurisdiction-type']").first()?.attr("content")
-//         
-//         let type: JurisdictionType
-//         switch typeStr?.lowercased() {
-//         case let str where str?.contains("city") ?? false:
-//             type = .city
-//         case let str where str?.contains("county") ?? false:
-//             type = .county
-//         case let str where str?.contains("state") ?? false:
-//             type = .state
-//         default:
-//             // Default to city if type can't be determined
-//             type = .city
-//         }
-//         
-//         // Try to find website
-//         let website = try document.select(".jurisdiction a[itemprop='url']").first()?.attr("href")
-//             ?? document.select("[itemprop='url']").first()?.attr("href")
-//             ?? document.select("meta[property='og:url']").first()?.attr("content")
-//         
-//         // Try to find location
-//         var location: Location? = nil
-//         if let locationElement = try document.select("[itemprop='location'], .jurisdiction-location").first() {
-//             let locationDoc = try SwiftSoup.parse(try locationElement.html())
-//             location = try? Location.parse(from: locationDoc)
-//         }
-//         
-//         var jurisdiction = Jurisdiction(
-//             id: UUID().uuidString,
-//             type: type,
-//             name: name,
-//             location: location
-//         )
-//         jurisdiction.website = website
-//         
-//         return jurisdiction
-//     }
 // }
+// 
+// // MARK: - Sendable Implementation
+// 
+// extension Jurisdiction: @unchecked Sendable {} // Complex type with thread-safe properties
 
 // File: LegalDocument.swift
 // //
@@ -1869,6 +1815,32 @@
 // 
 // import SwiftUI
 // import Foundation
+// import SwiftSoup
+// 
+// /// Represents different types of legal documents
+// public enum LegalDocumentType: String, Codable, CaseIterable, Sendable {
+//     /// Legislative bill
+//     case bill = "Bill"
+//     /// Court ruling or decision
+//     case courtRuling = "Court Ruling"
+//     /// Executive order
+//     case executiveOrder = "Executive Order"
+//     /// Administrative regulation
+//     case regulation = "Regulation"
+//     /// Legal statute
+//     case statute = "Statute"
+//     /// Legal opinion or advisory
+//     case legalOpinion = "Legal Opinion"
+//     /// Policy document
+//     case policy = "Policy"
+//     /// Other legal document types
+//     case other = "Other"
+//     
+//     /// Returns a human-readable description of the document type
+//     public var description: String {
+//         return self.rawValue
+//     }
+// }
 // 
 // /// Represents a legal document or official record in the news system.
 // /// Legal documents can include court filings, legislation, regulations,
@@ -1966,7 +1938,7 @@
 // import SwiftSoup
 // 
 // /// Represents a physical location in the UtahNewsData system
-// public struct Location: Codable, Identifiable, Hashable, Equatable, AssociatedData, HTMLParsable, Sendable, JSONSchemaProvider {
+// public struct Location: Codable, Identifiable, Hashable, Equatable, AssociatedData, Sendable, JSONSchemaProvider {
 //     /// Unique identifier for the location
 //     public var id: String
 // 
@@ -2058,60 +2030,20 @@
 //     // MARK: - JSON Schema Provider
 //     /// Provides the JSON schema for Location.
 //     public static var jsonSchema: String {
-//         return """
-//             {
-//                 "type": "object",
-//                 "properties": {
-//                     "id": {"type": "string"},
-//                     "relationships": {
-//                         "type": "array",
-//                         "items": {"type": "object"}
-//                     },
-//                     "name": {"type": "string"},
-//                     "address": {"type": ["string", "null"]},
-//                     "coordinates": {"type": ["object", "null"]},
-//                     "latitude": {"type": ["number", "null"]},
-//                     "longitude": {"type": ["number", "null"]},
-//                     "city": {"type": ["string", "null"]},
-//                     "state": {"type": ["string", "null"]},
-//                     "zipCode": {"type": ["string", "null"]},
-//                     "country": {"type": ["string", "null"]}
-//                 },
-//                 "required": ["id", "name"]
-//             }
-//             """
-//     }
-// 
-//     // MARK: - HTMLParsable Implementation
-//     
-//     public static func parse(from document: Document) throws -> Self {
-//         // Try to find coordinates
-//         let latitudeStr = try document.select("[itemprop='latitude'], meta[property='place:location:latitude']").first()?.attr("content")
-//         let longitudeStr = try document.select("[itemprop='longitude'], meta[property='place:location:longitude']").first()?.attr("content")
-//         
-//         let latitude = latitudeStr.flatMap { Double($0) }
-//         let longitude = longitudeStr.flatMap { Double($0) }
-//         
-//         // Try to find address components
-//         let streetAddress = try document.select("[itemprop='streetAddress']").first()?.text()
-//         let city = try document.select("[itemprop='addressLocality']").first()?.text()
-//         let state = try document.select("[itemprop='addressRegion']").first()?.text()
-//         let zipCode = try document.select("[itemprop='postalCode']").first()?.text()
-//         let country = try document.select("[itemprop='addressCountry']").first()?.text()
-//         
-//         // Try to construct full address (excluding country)
-//         let addressComponents = [streetAddress, city, state, zipCode].compactMap { $0 }
-//         let fullAddress = addressComponents.isEmpty ? nil : addressComponents.joined(separator: ", ")
-//         
-//         return Location(
-//             latitude: latitude,
-//             longitude: longitude,
-//             address: fullAddress,
-//             city: city,
-//             state: state,
-//             zipCode: zipCode,
-//             country: country
-//         )
+//         """
+//         {
+//             "type": "object",
+//             "properties": {
+//                 "id": { "type": "string", "format": "uuid" },
+//                 "street": { "type": "string" },
+//                 "city": { "type": "string" },
+//                 "state": { "type": "string" },
+//                 "postalCode": { "type": "string" },
+//                 "country": { "type": "string" }
+//             },
+//             "required": ["id"]
+//         }
+//         """
 //     }
 // }
 // 
@@ -2184,7 +2116,7 @@
 // /// Represents a time-sensitive alert or notification in the news system.
 // /// News alerts can include breaking news, emergency notifications, weather
 // /// alerts, and other time-critical information.
-// public struct NewsAlert: AssociatedData, JSONSchemaProvider, HTMLParsable, Sendable {
+// public struct NewsAlert: AssociatedData, JSONSchemaProvider, Sendable {
 //     /// Unique identifier for the alert
 //     public var id: String
 //     
@@ -2246,85 +2178,25 @@
 //         self.source = source
 //     }
 //     
-//     // MARK: - JSON Schema Provider
-//     /// Provides the JSON schema for NewsAlert.
+//     // MARK: - JSONSchemaProvider Implementation
+//     
 //     public static var jsonSchema: String {
-//         return """
+//         """
 //         {
 //             "type": "object",
 //             "properties": {
-//                 "id": {"type": "string"},
-//                 "relationships": {
-//                     "type": "array",
-//                     "items": {"type": "object"}
-//                 },
-//                 "title": {"type": "string"},
-//                 "message": {"type": "string"},
-//                 "dateIssued": {"type": "string", "format": "date-time"},
-//                 "level": {"type": "string"},
-//                 "source": {"type": ["string", "null"]},
-//                 "expirationDate": {"type": ["string", "null"], "format": "date-time"}
+//                 "id": { "type": "string", "format": "uuid" },
+//                 "title": { "type": "string" },
+//                 "content": { "type": "string" },
+//                 "urgencyLevel": { "type": "string", "enum": ["low", "medium", "high", "critical"] },
+//                 "category": { "type": "string" },
+//                 "location": { "$ref": "#/definitions/Location" },
+//                 "timestamp": { "type": "string", "format": "date-time" },
+//                 "source": { "type": "string" }
 //             },
-//             "required": ["id", "title", "message", "dateIssued", "level"]
+//             "required": ["id", "title", "content"]
 //         }
 //         """
-//     }
-//     
-//     // MARK: - HTMLParsable Implementation
-//     
-//     public static func parse(from document: Document) throws -> Self {
-//         // Try to find the alert title
-//         let titleOpt = try document.select("[itemprop='headline'], .alert-title, .breaking-news").first()?.text()
-//             ?? document.select("meta[property='og:title']").first()?.attr("content")
-//             ?? document.select("title").first()?.text()
-//         
-//         guard let title = titleOpt else {
-//             throw ParsingError.invalidHTML
-//         }
-//         
-//         // Try to find content
-//         let content = try document.select("[itemprop='articleBody'], .alert-content").first()?.text()
-//             ?? document.select("meta[name='description']").first()?.attr("content")
-//             ?? title
-//         
-//         // Try to find alert type
-//         let alertType = try document.select("[itemprop='alertType'], .alert-type").first()?.text()
-//             ?? "Breaking News"  // Default type
-//         
-//         // Try to find severity
-//         let severityStr = try document.select("[itemprop='severity'], .alert-severity").first()?.text()
-//         let severity: AlertSeverity
-//         switch severityStr?.lowercased() {
-//         case let str where str?.contains("high") ?? false:
-//             severity = .high
-//         case let str where str?.contains("medium") ?? false:
-//             severity = .medium
-//         default:
-//             severity = .low
-//         }
-//         
-//         // Try to find publication date
-//         let dateStr = try document.select("[itemprop='datePublished']").first()?.text()
-//             ?? document.select("[itemprop='datePublished']").first()?.attr("datetime")
-//             ?? document.select("[itemprop='datePublished']").first()?.attr("content")
-//             ?? document.select("meta[property='article:published_time']").first()?.attr("content")
-//         
-//         let publishedAt = dateStr.flatMap { DateFormatter.iso8601Full.date(from: $0) } ?? Date()
-//         
-//         // Try to find source
-//         let source = try document.select("[itemprop='publisher'], .alert-source").first()?.text()
-//             ?? document.select("meta[property='og:site_name']").first()?.attr("content")
-//             ?? "Unknown Source"
-//         
-//         return NewsAlert(
-//             id: UUID().uuidString,
-//             title: title,
-//             content: content,
-//             alertType: alertType,
-//             severity: severity,
-//             publishedAt: publishedAt,
-//             source: source
-//         )
 //     }
 // }
 // 
@@ -2361,6 +2233,46 @@
 //             return "yellow"
 //         case .high:
 //             return "orange"
+//         }
+//     }
+// }
+// 
+// /// Represents the urgency level of a news alert
+// public enum UrgencyLevel: String, Codable, CaseIterable, Sendable {
+//     /// Immediate attention required
+//     case immediate
+//     /// High priority but not immediate
+//     case high
+//     /// Medium priority
+//     case medium
+//     /// Low priority
+//     case low
+//     
+//     /// Returns a human-readable description of the urgency level
+//     public var description: String {
+//         switch self {
+//         case .immediate:
+//             return "Immediate"
+//         case .high:
+//             return "High"
+//         case .medium:
+//             return "Medium"
+//         case .low:
+//             return "Low"
+//         }
+//     }
+//     
+//     /// Returns a color associated with this urgency level for UI display
+//     public var color: String {
+//         switch self {
+//         case .immediate:
+//             return "red"
+//         case .high:
+//             return "orange"
+//         case .medium:
+//             return "yellow"
+//         case .low:
+//             return "blue"
 //         }
 //     }
 // }
@@ -2607,8 +2519,8 @@
 // /// Represents a significant event covered in the news in the UtahNewsData system.
 // /// NewsEvents can be associated with articles, people, organizations, and locations,
 // /// providing a way to track and organize coverage of specific occurrences.
-// public struct NewsEvent: Codable, Identifiable, Hashable, Equatable, AssociatedData, HTMLParsable, Sendable,
-//     JSONSchemaProvider
+// public struct NewsEvent: Codable, Identifiable, Hashable, Equatable, AssociatedData, Sendable,
+//     JSONSchemaProvider, EntityDetailsProvider
 // {
 //     /// Unique identifier for the news event
 //     public var id: String
@@ -2706,109 +2618,80 @@
 //         {
 //             "type": "object",
 //             "properties": {
-//                 "id": {"type": "string"},
-//                 "title": {"type": "string"},
-//                 "date": {"type": "string", "format": "date-time"},
-//                 "quotes": {
+//                 "id": { "type": "string", "format": "uuid" },
+//                 "title": { "type": "string" },
+//                 "description": { "type": "string" },
+//                 "startDate": { "type": "string", "format": "date-time" },
+//                 "endDate": { "type": "string", "format": "date-time" },
+//                 "location": { "$ref": "#/definitions/Location" },
+//                 "organizer": { "$ref": "#/definitions/Organization" },
+//                 "participants": {
 //                     "type": "array",
-//                     "items": {"$ref": "#/definitions/Quote"},
-//                     "optional": true
+//                     "items": { "$ref": "#/definitions/Person" }
 //                 },
-//                 "facts": {
+//                 "category": { "type": "string" },
+//                 "tags": {
 //                     "type": "array",
-//                     "items": {"$ref": "#/definitions/Fact"},
-//                     "optional": true
+//                     "items": { "type": "string" }
 //                 },
-//                 "statisticalData": {
-//                     "type": "array",
-//                     "items": {"$ref": "#/definitions/StatisticalData"},
-//                     "optional": true
-//                 },
-//                 "categories": {
-//                     "type": "array",
-//                     "items": {"$ref": "#/definitions/Category"},
-//                     "optional": true
-//                 },
-//                 "metadata": {
-//                     "type": "object",
-//                     "additionalProperties": true,
-//                     "optional": true
-//                 }
+//                 "status": { "type": "string", "enum": ["scheduled", "inProgress", "completed", "cancelled"] },
+//                 "url": { "type": "string", "format": "uri" }
 //             },
-//             "required": ["id", "title", "date"],
-//             "definitions": {
-//                 "Quote": {"$ref": "Quote.jsonSchema"},
-//                 "Fact": {"$ref": "Fact.jsonSchema"},
-//                 "StatisticalData": {"$ref": "StatisticalData.jsonSchema"},
-//                 "Category": {"$ref": "Category.jsonSchema"}
-//             }
+//             "required": ["id", "title", "startDate"]
 //         }
 //         """
 //     }
-// 
-//     // MARK: - HTMLParsable Implementation
 //     
-//     public static func parse(from document: Document) throws -> Self {
-//         // Try to find the event title
-//         let titleOpt = try document.select("[itemprop='name'], .event-title, h1").first()?.text()
-//             ?? document.select("meta[property='og:title']").first()?.attr("content")
-//             ?? document.select("title").first()?.text()
+//     // MARK: - EntityDetailsProvider Implementation
+//     
+//     public func getDetailedDescription() -> String {
+//         var description = "EVENT: \(title)"
 //         
-//         guard let title = titleOpt else {
-//             throw ParsingError.invalidHTML
+//         if let desc = self.description {
+//             description += "\nDescription: \(desc)"
 //         }
 //         
-//         // Try to find description
-//         let description = try document.select("[itemprop='description'], .event-description").first()?.text()
-//             ?? document.select("meta[name='description']").first()?.attr("content")
+//         let formatter = DateFormatter()
+//         formatter.dateStyle = .medium
+//         description += "\nDate: \(formatter.string(from: date))"
 //         
-//         // Try to find dates
-//         let startDateStr = try document.select("[itemprop='startDate'], .event-start-date").first()?.attr("datetime")
-//             ?? document.select("time").first()?.attr("datetime")
-//         
-//         let endDateStr = try document.select("[itemprop='endDate'], .event-end-date").first()?.attr("datetime")
-//         
-//         let dateFormatter = ISO8601DateFormatter()
-//         let startDate = startDateStr.flatMap { dateFormatter.date(from: $0) }
-//         let endDate = endDateStr.flatMap { dateFormatter.date(from: $0) }
-//         
-//         // Try to find location
-//         var location: Location? = nil
-//         if let locationElement = try document.select("[itemprop='location'], .event-location").first() {
-//             let locationDoc = try SwiftSoup.parse(try locationElement.html())
-//             location = try Location.parse(from: locationDoc)
+//         if let startDate = startDate {
+//             description += "\nStart Date: \(formatter.string(from: startDate))"
 //         }
 //         
-//         // Try to find participants
-//         var participants: [Person] = []
-//         let participantElements = try document.select("[itemprop='performer'], .event-participant")
-//         for element in participantElements {
-//             let personDoc = try SwiftSoup.parse(try element.html())
-//             if let person = try? Person.parse(from: personDoc) {
-//                 participants.append(person)
-//             }
+//         if let endDate = endDate {
+//             description += "\nEnd Date: \(formatter.string(from: endDate))"
 //         }
 //         
-//         // Try to find organizations
-//         var organizations: [Organization] = []
-//         let organizationElements = try document.select("[itemprop='organizer'], .event-organizer")
-//         for element in organizationElements {
-//             let orgDoc = try SwiftSoup.parse(try element.html())
-//             if let org = try? Organization.parse(from: orgDoc) {
-//                 organizations.append(org)
-//             }
+//         if let location = location {
+//             description += "\nLocation: \(location.name)"
 //         }
 //         
-//         return NewsEvent(
-//             title: title,
-//             date: startDate ?? Date(),
-//             description: description,
-//             startDate: startDate,
-//             endDate: endDate,
-//             location: location,
-//             participants: participants.isEmpty ? nil : participants,
-//             organizations: organizations.isEmpty ? nil : organizations
-//         )
+//         if let participants = participants, !participants.isEmpty {
+//             description += "\nParticipants: \(participants.map { $0.name }.joined(separator: ", "))"
+//         }
+//         
+//         if let organizations = organizations, !organizations.isEmpty {
+//             description += "\nOrganizations: \(organizations.map { $0.name }.joined(separator: ", "))"
+//         }
+//         
+//         if !quotes.isEmpty {
+//             description += "\nQuotes: \(quotes.count)"
+//         }
+//         
+//         if !facts.isEmpty {
+//             description += "\nFacts: \(facts.count)"
+//         }
+//         
+//         if !statisticalData.isEmpty {
+//             description += "\nStatistical Data Points: \(statisticalData.count)"
+//         }
+//         
+//         if !categories.isEmpty {
+//             description += "\nCategories: \(categories.map { $0.name }.joined(separator: ", "))"
+//         }
+//         
+//         return description
 //     }
 // }
 
@@ -3056,8 +2939,38 @@
 // import Foundation
 // import SwiftSoup
 // 
+// /// Represents the type of organization
+// public enum OrganizationType: String, Codable, CaseIterable, Sendable {
+//     /// For-profit corporation
+//     case corporation
+//     /// Non-profit organization
+//     case nonProfit
+//     /// Government agency or department
+//     case government
+//     /// Educational institution
+//     case educational
+//     /// Media outlet or news organization
+//     case mediaOutlet
+//     
+//     /// Returns a human-readable label for the organization type
+//     public var label: String {
+//         switch self {
+//         case .corporation:
+//             return "Corporation"
+//         case .nonProfit:
+//             return "Non-Profit Organization"
+//         case .government:
+//             return "Government Agency"
+//         case .educational:
+//             return "Educational Institution"
+//         case .mediaOutlet:
+//             return "Media Outlet"
+//         }
+//     }
+// }
+// 
 // /// Represents an organization in the UtahNewsData system
-// public struct Organization: AssociatedData, Codable, Identifiable, Hashable, Equatable, EntityDetailsProvider, HTMLParsable, Sendable {
+// public struct Organization: AssociatedData, Codable, Identifiable, Hashable, Equatable, EntityDetailsProvider, Sendable {
 //     /// Unique identifier for the organization
 //     public var id: String
 // 
@@ -3168,183 +3081,105 @@
 //         case contactInfo, website, logoURL, location, type
 //     }
 // 
-//     // MARK: - EntityDetailsProvider Implementation
-// 
-//     /// Generates a detailed description of the organization for RAG context.
-//     /// This includes the organization's description, website, and contact information.
-//     ///
-//     /// - Returns: A formatted string containing the organization's details
-//     public func getDetailedDescription() -> String {
-//         var description = ""
-// 
-//         if let desc = orgDescription {
-//             description += desc + "\n\n"
-//         }
-// 
-//         if let website = website {
-//             description += "**Website**: \(website)\n\n"
-//         }
-// 
-//         // Add contact information
-//         if let contacts = contactInfo, !contacts.isEmpty {
-//             description += "**Contact Information**:\n\n"
-// 
-//             for (index, contact) in contacts.enumerated() {
-//                 if contacts.count > 1 {
-//                     description += "### Contact \(index + 1)\n"
-//                 }
-// 
-//                 description += "**Name**: \(contact.name)\n"
-// 
-//                 if let email = contact.email {
-//                     description += "**Email**: \(email)\n"
-//                 }
-// 
-//                 if let phone = contact.phone {
-//                     description += "**Phone**: \(phone)\n"
-//                 }
-// 
-//                 if let address = contact.address {
-//                     description += "**Address**: \(address)\n"
-//                 }
-// 
-//                 if let website = contact.website {
-//                     description += "**Website**: \(website)\n"
-//                 }
-// 
-//                 // Add social media handles
-//                 if let socialMedia = contact.socialMediaHandles, !socialMedia.isEmpty {
-//                     description += "\n**Social Media**:\n"
-//                     for (platform, handle) in socialMedia {
-//                         description += "- \(platform): \(handle)\n"
-//                     }
-//                 }
-// 
-//                 description += "\n"
-//             }
-//         }
-// 
-//         return description
-//     }
-// 
-//     /// JSON schema for LLM responses
+//     // MARK: - JSONSchemaProvider Implementation
+//     
 //     public static var jsonSchema: String {
 //         """
 //         {
 //             "type": "object",
 //             "properties": {
-//                 "id": {"type": "string"},
-//                 "name": {"type": "string"},
-//                 "orgDescription": {"type": "string", "optional": true},
-//                 "website": {"type": "string", "format": "uri", "optional": true},
-//                 "contactInfo": {
-//                     "type": "array",
-//                     "items": {
-//                         "$ref": "#/definitions/ContactInfo"
-//                     },
-//                     "optional": true
+//                 "id": { "type": "string", "format": "uuid" },
+//                 "name": { "type": "string" },
+//                 "type": { "type": "string", "enum": ["corporation", "nonProfit", "government", "educational", "mediaOutlet"] },
+//                 "description": { "type": "string" },
+//                 "website": { "type": "string", "format": "uri" },
+//                 "location": { "$ref": "#/definitions/Location" },
+//                 "foundingDate": { "type": "string", "format": "date-time" },
+//                 "employees": { "type": "integer", "minimum": 0 },
+//                 "industry": { "type": "string" },
+//                 "socialMediaProfiles": {
+//                     "type": "object",
+//                     "additionalProperties": { "type": "string", "format": "uri" }
 //                 },
-//                 "logoURL": {"type": "string", "format": "uri", "optional": true},
-//                 "location": {"$ref": "#/definitions/Location"},
-//                 "type": {"type": "string", "optional": true}
+//                 "contactInfo": { "$ref": "#/definitions/ContactInfo" }
 //             },
-//             "required": ["id", "name"],
-//             "definitions": {
-//                 "ContactInfo": {
-//                     "type": "object",
-//                     "properties": {
-//                         "name": {"type": "string"},
-//                         "email": {"type": "string", "format": "email", "optional": true},
-//                         "phone": {"type": "string", "optional": true},
-//                         "address": {"type": "string", "optional": true},
-//                         "website": {"type": "string", "format": "uri", "optional": true},
-//                         "socialMediaHandles": {
-//                             "type": "object",
-//                             "additionalProperties": {"type": "string"},
-//                             "optional": true
-//                         }
-//                     },
-//                     "required": ["name"]
-//                 },
-//                 "Location": {
-//                     "type": "object",
-//                     "properties": {
-//                         "latitude": {"type": "number"},
-//                         "longitude": {"type": "number"},
-//                         "address": {"type": "string"},
-//                         "city": {"type": "string"},
-//                         "state": {"type": "string"},
-//                         "zipCode": {"type": "string"},
-//                         "country": {"type": "string"}
-//                     },
-//                     "required": ["latitude", "longitude", "address", "city", "state", "zipCode", "country"]
-//                 }
-//             }
+//             "required": ["id", "name", "type"]
 //         }
 //         """
 //     }
-// 
-//     // MARK: - HTMLParsable Implementation
 //     
-//     public static func parse(from document: Document) throws -> Self {
-//         // Try to find the organization name
-//         let nameOpt = try document.select("[itemprop='name'], .org-name, .organization-name").first()?.text()
-//             ?? document.select("meta[property='og:site_name']").first()?.attr("content")
-//             ?? document.select("title").first()?.text()
+//     // MARK: - EntityDetailsProvider Implementation
+//     
+//     public var entityType: EntityType {
+//         .organization
+//     }
+//     
+//     public var entityName: String {
+//         name
+//     }
+//     
+//     public var entityDescription: String? {
+//         orgDescription
+//     }
+//     
+//     public var entityLocation: Location? {
+//         location
+//     }
+//     
+//     public var entityURL: URL? {
+//         if let websiteStr = website {
+//             return URL(string: websiteStr)
+//         }
+//         return nil
+//     }
+//     
+//     public var entityImageURL: URL? {
+//         nil // Organizations don't have a direct image URL in the current model
+//     }
+//     
+//     public var entityIdentifier: String {
+//         id
+//     }
+//     
+//     public var entityMetadata: [String: String] {
+//         var metadata: [String: String] = [
+//             "type": type ?? "Unknown"
+//         ]
+//         return metadata
+//     }
+// 
+//     public func getDetailedDescription() -> String {
+//         var description = "\(name)"
 //         
-//         guard let name = nameOpt else {
-//             throw ParsingError.invalidHTML
+//         if let desc = orgDescription {
+//             description += "\n\n\(desc)"
 //         }
 //         
-//         // Try to find description
-//         let description = try document.select("[itemprop='description'], .org-description").first()?.text()
-//             ?? document.select("meta[name='description']").first()?.attr("content")
-//         
-//         // Try to find website
-//         let website = try document.select("[itemprop='url'], link[rel='canonical']").first()?.attr("href")
-//             ?? document.select("meta[property='og:url']").first()?.attr("content")
-//         
-//         // Try to find logo URL
-//         let logoURL = try document.select("[itemprop='logo'], img.org-logo").first()?.attr("src")
-//             ?? document.select("meta[property='og:image']").first()?.attr("content")
-//         
-//         // Try to find organization type
-//         let type = try document.select("[itemprop='organizationType'], .org-type").first()?.text()
-//         
-//         // Try to find location
-//         var location: Location? = nil
-//         if let locationElement = try document.select("[itemprop='location'], .org-location").first() {
-//             let locationDoc = try SwiftSoup.parse(try locationElement.html())
-//             location = try? Location.parse(from: locationDoc)
+//         if let type = type {
+//             description += "\nType: \(type)"
 //         }
 //         
-//         // Try to find contact info
-//         var contactInfo: [ContactInfo] = []
-//         let contactElements = try document.select("[itemprop='contactPoint'], .contact-info")
-//         for element in contactElements {
-//             let name = try element.select("[itemprop='name'], .contact-name").first()?.text() ?? "Main Contact"
-//             let email = try element.select("[itemprop='email']").first()?.text()
-//             let phone = try element.select("[itemprop='telephone']").first()?.text()
-//             let address = try element.select("[itemprop='address']").first()?.text()
-//             
-//             contactInfo.append(ContactInfo(
-//                 name: name,
-//                 email: email,
-//                 phone: phone,
-//                 address: address
-//             ))
+//         if let website = website {
+//             description += "\nWebsite: \(website)"
 //         }
 //         
-//         return Organization(
-//             id: UUID().uuidString,
-//             name: name,
-//             orgDescription: description,
-//             contactInfo: contactInfo.isEmpty ? nil : contactInfo,
-//             website: website,
-//             logoURL: logoURL,
-//             location: location,
-//             type: type
-//         )
+//         if let location = location {
+//             description += "\nLocation: \(location.name)"
+//         }
+//         
+//         if let contacts = contactInfo, !contacts.isEmpty {
+//             description += "\n\nContact Information:"
+//             for contact in contacts {
+//                 if let email = contact.email {
+//                     description += "\nEmail: \(email)"
+//                 }
+//                 if let phone = contact.phone {
+//                     description += "\nPhone: \(phone)"
+//                 }
+//             }
+//         }
+//         
+//         return description
 //     }
 // }
 
@@ -3412,11 +3247,44 @@
 // import Foundation
 // import SwiftSoup
 // 
+// /// Represents an educational qualification or degree
+// public struct Education: Codable, Hashable, Equatable, Sendable {
+//     /// Name of the educational institution
+//     public var institution: String
+//     
+//     /// Type of degree or qualification (e.g., "Bachelor's", "Master's", "Ph.D.")
+//     public var degree: String?
+//     
+//     /// Field of study
+//     public var field: String?
+//     
+//     /// Year the degree was awarded
+//     public var year: Int?
+//     
+//     /// Creates a new Education instance
+//     /// - Parameters:
+//     ///   - institution: Name of the educational institution
+//     ///   - degree: Type of degree or qualification
+//     ///   - field: Field of study
+//     ///   - year: Year the degree was awarded
+//     public init(
+//         institution: String,
+//         degree: String? = nil,
+//         field: String? = nil,
+//         year: Int? = nil
+//     ) {
+//         self.institution = institution
+//         self.degree = degree
+//         self.field = field
+//         self.year = year
+//     }
+// }
+// 
 // /// Represents a person in the news data system.
 // /// This can be a journalist, public figure, expert, or any individual
 // /// relevant to news content.
 // public struct Person: AssociatedData, Codable, Identifiable, Hashable, EntityDetailsProvider,
-//     JSONSchemaProvider, Sendable, HTMLParsable
+//     JSONSchemaProvider, Sendable
 // {
 //     // MARK: - Core Properties
 // 
@@ -3706,73 +3574,48 @@
 //         return description
 //     }
 // 
-//     /// JSON schema for LLM responses
+//     // MARK: - JSONSchemaProvider Implementation
+//     
 //     public static var jsonSchema: String {
 //         """
 //         {
 //             "type": "object",
 //             "properties": {
-//                 "id": {"type": "string"},
-//                 "name": {"type": "string"},
-//                 "details": {"type": "string"},
-//                 "biography": {"type": "string", "optional": true},
-//                 "birthDate": {"type": "string", "format": "date-time", "optional": true},
-//                 "deathDate": {"type": "string", "format": "date-time", "optional": true},
-//                 "occupation": {"type": "string", "optional": true},
-//                 "nationality": {"type": "string", "optional": true},
-//                 "notableAchievements": {"type": "array", "items": {"type": "string"}, "optional": true},
-//                 "imageURL": {"type": "string", "optional": true},
-//                 "locationString": {"type": "string", "optional": true},
-//                 "locationLatitude": {"type": "number", "optional": true},
-//                 "locationLongitude": {"type": "number", "optional": true},
-//                 "email": {"type": "string", "format": "email", "optional": true},
-//                 "website": {"type": "string", "format": "uri", "optional": true},
-//                 "phone": {"type": "string", "optional": true},
-//                 "address": {"type": "string", "optional": true},
-//                 "socialMediaHandles": {
+//                 "id": { "type": "string", "format": "uuid" },
+//                 "name": { "type": "string" },
+//                 "title": { "type": "string" },
+//                 "biography": { "type": "string" },
+//                 "organization": { "$ref": "#/definitions/Organization" },
+//                 "expertise": {
+//                     "type": "array",
+//                     "items": { "type": "string" }
+//                 },
+//                 "education": {
+//                     "type": "array",
+//                     "items": {
+//                         "type": "object",
+//                         "properties": {
+//                             "institution": { "type": "string" },
+//                             "degree": { "type": "string" },
+//                             "field": { "type": "string" },
+//                             "year": { "type": "integer" }
+//                         }
+//                     }
+//                 },
+//                 "contactInfo": { "$ref": "#/definitions/ContactInfo" },
+//                 "socialMediaProfiles": {
 //                     "type": "object",
-//                     "additionalProperties": {"type": "string"},
-//                     "optional": true
+//                     "additionalProperties": { "type": "string", "format": "uri" }
+//                 },
+//                 "imageURL": { "type": "string", "format": "uri" },
+//                 "achievements": {
+//                     "type": "array",
+//                     "items": { "type": "string" }
 //                 }
 //             },
-//             "required": ["id", "name", "details"]
+//             "required": ["id", "name"]
 //         }
 //         """
-//     }
-// 
-//     // MARK: - HTMLParsable Implementation
-//     
-//     public static func parse(from document: Document) throws -> Self {
-//         // Try to find the person's name
-//         let nameOpt = try document.select("[itemprop='name'], .person-name").first()?.text()
-//             ?? document.select("meta[property='og:title']").first()?.attr("content")
-//             ?? document.select("title").first()?.text()
-//         
-//         guard let name = nameOpt else {
-//             throw ParsingError.invalidHTML
-//         }
-//         
-//         // Try to find role or title
-//         let details = try document.select("[itemprop='jobTitle'], .role, .title, .position").first()?.text()
-//             ?? document.select("meta[name='author:role']").first()?.attr("content")
-//             ?? "Unknown Role"
-//         
-//         // Try to find biography
-//         let biography = try document.select("[itemprop='description'], .biography").first()?.text()
-//             ?? document.select("meta[name='description']").first()?.attr("content")
-//         
-//         // Try to find image URL
-//         let imageURL = try document.select("[itemprop='image'], img.person-image").first()?.attr("src")
-//             ?? document.select("meta[property='og:image']").first()?.attr("content")
-//         
-//         return Person(
-//             id: UUID().uuidString,
-//             relationships: [],
-//             name: name,
-//             details: details,
-//             biography: biography,
-//             imageURL: imageURL
-//         )
 //     }
 // }
 
@@ -3867,7 +3710,7 @@
 // /// Represents a poll or survey in the news system.
 // /// Polls capture public opinion on various topics and issues,
 // /// providing valuable data for news reporting and analysis.
-// public struct Poll: AssociatedData, JSONSchemaProvider, HTMLParsable, Codable, Identifiable, Hashable, Equatable, Sendable {
+// public struct Poll: AssociatedData, JSONSchemaProvider, Codable, Identifiable, Hashable, Equatable, Sendable {
 //     /// Unique identifier for the poll
 //     public var id: String
 //     
@@ -3956,116 +3799,48 @@
 //         return results
 //     }
 // 
-//     /// Provides the JSON schema for Poll.
+//     // MARK: - JSONSchemaProvider Implementation
+//     
 //     public static var jsonSchema: String {
-//         return """
+//         """
 //         {
 //             "type": "object",
 //             "properties": {
-//                 "id": {"type": "string"},
-//                 "relationships": {
-//                     "type": "array",
-//                     "items": {"type": "object"}
-//                 },
-//                 "question": {"type": "string"},
+//                 "id": { "type": "string", "format": "uuid" },
+//                 "title": { "type": "string" },
+//                 "question": { "type": "string" },
 //                 "options": {
 //                     "type": "array",
 //                     "items": {
 //                         "type": "object",
 //                         "properties": {
-//                             "text": {"type": "string"},
-//                             "votes": {"type": "integer"}
+//                             "text": { "type": "string" },
+//                             "votes": { "type": "integer", "minimum": 0 },
+//                             "percentage": { "type": "number", "minimum": 0, "maximum": 100 }
 //                         },
-//                         "required": ["text", "votes"]
+//                         "required": ["text"]
 //                     }
 //                 },
-//                 "responses": {
-//                     "type": "array",
-//                     "items": {
-//                         "type": "object",
-//                         "properties": {
-//                             "selectedOption": {"type": "string"},
-//                             "timestamp": {"type": "string", "format": "date-time", "optional": true},
-//                             "respondentId": {"type": "string", "optional": true},
-//                             "metadata": {
-//                                 "type": "object",
-//                                 "additionalProperties": true,
-//                                 "optional": true
-//                             }
-//                         },
-//                         "required": ["selectedOption"]
-//                     }
+//                 "totalResponses": { "type": "integer", "minimum": 0 },
+//                 "methodology": { "type": "string" },
+//                 "dateRange": {
+//                     "type": "object",
+//                     "properties": {
+//                         "start": { "type": "string", "format": "date-time" },
+//                         "end": { "type": "string", "format": "date-time" }
+//                     },
+//                     "required": ["start", "end"]
 //                 },
-//                 "dateConducted": {"type": "string", "format": "date-time"},
-//                 "source": {"type": "string"},
-//                 "marginOfError": {"type": ["number", "null"]},
-//                 "sampleSize": {"type": ["integer", "null"]},
-//                 "demographics": {"type": ["string", "null"]}
+//                 "marginOfError": { "type": "number", "minimum": 0 },
+//                 "demographics": {
+//                     "type": "object",
+//                     "additionalProperties": { "type": "string" }
+//                 },
+//                 "source": { "type": "string" }
 //             },
-//             "required": ["id", "question", "options", "dateConducted", "source"]
+//             "required": ["id", "title", "question", "options"]
 //         }
 //         """
-//     }
-// 
-//     // MARK: - HTMLParsable Implementation
-//     
-//     public static func parse(from document: Document) throws -> Self {
-//         // Try to find the poll question
-//         let questionOpt = try document.select("[itemprop='question'], .poll-question").first()?.text()
-//             ?? document.select("meta[property='og:title']").first()?.attr("content")
-//             ?? document.select("title").first()?.text()
-//         
-//         guard let question = questionOpt else {
-//             throw ParsingError.invalidHTML
-//         }
-//         
-//         // Try to find poll options
-//         var options: [PollOption] = []
-//         let optionElements = try document.select("[itemprop='option'], .poll-option")
-//         for element in optionElements {
-//             let text = try element.text()
-//             let votes = Int(try element.attr("data-votes")) ?? 0
-//             options.append(PollOption(text: text, votes: votes))
-//         }
-//         
-//         // If no options found, try looking for list items
-//         if options.isEmpty {
-//             let listItems = try document.select("ul.poll-options li, ol.poll-options li")
-//             for item in listItems {
-//                 options.append(PollOption(text: try item.text(), votes: 0))
-//             }
-//         }
-//         
-//         // Try to find source
-//         let source = try document.select("[itemprop='sourceOrganization'], .poll-source").first()?.text()
-//             ?? document.select("meta[property='og:site_name']").first()?.attr("content")
-//             ?? "Unknown Source"
-//         
-//         // Try to find date
-//         let dateStr = try document.select("[itemprop='datePublished']").first()?.attr("datetime")
-//             ?? document.select("meta[property='article:published_time']").first()?.attr("content")
-//         
-//         let dateConducted = dateStr.flatMap { DateFormatter.iso8601Full.date(from: $0) } ?? Date()
-//         
-//         // Try to find margin of error
-//         let marginOfError = try Double(document.select(".margin-of-error").first()?.text().replacingOccurrences(of: "%", with: "") ?? "")
-//         
-//         // Try to find sample size
-//         let sampleSize = try Int(document.select(".sample-size").first()?.text() ?? "")
-//         
-//         // Try to find demographics
-//         let demographics = try document.select(".demographics").first()?.text()
-//         
-//         return Poll(
-//             id: UUID().uuidString,
-//             question: question,
-//             options: options,
-//             dateConducted: dateConducted,
-//             source: source,
-//             marginOfError: marginOfError,
-//             sampleSize: sampleSize,
-//             demographics: demographics
-//         )
 //     }
 // }
 // 
@@ -4304,62 +4079,192 @@
 // 
 //     // MARK: - HTMLParsable Implementation
 //     
-//     public static func parse(from document: Document) throws -> Self {
-//         // Try to find quote text
-//         let textOpt = try document.select("[itemprop='text'], .quote-text, blockquote").first()?.text()
-//             ?? document.select("meta[property='og:description']").first()?.attr("content")
-//             ?? document.select("title").first()?.text()
-//         
-//         guard let text = textOpt else {
-//             throw ParsingError.invalidHTML
+//     public static func parse(from document: Document) throws -> Quote {
+//         let text = try extractQuoteText(from: document)
+//         let speaker = try extractSpeaker(from: document)
+//         let sourceString = try extractSource(from: document)
+//         var source: (any EntityDetailsProvider)?
+//         if let str = sourceString {
+//             source = NewsEvent(
+//                 title: str,
+//                 date: Date(),  // Use current date since we don't have a specific date from the source
+//                 description: nil,
+//                 startDate: nil,
+//                 endDate: nil,
+//                 location: nil,
+//                 participants: nil,
+//                 organizations: nil,
+//                 relatedEvents: nil,
+//                 relationships: []
+//             ) as any EntityDetailsProvider
+//         } else {
+//             source = nil
 //         }
-//         
-//         // Try to find speaker
-//         let speakerName = try document.select("[itemprop='author'], .quote-author").first()?.text()
-//             ?? document.select("meta[name='author']").first()?.attr("content")
-//         
-//         // Create Person object from speaker name if available
-//         var speaker: Person? = nil
-//         if let speakerName = speakerName {
-//             speaker = Person(name: speakerName, details: "Speaker of the quote")
-//         }
-//         
-//         // Try to find source
-//         let source = try document.select("[itemprop='publisher'], .quote-source").first()?.text()
-//             ?? document.select("meta[property='og:site_name']").first()?.attr("content")
-//         
-//         // Try to find date
-//         let dateStr = try document.select("[itemprop='datePublished']").first()?.attr("datetime")
-//             ?? document.select("meta[property='article:published_time']").first()?.attr("content")
-//         
-//         let date = dateStr.flatMap { DateFormatter.iso8601Full.date(from: $0) }
-//         
-//         // Try to find context
-//         let context = try document.select("[itemprop='description'], .quote-context").first()?.text()
-//             ?? document.select("meta[name='description']").first()?.attr("content")
-//         
-//         // Try to find topics
-//         let keywordsText = try document.select("[itemprop='keywords'], .quote-topics").first()?.text()
-//             ?? document.select("meta[name='keywords']").first()?.attr("content")
-//         
-//         let topics = keywordsText?.components(separatedBy: ",").map { $0.trimmingCharacters(in: .whitespaces) } ?? []
-//         
-//         // Try to find location
-//         var location: Location? = nil
-//         if let locationElement = try document.select("[itemprop='location'], .quote-location").first() {
-//             let locationDoc = try SwiftSoup.parse(try locationElement.html())
-//             location = try? Location.parse(from: locationDoc)
-//         }
+//         let date = try extractDate(from: document)
+//         let context = try extractContext(from: document)
+//         let location = try extractLocation(from: document)
 //         
 //         return Quote(
 //             text: text,
 //             speaker: speaker,
-//             source: nil, // TODO: Create appropriate source object based on source string
+//             source: source,
 //             date: date,
 //             context: context,
-//             topics: topics.isEmpty ? nil : topics,
+//             topics: [],
 //             location: location
 //         )
+//     }
+//     
+//     // MARK: - Private Helper Methods
+//     
+//     private static func extractQuoteText(from document: Document) throws -> String {
+//         let textSelectors = [
+//             "[itemprop='text']",
+//             ".quote-text",
+//             ".quote-content",
+//             "blockquote"
+//         ]
+//         
+//         for selector in textSelectors {
+//             if let text = try document.select(selector).first()?.text(),
+//                !text.isEmpty {
+//                 return text
+//             }
+//         }
+//         
+//         throw ParsingError.missingRequiredField("quote text")
+//     }
+//     
+//     private static func extractSpeaker(from document: Document) throws -> Person? {
+//         let speakerSelectors = [
+//             "[itemprop='speaker']",
+//             ".quote-speaker",
+//             ".quote-author",
+//             ".speaker-info"
+//         ]
+//         
+//         for selector in speakerSelectors {
+//             if let element = try document.select(selector).first() {
+//                 let name = try element.select("[itemprop='name']").first()?.text()
+//                 let title = try element.select("[itemprop='jobTitle']").first()?.text()
+//                 let organization = try element.select("[itemprop='affiliation']").first()?.text()
+//                 
+//                 if let name = name {
+//                     return Person(
+//                         name: name,
+//                         details: title ?? "",
+//                         biography: nil,
+//                         birthDate: nil,
+//                         deathDate: nil,
+//                         occupation: organization,
+//                         nationality: nil,
+//                         notableAchievements: nil,
+//                         imageURL: nil,
+//                         locationString: nil,
+//                         locationLatitude: nil,
+//                         locationLongitude: nil,
+//                         email: nil,
+//                         website: nil,
+//                         phone: nil,
+//                         address: nil,
+//                         socialMediaHandles: nil
+//                     )
+//                 }
+//             }
+//         }
+//         
+//         return nil
+//     }
+//     
+//     private static func extractSource(from document: Document) throws -> String? {
+//         let sourceSelectors = [
+//             "[itemprop='source']",
+//             ".quote-source",
+//             ".source-info",
+//             "meta[property='article:publisher']"
+//         ]
+//         
+//         for selector in sourceSelectors {
+//             if selector.contains("meta") {
+//                 if let source = try document.select(selector).first()?.attr("content"),
+//                    !source.isEmpty {
+//                     return source
+//                 }
+//             } else {
+//                 if let source = try document.select(selector).first()?.text(),
+//                    !source.isEmpty {
+//                     return source
+//                 }
+//             }
+//         }
+//         
+//         return nil
+//     }
+//     
+//     private static func extractDate(from document: Document) throws -> Date? {
+//         let dateSelectors = [
+//             "[itemprop='dateCreated']",
+//             ".quote-date",
+//             "time[datetime]",
+//             "meta[property='article:published_time']"
+//         ]
+//         
+//         for selector in dateSelectors {
+//             if let dateStr = try document.select(selector).first()?.attr(selector.contains("meta") ? "content" : "datetime") {
+//                 for formatter in [DateFormatter.iso8601Full, DateFormatter.iso8601, DateFormatter.standardDate] {
+//                     if let date = formatter.date(from: dateStr) {
+//                         return date
+//                     }
+//                 }
+//             }
+//         }
+//         
+//         return nil
+//     }
+//     
+//     private static func extractContext(from document: Document) throws -> String? {
+//         let contextSelectors = [
+//             "[itemprop='context']",
+//             ".quote-context",
+//             ".context-info",
+//             ".quote-background"
+//         ]
+//         
+//         for selector in contextSelectors {
+//             if let context = try document.select(selector).first()?.text(),
+//                !context.isEmpty {
+//                 return context
+//             }
+//         }
+//         
+//         return nil
+//     }
+//     
+//     private static func extractLocation(from document: Document) throws -> Location? {
+//         for selector in ["[itemprop='location']", ".quote-location", ".location-info"] {
+//             if let element = try document.select(selector).first() {
+//                 let address = try element.select("[itemprop='streetAddress']").first()?.text()
+//                 let city = try element.select("[itemprop='addressLocality']").first()?.text()
+//                 let state = try element.select("[itemprop='addressRegion']").first()?.text()
+//                 let zipCode = try element.select("[itemprop='postalCode']").first()?.text()
+//                 let country = try element.select("[itemprop='addressCountry']").first()?.text()
+//                 
+//                 if address != nil || city != nil || state != nil || zipCode != nil || country != nil {
+//                     return Location(
+//                         latitude: nil,
+//                         longitude: nil,
+//                         address: address,
+//                         city: city,
+//                         state: state,
+//                         zipCode: zipCode,
+//                         country: country,
+//                         relationships: []
+//                     )
+//                 }
+//             }
+//         }
+//         
+//         return nil
 //     }
 // }
 // 
@@ -4635,6 +4540,54 @@
 //  */
 // 
 // import SwiftUI
+// import Foundation
+// import SwiftSoup
+// 
+// /// Represents different social media platforms
+// public enum SocialPlatform: String, Codable, CaseIterable, Sendable {
+//     /// Twitter/X platform
+//     case twitter = "Twitter"
+//     /// Facebook platform
+//     case facebook = "Facebook"
+//     /// Instagram platform
+//     case instagram = "Instagram"
+//     /// LinkedIn platform
+//     case linkedin = "LinkedIn"
+//     /// YouTube platform
+//     case youtube = "YouTube"
+//     /// TikTok platform
+//     case tiktok = "TikTok"
+//     /// Threads platform
+//     case threads = "Threads"
+//     /// Mastodon platform
+//     case mastodon = "Mastodon"
+//     /// Other social media platforms
+//     case other = "Other"
+//     
+//     /// Returns the base URL for the platform
+//     public var baseURL: String {
+//         switch self {
+//         case .twitter:
+//             return "https://twitter.com"
+//         case .facebook:
+//             return "https://facebook.com"
+//         case .instagram:
+//             return "https://instagram.com"
+//         case .linkedin:
+//             return "https://linkedin.com"
+//         case .youtube:
+//             return "https://youtube.com"
+//         case .tiktok:
+//             return "https://tiktok.com"
+//         case .threads:
+//             return "https://threads.net"
+//         case .mastodon:
+//             return "" // Varies by instance
+//         case .other:
+//             return ""
+//         }
+//     }
+// }
 // 
 // /// Represents a social media post in the news system.
 // /// Social media posts can include tweets, Facebook posts, Instagram posts,
@@ -4783,7 +4736,7 @@
 // /// Represents a news source or information provider in the news system.
 // /// Sources can include news organizations, government agencies, academic institutions,
 // /// and other entities that produce or distribute news content.
-// public struct Source: AssociatedData, Codable, Identifiable, Hashable, Equatable, JSONSchemaProvider, HTMLParsable, Sendable
+// public struct Source: AssociatedData, Codable, Identifiable, Hashable, Equatable, JSONSchemaProvider, Sendable
 // {
 //     /// Unique identifier for the source
 //     public var id: String
@@ -4877,86 +4830,31 @@
 //         self.metadata = [:] // Empty dictionary
 //     }
 // 
-//     /// JSON schema for LLM responses
+//     // MARK: - JSONSchemaProvider Implementation
+//     
 //     public static var jsonSchema: String {
 //         """
 //         {
 //             "type": "object",
 //             "properties": {
-//                 "id": {"type": "string"},
-//                 "name": {"type": "string"},
-//                 "url": {"type": "string", "format": "uri"},
-//                 "credibilityRating": {"type": "number", "minimum": 0, "maximum": 5, "optional": true},
-//                 "category": {"type": "string", "optional": true},
-//                 "subCategory": {"type": "string", "optional": true},
-//                 "description": {"type": "string", "optional": true},
-//                 "siteMapURL": {"type": "string", "format": "uri", "optional": true},
-//                 "rssFeeds": {
-//                     "type": "array",
-//                     "items": {"type": "string", "format": "uri"},
-//                     "optional": true
-//                 },
-//                 "contactInfo": {
+//                 "id": { "type": "string", "format": "uuid" },
+//                 "name": { "type": "string" },
+//                 "description": { "type": "string" },
+//                 "url": { "type": "string", "format": "uri" },
+//                 "category": { "type": "string" },
+//                 "language": { "type": "string" },
+//                 "country": { "type": "string" },
+//                 "reliability": {
 //                     "type": "object",
 //                     "properties": {
-//                         "email": {"type": "string", "format": "email"},
-//                         "phone": {"type": "string"},
-//                         "address": {"type": "string"}
-//                     },
-//                     "optional": true
+//                         "score": { "type": "number", "minimum": 0, "maximum": 1 },
+//                         "lastUpdated": { "type": "string", "format": "date-time" }
+//                     }
 //                 }
 //             },
 //             "required": ["id", "name", "url"]
 //         }
 //         """
-//     }
-// 
-//     // MARK: - HTMLParsable Implementation
-//     
-//     public static func parse(from document: Document) throws -> Self {
-//         // Try to find the source name
-//         let nameOpt = try document.select(".source h2[itemprop='name']").first()?.text()
-//             ?? document.select("[itemprop='name'], .source-name").first()?.text()
-//             ?? document.select("meta[property='og:site_name']").first()?.attr("content")
-//             ?? document.select("meta[name='author']").first()?.attr("content")
-//             ?? document.select("title").first()?.text()
-//         
-//         guard let name = nameOpt else {
-//             throw ParsingError.invalidHTML
-//         }
-//         
-//         // Try to find URL
-//         let url = try document.select(".source a[itemprop='url']").first()?.attr("href")
-//             ?? document.select("[itemprop='url']").first()?.attr("href")
-//             ?? document.select("meta[property='og:url']").first()?.attr("content")
-//             ?? document.select("link[rel='canonical']").first()?.attr("href")
-//             ?? ""
-//         
-//         // Try to find description
-//         let description = try document.select(".source p[itemprop='description']").first()?.text()
-//             ?? document.select("[itemprop='description'], .source-description").first()?.text()
-//             ?? document.select("meta[name='description']").first()?.attr("content")
-//         
-//         // Try to find category
-//         let category = try document.select(".source [itemprop='category']").first()?.text()
-//             ?? document.select("[itemprop='category'], .source-category").first()?.text()
-//             ?? document.select("meta[property='article:section']").first()?.attr("content")
-//         
-//         // Try to find language
-//         let language = try document.select(".source meta[itemprop='inLanguage']").first()?.attr("content")
-//             ?? document.select("[itemprop='inLanguage']").first()?.text()
-//             ?? document.select("[itemprop='inLanguage']").first()?.attr("content")
-//             ?? document.select("html").first()?.attr("lang")
-//             ?? "en"  // Default to English
-//         
-//         return Source(
-//             id: UUID().uuidString,
-//             name: name,
-//             url: url,
-//             description: description,
-//             category: category,
-//             language: language
-//         )
 //     }
 // }
 // 

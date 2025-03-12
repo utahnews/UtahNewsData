@@ -6,12 +6,38 @@ public class LocalLLMManager: @unchecked Sendable {
     /// The shared instance of the LLM manager
     public static let shared = LocalLLMManager()
     
-    /// The endpoint URL for the LLM service
-    private let endpoint: URL
+    /// The configuration manager
+    private let configManager: LLMConfigurationManager
     
-    /// Initialize with endpoint URL
-    public init(endpoint: String = "http://localhost:1234/v1/chat/completions") {
-        self.endpoint = URL(string: endpoint)!
+    /// Initialize with configuration manager
+    public init(configManager: LLMConfigurationManager = .shared) {
+        self.configManager = configManager
+    }
+    
+    /// Process multiple URLs in parallel, extracting specified content from each
+    /// - Parameters:
+    ///   - requests: Array of (URL, content type) pairs to process
+    /// - Returns: Array of extracted content in the same order as the requests
+    public func extractContentBatch(requests: [(html: String, contentType: String)]) async throws -> [String] {
+        // Create an array of async tasks, one for each request
+        let tasks = requests.map { request in
+            Task {
+                try await extractContent(from: request.html, contentType: request.contentType)
+            }
+        }
+        
+        // Wait for all tasks to complete and collect results
+        var results: [String] = []
+        for task in tasks {
+            do {
+                let result = try await task.value
+                results.append(result)
+            } catch {
+                results.append("") // Or handle error as needed
+            }
+        }
+        
+        return results
     }
     
     /// Extract content from HTML using the LLM
@@ -20,6 +46,9 @@ public class LocalLLMManager: @unchecked Sendable {
     ///   - contentType: The type of content to extract
     /// - Returns: The extracted content
     public func extractContent(from html: String, contentType: String) async throws -> String {
+        let config = try configManager.currentConfig()
+        let model = try configManager.nextModel(isComplexTask: contentType.lowercased() == "main content")
+        
         let systemPrompt = """
         You are an expert at extracting information from HTML content.
         Extract only the requested information, nothing more.
@@ -70,12 +99,19 @@ public class LocalLLMManager: @unchecked Sendable {
         \(html)
         """
         
-        var request = URLRequest(url: endpoint)
+        var request = URLRequest(url: config.baseURL)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         
+        // Add any additional headers from configuration
+        for (key, value) in config.headers {
+            request.setValue(value, forHTTPHeaderField: key)
+        }
+        
+        request.timeoutInterval = config.timeoutInterval
+        
         let parameters: [String: Any] = [
-            "model": contentType.lowercased() == "main content" ? "mistral-nemo-instruct-2407" : "llama-3.2-3b-instruct",
+            "model": model,
             "messages": [
                 ["role": "system", "content": systemPrompt],
                 ["role": "user", "content": userPrompt]
@@ -87,10 +123,19 @@ public class LocalLLMManager: @unchecked Sendable {
         
         request.httpBody = try JSONSerialization.data(withJSONObject: parameters)
         
+        print("Sending request to \(config.baseURL) with model: \(model)")
+        print("Request headers: \(request.allHTTPHeaderFields ?? [:])")
+        
         let (data, response) = try await URLSession.shared.data(for: request)
         
         guard let httpResponse = response as? HTTPURLResponse,
               (200...299).contains(httpResponse.statusCode) else {
+            if let httpResponse = response as? HTTPURLResponse {
+                print("Request failed with status code: \(httpResponse.statusCode)")
+                if let responseData = String(data: data, encoding: .utf8) {
+                    print("Response body: \(responseData)")
+                }
+            }
             throw LLMError.requestFailed
         }
         

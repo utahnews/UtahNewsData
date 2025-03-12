@@ -342,7 +342,11 @@ The DataExporter class provides static methods that can be used with any entity
 
 ### DateFormatters
 
-Extension providing standard date formatters for use across the app
+Shared DateFormatter instances for use across the codebase
+
+### ExpertAnalysis+HTMLParsable
+
+// Validate that the document has a proper structure
 
 ### ExpertAnalysis
 
@@ -351,6 +355,10 @@ Represents an expert's analysis or commentary on a topic or news event.
 ### Extensions
 
 - URL construction and validation
+
+### Fact+HTMLParsable
+
+// Validate that the document has a proper structure
 
 ### Fact
 
@@ -364,6 +372,10 @@ Represents the verification status of a fact
 
 //  Summary: Defines a protocol for types that provide a JSON schema for instructing an LLM
 
+### Jurisdiction+HTMLParsable
+
+No description available.
+
 ### Jurisdiction
 
 Represents the type of governmental jurisdiction.
@@ -372,13 +384,21 @@ Represents the type of governmental jurisdiction.
 
 //  Summary: Defines the configuration protocol for LLM settings and related types.
 
+### LegalDocument+HTMLParsable
+
+// Validate that the document has a proper structure
+
 ### LegalDocument
 
-Represents a legal document or official record in the news system.
+Represents different types of legal documents
 
 ### LocalLLMManager
 
 A manager class for handling interactions with a local LLM
+
+### Location+HTMLParsable
+
+No description available.
 
 ### Location
 
@@ -391,6 +411,10 @@ A manager class for handling interactions with a local LLM
 ### NetworkClient
 
 A client for fetching HTML content from URLs
+
+### NewsAlert+HTMLParsable
+
+// Validate that the document has a proper structure
 
 ### NewsAlert
 
@@ -412,21 +436,33 @@ statement: "The proposed state budget includes $200 million for water infrastruc
 
 Represents a complete news story in the news system.
 
+### Organization+HTMLParsable
+
+// Validate that the document has a proper structure
+
 ### Organization
 
-Represents an organization in the UtahNewsData system
+Represents the type of organization
 
 ### ParsingError
 
-Errors that can occur during parsing
+Represents errors that can occur during HTML parsing
 
 ### ParsingResult
 
 The source of the parsed content
 
+### Person+HTMLParsable
+
+throw ParsingError.invalidFormat("Invalid HTML document structure")
+
 ### Person
 
-Represents a person in the news data system.
+Represents an educational qualification or degree
+
+### Poll+HTMLParsable
+
+private struct InternalPollOption {
 
 ### Poll
 
@@ -452,9 +488,17 @@ This file defines the ScrapeStory model and related response structures used for
 
 A utility class for discovering CSS selectors in HTML documents
 
+### SocialMediaPost+HTMLParsable
+
+private struct Engagement {
+
 ### SocialMediaPost
 
-Represents a social media post in the news system.
+Represents different social media platforms
+
+### Source+HTMLParsable
+
+No description available.
 
 ### Source
 
