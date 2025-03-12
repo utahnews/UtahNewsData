@@ -182,6 +182,7 @@ public enum EntityType: String, Codable, Sendable {
     /// Useful for display and text generation
     public var singularName: String {
         switch self {
+        case .article: return "article"
         case .person: return "person"
         case .organization: return "organization"
         case .location: return "location"

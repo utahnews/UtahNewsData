@@ -3,19 +3,19 @@ import UtahNewsData
 
 struct ExampleEntityExtractorView: View {
     @State private var urlString = ""
-    @State private var selectedEntityType = EntityType.articles
+    @State private var selectedEntityType = EntityType.article
     @State private var isLoading = false
     @State private var extractedContent: Any?
     @State private var errorMessage: String?
     
     private let entityTypes: [EntityType] = [
-        .articles,
-        .newsStories,
-        .persons,
-        .organizations,
-        .alerts,
-        .polls,
-        .jurisdictions
+        .article,
+        .newsStory,
+        .person,
+        .organization,
+        .alert,
+        .poll,
+        .jurisdiction
     ]
     
     var body: some View {
@@ -24,7 +24,7 @@ struct ExampleEntityExtractorView: View {
                 Section(header: Text("Input")) {
                     TextField("Enter URL", text: $urlString)
                         .textFieldStyle(RoundedBorderTextFieldStyle())
-                        .autocapitalization(.none)
+                        .textContentType(.URL)
                         .disableAutocorrection(true)
                     
                     Picker("Entity Type", selection: $selectedEntityType) {
@@ -77,23 +77,23 @@ struct ExampleEntityExtractorView: View {
                 let content: Any
                 
                 switch selectedEntityType {
-                case .articles:
+                case .article:
                     let article = try await service.extractContent(from: url, as: Article.self)
                     content = article
-                case .newsStories:
+                case .newsStory:
                     let story = try await service.extractContent(from: url, as: NewsStory.self)
                     content = story
-                case .persons:
+                case .person:
                     let person = try await service.extractContent(from: url, as: Person.self)
                     content = person
-                case .organizations:
+                case .organization:
                     content = try await service.extractContent(from: url, as: Organization.self)
-                case .alerts:
+                case .alert:
                     let alert = try await service.extractContent(from: url, as: NewsAlert.self)
                     content = alert
-                case .polls:
+                case .poll:
                     content = try await service.extractContent(from: url, as: Poll.self)
-                case .jurisdictions:
+                case .jurisdiction:
                     content = try await service.extractContent(from: url, as: Jurisdiction.self)
                 default:
                     throw ParsingError.unsupportedEntityType
@@ -183,21 +183,38 @@ struct ExtractedContentView: View {
                 }
                 
             case let poll as Poll:
-                Text("Title: \(poll.title)")
-                if let org = poll.organization {
-                    Text("Organization: \(org)")
+                Text("Question: \(poll.question)")
+                Text("Source: \(poll.source)")
+                if let marginOfError = poll.marginOfError {
+                    Text("Margin of Error: \(marginOfError)%")
                 }
-                if let methodology = poll.methodology {
-                    Text("Methodology: \(methodology)")
+                if let sampleSize = poll.sampleSize {
+                    Text("Sample Size: \(sampleSize)")
+                }
+                if let demographics = poll.demographics {
+                    Text("Demographics: \(demographics)")
+                }
+                if !poll.options.isEmpty {
+                    Text("Options:")
+                    ForEach(poll.options, id: \.text) { option in
+                        Text("- \(option.text) (\(option.votes) votes)")
+                    }
                 }
                 
             case let jurisdiction as Jurisdiction:
                 Text("Name: \(jurisdiction.name)")
-                if let desc = jurisdiction.description {
-                    Text("Description: \(desc)")
+                Text("Type: \(jurisdiction.type.label)")
+                if let website = jurisdiction.website {
+                    Text("Website: \(website)")
                 }
-                if let type = jurisdiction.type {
-                    Text("Type: \(type)")
+                if let location = jurisdiction.location {
+                    Text("Location: \(location.name)")
+                    if let city = location.city {
+                        Text("City: \(city)")
+                    }
+                    if let state = location.state {
+                        Text("State: \(state)")
+                    }
                 }
                 
             default:
@@ -211,13 +228,13 @@ struct ExtractedContentView: View {
 extension EntityType {
     var displayName: String {
         switch self {
-        case .articles: return "Article"
-        case .newsStories: return "News Story"
-        case .persons: return "Person"
-        case .organizations: return "Organization"
-        case .alerts: return "News Alert"
-        case .polls: return "Poll"
-        case .jurisdictions: return "Jurisdiction"
+        case .article: return "Article"
+        case .newsStory: return "News Story"
+        case .person: return "Person"
+        case .organization: return "Organization"
+        case .alert: return "News Alert"
+        case .poll: return "Poll"
+        case .jurisdiction: return "Jurisdiction"
         default: return "Unknown"
         }
     }
