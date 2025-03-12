@@ -98,7 +98,7 @@ public class AdaptiveParser: @unchecked Sendable {
     ///   - url: The URL of the content
     ///   - type: The type to parse into
     /// - Returns: The parsing result, indicating success/failure and the source
-    public func parseWithFallback<T: HTMLParsable>(html: String, from url: URL? = nil, as type: T.Type) throws -> ContentExtractionResult<T> {
+    public func parseWithFallback<T: HTMLParsable>(html: String, from url: URL? = nil, as type: T.Type) throws -> ParsingResult<T> {
         do {
             // First try HTML parsing
             let document = try SwiftSoup.parse(html)
@@ -110,14 +110,22 @@ public class AdaptiveParser: @unchecked Sendable {
                 throw ParsingError.invalidHTML
             }
             
-            return ContentExtractionResult(content: parsedContent, source: .htmlParsing)
+            return .success(parsedContent, source: .htmlParsing)
             
         } catch {
             // If HTML parsing fails and LLM fallback is enabled, try LLM extraction
             if useLLMFallback {
                 do {
-                    let extractedContent = try await llmManager.extractContent(from: html, as: T.self)
-                    return ContentExtractionResult(content: extractedContent, source: .llmExtraction)
+                    // Extract title and content using LLM
+                    let title = try await llmManager.extractContent(from: html, contentType: "title")
+                    let content = try await llmManager.extractContent(from: html, contentType: "main content")
+                    
+                    // Create appropriate type based on extracted content
+                    if let result = try? createInstance(ofType: T.self, withTitle: title, content: content) {
+                        return .success(result, source: .llmExtraction)
+                    }
+                    
+                    throw ParsingError.llmExtractionFailed
                 } catch {
                     throw ParsingError.llmExtractionFailed
                 }
@@ -218,5 +226,24 @@ public class AdaptiveParser: @unchecked Sendable {
     /// Clears the selector cache for testing or reset purposes
     public func clearCache() {
         selectorCache.removeAll()
+    }
+    
+    // Helper method to create instances of different types
+    private func createInstance<T>(ofType type: T.Type, withTitle title: String, content: String) throws -> T {
+        if T.self == Article.self {
+            let article = Article(
+                title: title,
+                url: "",  // Empty since we don't have it
+                urlToImage: nil,
+                additionalImages: nil,
+                publishedAt: Date(),
+                textContent: content,
+                author: nil,
+                category: nil
+            )
+            return article as! T
+        }
+        // Add other type handling as needed
+        throw ParsingError.invalidType
     }
 } 
