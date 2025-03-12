@@ -156,6 +156,7 @@ public enum RelationshipSource: String, Codable {
 /// Defines all entity types supported in the system
 /// Used to categorize entities and their relationships
 public enum EntityType: String, Codable, Sendable {
+    case article = "articles"
     case person = "persons"
     case organization = "organizations"
     case location = "locations"
