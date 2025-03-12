@@ -151,7 +151,7 @@ extension Article: HTMLParsable {
         for selector in contentSelectors {
             let elements = try document.select(selector)
             if !elements.isEmpty() {
-                let content = elements.text().trimmingCharacters(in: .whitespacesAndNewlines)
+                let content = try elements.text().trimmingCharacters(in: .whitespacesAndNewlines)
                 if !content.isEmpty {
                     return content
                 }
@@ -161,7 +161,7 @@ extension Article: HTMLParsable {
         // If we still haven't found content, try to get all paragraphs that aren't in the header or footer
         let allParagraphs = try document.select("body > :not(header):not(footer) p")
         if !allParagraphs.isEmpty() {
-            let content = allParagraphs.text().trimmingCharacters(in: .whitespacesAndNewlines)
+            let content = try allParagraphs.text().trimmingCharacters(in: .whitespacesAndNewlines)
             if !content.isEmpty {
                 return content
             }
