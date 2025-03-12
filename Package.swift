@@ -16,9 +16,15 @@ let package = Package(
             name: "UtahNewsData",
             targets: ["UtahNewsData"]),
     ],
+    dependencies: [
+        .package(url: "https://github.com/scinfu/SwiftSoup.git", from: "2.7.0")
+    ],
     targets: [
         .target(
             name: "UtahNewsData",
-            dependencies: []),
+            dependencies: ["SwiftSoup"]),
+        .testTarget(
+            name: "UtahNewsDataTests",
+            dependencies: ["UtahNewsData"]),
     ]
 )

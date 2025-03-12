@@ -54,7 +54,7 @@ import Foundation
 /// A struct representing a video in the news app.
 /// Videos are a type of news content with additional properties for
 /// duration and resolution.
-public struct Video: NewsContent, BaseEntity {
+public struct Video: NewsContent, BaseEntity, Sendable {
     /// Unique identifier for the video
     public var id: String
     

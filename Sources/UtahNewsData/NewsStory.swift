@@ -64,7 +64,7 @@ import SwiftUI
 /// Represents a complete news story in the news system.
 /// A news story is a comprehensive journalistic piece that includes
 /// a headline, author attribution, publication date, and categorization.
-public struct NewsStory: AssociatedData, JSONSchemaProvider {
+public struct NewsStory: AssociatedData, JSONSchemaProvider, Sendable {
     /// Unique identifier for the news story
     public var id: String
 

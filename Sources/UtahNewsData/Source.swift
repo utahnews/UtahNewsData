@@ -51,6 +51,8 @@
  */
 
 import SwiftUI
+import Foundation
+import SwiftSoup
 
 // By aligning the Source struct with the schema defined in NewsSource, you can decode
 // Firestore documents that match the NewsSource structure directly into Source.
@@ -61,7 +63,7 @@ import SwiftUI
 /// Represents a news source or information provider in the news system.
 /// Sources can include news organizations, government agencies, academic institutions,
 /// and other entities that produce or distribute news content.
-public struct Source: AssociatedData, Codable, Identifiable, Hashable, Equatable, JSONSchemaProvider
+public struct Source: AssociatedData, Codable, Identifiable, Hashable, Equatable, JSONSchemaProvider, HTMLParsable, Sendable
 {
     /// Unique identifier for the source
     public var id: String
@@ -79,7 +81,7 @@ public struct Source: AssociatedData, Codable, Identifiable, Hashable, Equatable
     /// URL to the source's sitemap, used for content discovery
     public var siteMapURL: URL?
     /// Primary category of the source
-    public var category: NewsSourceCategory
+    public var category: String?
     /// Subcategory providing more specific classification
     public var subCategory: NewsSourceSubcategory?
     /// Detailed description of the source, its focus, and its background
@@ -100,6 +102,8 @@ public struct Source: AssociatedData, Codable, Identifiable, Hashable, Equatable
     public var feedUrls: [String]
     /// Metadata
     public var metadata: [String: String]
+    /// Language code for the source's content (e.g., "en-US")
+    public var language: String?
 
     // If needed, a custom initializer to create a Source from a NewsSource instance:
     //    public init(
@@ -127,55 +131,30 @@ public struct Source: AssociatedData, Codable, Identifiable, Hashable, Equatable
     ///   - id: Unique identifier for the source (defaults to a new UUID string)
     ///   - name: Name of the news source or information provider
     ///   - url: URL to the source's website or main page
-    ///   - credibilityRating: Rating from 1-5 indicating the source's credibility
-    ///   - siteMapURL: URL to the source's sitemap, used for content discovery
-    ///   - category: Primary category of the source
-    ///   - subCategory: Subcategory providing more specific classification
     ///   - description: Detailed description of the source
-    ///   - JSONSchema: JSON schema for parsing content from this source
-    ///   - type: Type of the source
-    ///   - isActive: Whether the source is active
-    ///   - lastChecked: Last checked date
-    ///   - hasRobotsTxt: Whether the source has robots.txt
-    ///   - hasSitemap: Whether the source has sitemap
-    ///   - feedUrls: Feed URLs
-    ///   - metadata: Metadata
+    ///   - category: Primary category of the source
+    ///   - language: Language code for the source's content
     public init(
         id: String = UUID().uuidString,
         name: String,
         url: String,
-        category: NewsSourceCategory = .general,
-        subCategory: NewsSourceSubcategory? = nil,
         description: String? = nil,
-        JSONSchema: JSONSchema? = nil,
-        siteMapURL: URL? = nil,
-        credibilityRating: Int? = nil,
-        relationships: [Relationship] = [],
-        type: String,
-        isActive: Bool = true,
-        lastChecked: Date = Date(),
-        hasRobotsTxt: Bool = false,
-        hasSitemap: Bool = false,
-        feedUrls: [String] = [],
-        metadata: [String: String] = [:]
+        category: String? = nil,
+        language: String? = nil
     ) {
         self.id = id
         self.name = name
         self.url = url
-        self.category = category
-        self.subCategory = subCategory
         self.description = description
-        self.JSONSchema = JSONSchema
-        self.siteMapURL = siteMapURL
-        self.credibilityRating = credibilityRating
-        self.relationships = relationships
-        self.type = type
-        self.isActive = isActive
-        self.lastChecked = lastChecked
-        self.hasRobotsTxt = hasRobotsTxt
-        self.hasSitemap = hasSitemap
-        self.feedUrls = feedUrls
-        self.metadata = metadata
+        self.category = category
+        self.language = language
+        self.type = "news" // Default type
+        self.isActive = true // Default to active
+        self.lastChecked = Date() // Current date
+        self.hasRobotsTxt = false // Default to false
+        self.hasSitemap = false // Default to false
+        self.feedUrls = [] // Empty array
+        self.metadata = [:] // Empty dictionary
     }
 
     /// JSON schema for LLM responses
@@ -211,9 +190,57 @@ public struct Source: AssociatedData, Codable, Identifiable, Hashable, Equatable
         }
         """
     }
+
+    // MARK: - HTMLParsable Implementation
+    
+    public static func parse(from document: Document) throws -> Self {
+        // Try to find the source name
+        let nameOpt = try document.select(".source h2[itemprop='name']").first()?.text()
+            ?? document.select("[itemprop='name'], .source-name").first()?.text()
+            ?? document.select("meta[property='og:site_name']").first()?.attr("content")
+            ?? document.select("meta[name='author']").first()?.attr("content")
+            ?? document.select("title").first()?.text()
+        
+        guard let name = nameOpt else {
+            throw ParsingError.invalidHTML
+        }
+        
+        // Try to find URL
+        let url = try document.select(".source a[itemprop='url']").first()?.attr("href")
+            ?? document.select("[itemprop='url']").first()?.attr("href")
+            ?? document.select("meta[property='og:url']").first()?.attr("content")
+            ?? document.select("link[rel='canonical']").first()?.attr("href")
+            ?? ""
+        
+        // Try to find description
+        let description = try document.select(".source p[itemprop='description']").first()?.text()
+            ?? document.select("[itemprop='description'], .source-description").first()?.text()
+            ?? document.select("meta[name='description']").first()?.attr("content")
+        
+        // Try to find category
+        let category = try document.select(".source [itemprop='category']").first()?.text()
+            ?? document.select("[itemprop='category'], .source-category").first()?.text()
+            ?? document.select("meta[property='article:section']").first()?.attr("content")
+        
+        // Try to find language
+        let language = try document.select(".source meta[itemprop='inLanguage']").first()?.attr("content")
+            ?? document.select("[itemprop='inLanguage']").first()?.text()
+            ?? document.select("[itemprop='inLanguage']").first()?.attr("content")
+            ?? document.select("html").first()?.attr("lang")
+            ?? "en"  // Default to English
+        
+        return Source(
+            id: UUID().uuidString,
+            name: name,
+            url: url,
+            description: description,
+            category: category,
+            language: language
+        )
+    }
 }
 
-public enum JSONSchema: String, CaseIterable, Codable {
+public enum JSONSchema: String, CaseIterable, Codable, Sendable {
     case schema1
     case schema2
     // Add more schemas as needed
@@ -229,7 +256,7 @@ public enum JSONSchema: String, CaseIterable, Codable {
 }
 
 /// Primary categories for news sources and information providers
-public enum NewsSourceCategory: String, CaseIterable, Codable {
+public enum NewsSourceCategory: String, CaseIterable, Codable, Sendable {
     /// Traditional news media organizations
     case localGovernmentAndPolitics
     /// Government agencies and official sources
@@ -310,7 +337,7 @@ public enum NewsSourceCategory: String, CaseIterable, Codable {
 }
 
 /// Subcategories for more specific classification of news sources
-public enum NewsSourceSubcategory: String, CaseIterable, Codable {
+public enum NewsSourceSubcategory: String, CaseIterable, Codable, Sendable {
     /// Print newspapers and their digital properties
     case none
     /// Television news networks and stations

@@ -9,10 +9,11 @@
 
 import SwiftUI
 import Foundation
+import SwiftSoup
 
 /// Represents the type of governmental jurisdiction.
 /// Used to categorize jurisdictions by their administrative level.
-public enum JurisdictionType: String, Codable, CaseIterable {
+public enum JurisdictionType: String, Codable, CaseIterable, Sendable {
     /// City or municipal government
     case city
     
@@ -35,7 +36,7 @@ public enum JurisdictionType: String, Codable, CaseIterable {
 /// Represents a governmental jurisdiction such as a city, county, or state.
 /// Jurisdictions are important entities for categorizing and organizing news
 /// content by geographic and administrative boundaries.
-public struct Jurisdiction: AssociatedData, Identifiable, Codable, JSONSchemaProvider { // Added JSONSchemaProvider conformance
+public struct Jurisdiction: AssociatedData, Identifiable, Codable, JSONSchemaProvider, HTMLParsable, Sendable {
     /// Unique identifier for the jurisdiction
     public var id: String
     
@@ -116,5 +117,58 @@ public struct Jurisdiction: AssociatedData, Identifiable, Codable, JSONSchemaPro
             "required": ["id", "type", "name"]
         }
         """
+    }
+
+    // MARK: - HTMLParsable Implementation
+    
+    public static func parse(from document: Document) throws -> Self {
+        // Try to find the jurisdiction name
+        let nameOpt = try document.select(".jurisdiction h2[itemprop='name']").first()?.text()
+            ?? document.select("[itemprop='name'], .jurisdiction-name").first()?.text()
+            ?? document.select("meta[property='og:site_name']").first()?.attr("content")
+            ?? document.select("title").first()?.text()
+        
+        guard let name = nameOpt else {
+            throw ParsingError.invalidHTML
+        }
+        
+        // Try to find jurisdiction type
+        let typeStr = try document.select("[itemprop='jurisdictionType'], .jurisdiction-type").first()?.text()
+            ?? document.select("meta[name='jurisdiction-type']").first()?.attr("content")
+        
+        let type: JurisdictionType
+        switch typeStr?.lowercased() {
+        case let str where str?.contains("city") ?? false:
+            type = .city
+        case let str where str?.contains("county") ?? false:
+            type = .county
+        case let str where str?.contains("state") ?? false:
+            type = .state
+        default:
+            // Default to city if type can't be determined
+            type = .city
+        }
+        
+        // Try to find website
+        let website = try document.select(".jurisdiction a[itemprop='url']").first()?.attr("href")
+            ?? document.select("[itemprop='url']").first()?.attr("href")
+            ?? document.select("meta[property='og:url']").first()?.attr("content")
+        
+        // Try to find location
+        var location: Location? = nil
+        if let locationElement = try document.select("[itemprop='location'], .jurisdiction-location").first() {
+            let locationDoc = try SwiftSoup.parse(try locationElement.html())
+            location = try? Location.parse(from: locationDoc)
+        }
+        
+        var jurisdiction = Jurisdiction(
+            id: UUID().uuidString,
+            type: type,
+            name: name,
+            location: location
+        )
+        jurisdiction.website = website
+        
+        return jurisdiction
     }
 }

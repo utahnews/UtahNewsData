@@ -3,8 +3,10 @@
 import Foundation
 
 // MARK: - Configuration
-let outputPath = "../README.md"
-let sourceDir = "Sources/UtahNewsData"
+let scriptDir = FileManager.default.currentDirectoryPath
+let workspaceRoot = (scriptDir as NSString).deletingLastPathComponent
+let outputPath = "\(workspaceRoot)/README.md"
+let sourceDir = "\(workspaceRoot)/Sources/UtahNewsData"
 let consolidatedModelsPath = "\(sourceDir)/ConsolidatedModels.swift"
 
 // MARK: - Utility Functions

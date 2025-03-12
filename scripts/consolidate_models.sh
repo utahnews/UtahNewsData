@@ -1,7 +1,10 @@
 #!/bin/bash
 
-# Folder containing the model .swift files. Adjust this path as needed.
-MODEL_DIR="./Sources/UtahNewsData"
+# Get the absolute path to the workspace root
+WORKSPACE_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+
+# Folder containing the model .swift files
+MODEL_DIR="$WORKSPACE_ROOT/Sources/UtahNewsData"
 
 # Output file that will contain the consolidated (but commented-out) definitions
 OUTPUT_FILE="$MODEL_DIR/ConsolidatedModels.swift"
@@ -37,11 +40,14 @@ FILES=(
   "Video"
 )
 
+# Create the output directory if it doesn't exist
+mkdir -p "$MODEL_DIR"
+
 # Write a header into the output file.
 {
   echo "// This file consolidates model definitions (commented out) from targeted files."
   echo "// Generated on $(date)"
-  echo "// Current time: February 4, 2025 at 1:58:27 PM MST"
+  echo "// Current time: $(date '+%B %d, %Y at %I:%M:%S %p %Z')"
   echo "// Do NOT uncomment this file into your code base."
   echo ""
 } > "$OUTPUT_FILE"

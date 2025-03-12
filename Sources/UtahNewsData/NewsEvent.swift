@@ -74,11 +74,12 @@
  */
 
 import Foundation
+import SwiftSoup
 
 /// Represents a significant event covered in the news in the UtahNewsData system.
 /// NewsEvents can be associated with articles, people, organizations, and locations,
 /// providing a way to track and organize coverage of specific occurrences.
-public struct NewsEvent: Codable, Identifiable, Hashable, Equatable, AssociatedData, BaseEntity,
+public struct NewsEvent: Codable, Identifiable, Hashable, Equatable, AssociatedData, HTMLParsable, Sendable,
     JSONSchemaProvider
 {
     /// Unique identifier for the news event
@@ -110,16 +111,65 @@ public struct NewsEvent: Codable, Identifiable, Hashable, Equatable, AssociatedD
     /// Categories that the event belongs to
     public var categories: [Category] = []
 
+    /// Description of the event
+    public var description: String?
+
+    /// Start date of the event
+    public var startDate: Date?
+
+    /// End date of the event
+    public var endDate: Date?
+
+    /// Location of the event
+    public var location: Location?
+
+    /// Participants in the event
+    public var participants: [Person]?
+
+    /// Organizations involved in the event
+    public var organizations: [Organization]?
+
+    /// Related events
+    public var relatedEvents: [String]?
+
     /// Creates a new NewsEvent with the specified properties.
     ///
     /// - Parameters:
     ///   - id: Unique identifier for the news event (defaults to a new UUID string)
     ///   - title: The name or headline of the event
     ///   - date: When the event occurred
-    public init(id: String = UUID().uuidString, title: String, date: Date) {
+    ///   - description: Description of the event
+    ///   - startDate: Start date of the event
+    ///   - endDate: End date of the event
+    ///   - location: Location of the event
+    ///   - participants: Participants in the event
+    ///   - organizations: Organizations involved in the event
+    ///   - relatedEvents: Related events
+    ///   - relationships: Relationships to other entities
+    public init(
+        id: String = UUID().uuidString,
+        title: String,
+        date: Date,
+        description: String? = nil,
+        startDate: Date? = nil,
+        endDate: Date? = nil,
+        location: Location? = nil,
+        participants: [Person]? = nil,
+        organizations: [Organization]? = nil,
+        relatedEvents: [String]? = nil,
+        relationships: [Relationship] = []
+    ) {
         self.id = id
         self.title = title
         self.date = date
+        self.description = description
+        self.startDate = startDate
+        self.endDate = endDate
+        self.location = location
+        self.participants = participants
+        self.organizations = organizations
+        self.relatedEvents = relatedEvents
+        self.relationships = relationships
     }
 
     /// JSON schema for LLM responses
@@ -166,5 +216,70 @@ public struct NewsEvent: Codable, Identifiable, Hashable, Equatable, AssociatedD
             }
         }
         """
+    }
+
+    // MARK: - HTMLParsable Implementation
+    
+    public static func parse(from document: Document) throws -> Self {
+        // Try to find the event title
+        let titleOpt = try document.select("[itemprop='name'], .event-title, h1").first()?.text()
+            ?? document.select("meta[property='og:title']").first()?.attr("content")
+            ?? document.select("title").first()?.text()
+        
+        guard let title = titleOpt else {
+            throw ParsingError.invalidHTML
+        }
+        
+        // Try to find description
+        let description = try document.select("[itemprop='description'], .event-description").first()?.text()
+            ?? document.select("meta[name='description']").first()?.attr("content")
+        
+        // Try to find dates
+        let startDateStr = try document.select("[itemprop='startDate'], .event-start-date").first()?.attr("datetime")
+            ?? document.select("time").first()?.attr("datetime")
+        
+        let endDateStr = try document.select("[itemprop='endDate'], .event-end-date").first()?.attr("datetime")
+        
+        let dateFormatter = ISO8601DateFormatter()
+        let startDate = startDateStr.flatMap { dateFormatter.date(from: $0) }
+        let endDate = endDateStr.flatMap { dateFormatter.date(from: $0) }
+        
+        // Try to find location
+        var location: Location? = nil
+        if let locationElement = try document.select("[itemprop='location'], .event-location").first() {
+            let locationDoc = try SwiftSoup.parse(try locationElement.html())
+            location = try Location.parse(from: locationDoc)
+        }
+        
+        // Try to find participants
+        var participants: [Person] = []
+        let participantElements = try document.select("[itemprop='performer'], .event-participant")
+        for element in participantElements {
+            let personDoc = try SwiftSoup.parse(try element.html())
+            if let person = try? Person.parse(from: personDoc) {
+                participants.append(person)
+            }
+        }
+        
+        // Try to find organizations
+        var organizations: [Organization] = []
+        let organizationElements = try document.select("[itemprop='organizer'], .event-organizer")
+        for element in organizationElements {
+            let orgDoc = try SwiftSoup.parse(try element.html())
+            if let org = try? Organization.parse(from: orgDoc) {
+                organizations.append(org)
+            }
+        }
+        
+        return NewsEvent(
+            title: title,
+            date: startDate ?? Date(),
+            description: description,
+            startDate: startDate,
+            endDate: endDate,
+            location: location,
+            participants: participants.isEmpty ? nil : participants,
+            organizations: organizations.isEmpty ? nil : organizations
+        )
     }
 }

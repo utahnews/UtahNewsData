@@ -60,13 +60,11 @@
  */
 
 import SwiftUI
+import Foundation
+import SwiftSoup
 
-/// Represents an organization in the news data system.
-/// This can be a company, government agency, non-profit, or any
-/// organizational entity relevant to news content.
-public struct Organization: AssociatedData, Codable, Identifiable, Hashable, EntityDetailsProvider,
-    JSONSchemaProvider, Sendable
-{
+/// Represents an organization in the UtahNewsData system
+public struct Organization: AssociatedData, Codable, Identifiable, Hashable, Equatable, EntityDetailsProvider, HTMLParsable, Sendable {
     /// Unique identifier for the organization
     public var id: String
 
@@ -86,6 +84,15 @@ public struct Organization: AssociatedData, Codable, Identifiable, Hashable, Ent
     /// Organization's website URL
     public var website: String?
 
+    /// Organization's logo URL
+    public var logoURL: String?
+
+    /// Organization's location
+    public var location: Location?
+
+    /// Organization's type
+    public var type: String?
+
     /// Creates a new Organization instance with the specified properties.
     ///
     /// - Parameters:
@@ -94,18 +101,27 @@ public struct Organization: AssociatedData, Codable, Identifiable, Hashable, Ent
     ///   - orgDescription: Description of the organization
     ///   - contactInfo: Array of contact information entries
     ///   - website: Organization's website URL
+    ///   - logoURL: Organization's logo URL
+    ///   - location: Organization's location
+    ///   - type: Organization's type
     public init(
         id: String = UUID().uuidString,
         name: String,
         orgDescription: String? = nil,
         contactInfo: [ContactInfo]? = nil,
-        website: String? = nil
+        website: String? = nil,
+        logoURL: String? = nil,
+        location: Location? = nil,
+        type: String? = nil
     ) {
         self.id = id
         self.name = name
         self.orgDescription = orgDescription
         self.contactInfo = contactInfo
         self.website = website
+        self.logoURL = logoURL
+        self.location = location
+        self.type = type
     }
 
     /// Creates an Organization instance by decoding from the given decoder.
@@ -127,6 +143,9 @@ public struct Organization: AssociatedData, Codable, Identifiable, Hashable, Ent
         self.orgDescription = (decodedDesc?.isEmpty ?? true) ? nil : decodedDesc
         self.contactInfo = try? container.decode([ContactInfo].self, forKey: .contactInfo)
         self.website = try? container.decode(String.self, forKey: .website)
+        self.logoURL = try? container.decode(String.self, forKey: .logoURL)
+        self.location = try? container.decode(Location.self, forKey: .location)
+        self.type = try? container.decode(String.self, forKey: .type)
     }
 
     /// Encodes the Organization instance to the given encoder.
@@ -143,6 +162,9 @@ public struct Organization: AssociatedData, Codable, Identifiable, Hashable, Ent
         try container.encode(orgDescription, forKey: .oldDescription)
         try container.encode(contactInfo, forKey: .contactInfo)
         try container.encode(website, forKey: .website)
+        try container.encode(logoURL, forKey: .logoURL)
+        try container.encode(location, forKey: .location)
+        try container.encode(type, forKey: .type)
     }
 
     /// Keys used for encoding and decoding Organization instances
@@ -150,7 +172,7 @@ public struct Organization: AssociatedData, Codable, Identifiable, Hashable, Ent
         case id, relationships, name
         case orgDescription
         case oldDescription = "description"
-        case contactInfo, website
+        case contactInfo, website, logoURL, location, type
     }
 
     // MARK: - EntityDetailsProvider Implementation
@@ -228,7 +250,10 @@ public struct Organization: AssociatedData, Codable, Identifiable, Hashable, Ent
                         "$ref": "#/definitions/ContactInfo"
                     },
                     "optional": true
-                }
+                },
+                "logoURL": {"type": "string", "format": "uri", "optional": true},
+                "location": {"$ref": "#/definitions/Location"},
+                "type": {"type": "string", "optional": true}
             },
             "required": ["id", "name"],
             "definitions": {
@@ -247,9 +272,85 @@ public struct Organization: AssociatedData, Codable, Identifiable, Hashable, Ent
                         }
                     },
                     "required": ["name"]
+                },
+                "Location": {
+                    "type": "object",
+                    "properties": {
+                        "latitude": {"type": "number"},
+                        "longitude": {"type": "number"},
+                        "address": {"type": "string"},
+                        "city": {"type": "string"},
+                        "state": {"type": "string"},
+                        "zipCode": {"type": "string"},
+                        "country": {"type": "string"}
+                    },
+                    "required": ["latitude", "longitude", "address", "city", "state", "zipCode", "country"]
                 }
             }
         }
         """
+    }
+
+    // MARK: - HTMLParsable Implementation
+    
+    public static func parse(from document: Document) throws -> Self {
+        // Try to find the organization name
+        let nameOpt = try document.select("[itemprop='name'], .org-name, .organization-name").first()?.text()
+            ?? document.select("meta[property='og:site_name']").first()?.attr("content")
+            ?? document.select("title").first()?.text()
+        
+        guard let name = nameOpt else {
+            throw ParsingError.invalidHTML
+        }
+        
+        // Try to find description
+        let description = try document.select("[itemprop='description'], .org-description").first()?.text()
+            ?? document.select("meta[name='description']").first()?.attr("content")
+        
+        // Try to find website
+        let website = try document.select("[itemprop='url'], link[rel='canonical']").first()?.attr("href")
+            ?? document.select("meta[property='og:url']").first()?.attr("content")
+        
+        // Try to find logo URL
+        let logoURL = try document.select("[itemprop='logo'], img.org-logo").first()?.attr("src")
+            ?? document.select("meta[property='og:image']").first()?.attr("content")
+        
+        // Try to find organization type
+        let type = try document.select("[itemprop='organizationType'], .org-type").first()?.text()
+        
+        // Try to find location
+        var location: Location? = nil
+        if let locationElement = try document.select("[itemprop='location'], .org-location").first() {
+            let locationDoc = try SwiftSoup.parse(try locationElement.html())
+            location = try? Location.parse(from: locationDoc)
+        }
+        
+        // Try to find contact info
+        var contactInfo: [ContactInfo] = []
+        let contactElements = try document.select("[itemprop='contactPoint'], .contact-info")
+        for element in contactElements {
+            let name = try element.select("[itemprop='name'], .contact-name").first()?.text() ?? "Main Contact"
+            let email = try element.select("[itemprop='email']").first()?.text()
+            let phone = try element.select("[itemprop='telephone']").first()?.text()
+            let address = try element.select("[itemprop='address']").first()?.text()
+            
+            contactInfo.append(ContactInfo(
+                name: name,
+                email: email,
+                phone: phone,
+                address: address
+            ))
+        }
+        
+        return Organization(
+            id: UUID().uuidString,
+            name: name,
+            orgDescription: description,
+            contactInfo: contactInfo.isEmpty ? nil : contactInfo,
+            website: website,
+            logoURL: logoURL,
+            location: location,
+            type: type
+        )
     }
 }

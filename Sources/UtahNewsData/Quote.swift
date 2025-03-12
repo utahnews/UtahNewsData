@@ -61,6 +61,7 @@
  */
 
 import Foundation
+import SwiftSoup
 
 /// Represents a direct quotation from an individual in the UtahNewsData system.
 /// Quotes can be associated with articles, news events, and other content types,
@@ -196,6 +197,66 @@ public struct Quote: Identifiable, EntityDetailsProvider, JSONSchemaProvider, Se
             }
         }
         """
+    }
+
+    // MARK: - HTMLParsable Implementation
+    
+    public static func parse(from document: Document) throws -> Self {
+        // Try to find quote text
+        let textOpt = try document.select("[itemprop='text'], .quote-text, blockquote").first()?.text()
+            ?? document.select("meta[property='og:description']").first()?.attr("content")
+            ?? document.select("title").first()?.text()
+        
+        guard let text = textOpt else {
+            throw ParsingError.invalidHTML
+        }
+        
+        // Try to find speaker
+        let speakerName = try document.select("[itemprop='author'], .quote-author").first()?.text()
+            ?? document.select("meta[name='author']").first()?.attr("content")
+        
+        // Create Person object from speaker name if available
+        var speaker: Person? = nil
+        if let speakerName = speakerName {
+            speaker = Person(name: speakerName, details: "Speaker of the quote")
+        }
+        
+        // Try to find source
+        let source = try document.select("[itemprop='publisher'], .quote-source").first()?.text()
+            ?? document.select("meta[property='og:site_name']").first()?.attr("content")
+        
+        // Try to find date
+        let dateStr = try document.select("[itemprop='datePublished']").first()?.attr("datetime")
+            ?? document.select("meta[property='article:published_time']").first()?.attr("content")
+        
+        let date = dateStr.flatMap { DateFormatter.iso8601Full.date(from: $0) }
+        
+        // Try to find context
+        let context = try document.select("[itemprop='description'], .quote-context").first()?.text()
+            ?? document.select("meta[name='description']").first()?.attr("content")
+        
+        // Try to find topics
+        let keywordsText = try document.select("[itemprop='keywords'], .quote-topics").first()?.text()
+            ?? document.select("meta[name='keywords']").first()?.attr("content")
+        
+        let topics = keywordsText?.components(separatedBy: ",").map { $0.trimmingCharacters(in: .whitespaces) } ?? []
+        
+        // Try to find location
+        var location: Location? = nil
+        if let locationElement = try document.select("[itemprop='location'], .quote-location").first() {
+            let locationDoc = try SwiftSoup.parse(try locationElement.html())
+            location = try? Location.parse(from: locationDoc)
+        }
+        
+        return Quote(
+            text: text,
+            speaker: speaker,
+            source: nil, // TODO: Create appropriate source object based on source string
+            date: date,
+            context: context,
+            topics: topics.isEmpty ? nil : topics,
+            location: location
+        )
     }
 }
 

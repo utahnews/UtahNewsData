@@ -10,12 +10,10 @@
 
 import Foundation
 import SwiftUI
+import SwiftSoup
 
-/// Represents a geographic location in the news data system.
-/// This can be a city, neighborhood, landmark, or any place
-/// relevant to news content.
-public struct Location: AssociatedData, Codable, Hashable, Equatable, JSONSchemaProvider, Sendable
-{  // Added JSONSchemaProvider and Sendable conformance
+/// Represents a physical location in the UtahNewsData system
+public struct Location: Codable, Identifiable, Hashable, Equatable, AssociatedData, HTMLParsable, Sendable, JSONSchemaProvider {
     /// Unique identifier for the location
     public var id: String
 
@@ -30,6 +28,24 @@ public struct Location: AssociatedData, Codable, Hashable, Equatable, JSONSchema
 
     /// Optional geographic coordinates (latitude/longitude)
     public var coordinates: Coordinates?
+
+    /// Latitude coordinate (north/south position)
+    public var latitude: Double?
+
+    /// Longitude coordinate (east/west position)
+    public var longitude: Double?
+
+    /// City of the location
+    public var city: String?
+
+    /// State of the location
+    public var state: String?
+
+    /// Zip code of the location
+    public var zipCode: String?
+
+    /// Country of the location
+    public var country: String?
 
     /// Creates a new Location with a name.
     ///
@@ -53,6 +69,39 @@ public struct Location: AssociatedData, Codable, Hashable, Equatable, JSONSchema
         self.coordinates = coordinates
     }
 
+    /// Creates a new Location with additional details.
+    ///
+    /// - Parameters:
+    ///   - latitude: Latitude coordinate
+    ///   - longitude: Longitude coordinate
+    ///   - address: Street address
+    ///   - city: City
+    ///   - state: State
+    ///   - zipCode: Zip code
+    ///   - country: Country
+    ///   - relationships: Array of relationships to other entities
+    public init(
+        latitude: Double? = nil,
+        longitude: Double? = nil,
+        address: String? = nil,
+        city: String? = nil,
+        state: String? = nil,
+        zipCode: String? = nil,
+        country: String? = nil,
+        relationships: [Relationship] = []
+    ) {
+        self.id = UUID().uuidString
+        self.name = [city, state].compactMap { $0 }.joined(separator: ", ")
+        self.latitude = latitude
+        self.longitude = longitude
+        self.address = address
+        self.city = city
+        self.state = state
+        self.zipCode = zipCode
+        self.country = country
+        self.relationships = relationships
+    }
+
     // MARK: - JSON Schema Provider
     /// Provides the JSON schema for Location.
     public static var jsonSchema: String {
@@ -67,11 +116,49 @@ public struct Location: AssociatedData, Codable, Hashable, Equatable, JSONSchema
                     },
                     "name": {"type": "string"},
                     "address": {"type": ["string", "null"]},
-                    "coordinates": {"type": ["object", "null"]}
+                    "coordinates": {"type": ["object", "null"]},
+                    "latitude": {"type": ["number", "null"]},
+                    "longitude": {"type": ["number", "null"]},
+                    "city": {"type": ["string", "null"]},
+                    "state": {"type": ["string", "null"]},
+                    "zipCode": {"type": ["string", "null"]},
+                    "country": {"type": ["string", "null"]}
                 },
                 "required": ["id", "name"]
             }
             """
+    }
+
+    // MARK: - HTMLParsable Implementation
+    
+    public static func parse(from document: Document) throws -> Self {
+        // Try to find coordinates
+        let latitudeStr = try document.select("[itemprop='latitude'], meta[property='place:location:latitude']").first()?.attr("content")
+        let longitudeStr = try document.select("[itemprop='longitude'], meta[property='place:location:longitude']").first()?.attr("content")
+        
+        let latitude = latitudeStr.flatMap { Double($0) }
+        let longitude = longitudeStr.flatMap { Double($0) }
+        
+        // Try to find address components
+        let streetAddress = try document.select("[itemprop='streetAddress']").first()?.text()
+        let city = try document.select("[itemprop='addressLocality']").first()?.text()
+        let state = try document.select("[itemprop='addressRegion']").first()?.text()
+        let zipCode = try document.select("[itemprop='postalCode']").first()?.text()
+        let country = try document.select("[itemprop='addressCountry']").first()?.text()
+        
+        // Try to construct full address (excluding country)
+        let addressComponents = [streetAddress, city, state, zipCode].compactMap { $0 }
+        let fullAddress = addressComponents.isEmpty ? nil : addressComponents.joined(separator: ", ")
+        
+        return Location(
+            latitude: latitude,
+            longitude: longitude,
+            address: fullAddress,
+            city: city,
+            state: state,
+            zipCode: zipCode,
+            country: country
+        )
     }
 }
 

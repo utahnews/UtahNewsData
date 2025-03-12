@@ -1,6 +1,6 @@
 // This file consolidates model definitions (commented out) from targeted files.
-// Generated on Tue Feb 25 18:48:52 MST 2025
-// Current time: February 4, 2025 at 1:58:27 PM MST
+// Generated on Tue Mar 11 20:55:59 MDT 2025
+// Current time: March 11, 2025 at 08:55:59 PM MDT
 // Do NOT uncomment this file into your code base.
 
 // File: Article.swift
@@ -8,164 +8,56 @@
 // //  Article.swift
 // //  UtahNewsData
 // //
-// //  Created by Mark Evans on 11/18/24.
+// //  Created by Mark Evans on 11/18/24
 // //
+// //  Summary: Defines the Article model which represents a news article in the UtahNewsData system.
+// //           Now conforms to JSONSchemaProvider to provide a static JSON schema for LLM responses.
 // 
-// /*
-//  # Article Model
-//  
-//  This file defines the Article model, which represents a news article in the UtahNewsData
-//  system. The Article struct implements both the NewsContent and AssociatedData protocols,
-//  providing a consistent interface for working with articles alongside other content types.
-//  
-//  ## Key Features:
-//  
-//  1. Core news content properties (title, URL, publication date)
-//  2. Article-specific metadata (category, additional images)
-//  3. Relationship tracking with other entities
-//  4. Conversion from ScrapeStory for data import
-//  5. Preview support with example instance
-//  
-//  ## Usage:
-//  
-//  ```swift
-//  // Create an article instance
-//  let article = Article(
-//      title: "Utah Legislature Passes New Water Conservation Bill",
-//      url: "https://www.utahnews.com/articles/water-conservation-bill",
-//      urlToImage: "https://www.utahnews.com/images/water-conservation.jpg",
-//      publishedAt: Date(),
-//      textContent: "The Utah Legislature passed a new bill today that aims to improve water conservation...",
-//      author: "Jane Smith",
-//      category: "Politics"
-//  )
-//  
-//  // Access article properties
-//  print("Article: \(article.title)")
-//  print("Author: \(article.author ?? "Unknown")")
-//  print("Category: \(article.category ?? "Uncategorized")")
-//  
-//  // Add relationships to other entities
-//  let location = Location(name: "Utah State Capitol")
-//  article.relationships.append(Relationship(
-//      id: location.id,
-//      type: .location,
-//      displayName: "Location"
-//  ))
-//  
-//  // Convert to MediaItem for unified handling
-//  let mediaItem = article.toMediaItem()
-//  ```
-//  
-//  Note: While Article is still supported for backward compatibility, new code should
-//  consider using the MediaItem struct for a more unified approach to handling content.
-//  */
-// 
-// import SwiftUI
 // import Foundation
+// import SwiftUI
 // 
 // /// A struct representing an article in the news app.
 // /// Articles are a type of news content that can maintain relationships with other entities.
-// public struct Article: NewsContent, AssociatedData {
+// public struct Article: NewsContent, AssociatedData, JSONSchemaProvider, Sendable {
 //     /// Unique identifier for the article
 //     public var id: String
-//     
+// 
 //     /// Relationships to other entities in the system
 //     public var relationships: [Relationship] = []
-//     
+// 
 //     /// Title or headline of the article
 //     public var title: String
-//     
+// 
 //     /// URL where the article can be accessed
 //     public var url: String
-//     
+// 
 //     /// URL to a featured image for the article
 //     public var urlToImage: String?
-//     
+// 
 //     /// Additional images associated with the article
 //     public var additionalImages: [String]?
-//     
+// 
 //     /// When the article was published
 //     public var publishedAt: Date
-//     
+// 
 //     /// The main text content of the article
 //     public var textContent: String?
-//     
+// 
 //     /// Author or writer of the article
 //     public var author: String?
-//     
+// 
 //     /// Category or section the article belongs to
 //     public var category: String?
-//     
+// 
 //     /// URL to a video associated with the article
 //     public var videoURL: String?
-//     
+// 
 //     /// Geographic location associated with the article
 //     public var location: Location?
-//     
-//     /// Creates a new article from a scraped story.
-//     ///
-//     /// - Parameters:
-//     ///   - scrapeStory: The scraped story data to convert
-//     ///   - baseURL: Base URL to use for resolving relative URLs
-//     /// - Returns: A new Article if the scraped data is valid, nil otherwise
-//     public init?(from scrapeStory: ScrapeStory, baseURL: String?) {
-//         self.id = UUID().uuidString
 // 
-//         guard let title = scrapeStory.title, !title.isEmpty else {
-//             print("Invalid title in ScrapeStory: \(scrapeStory)")
-//             return nil
-//         }
-//         self.title = title
+//     // MARK: - Initializers
 // 
-//         if let urlString = scrapeStory.url, !urlString.isEmpty {
-//             if let validURLString = urlString.constructValidURL(baseURL: baseURL) {
-//                 self.url = validURLString
-//             } else {
-//                 print("Invalid URL in ScrapeStory: \(scrapeStory)")
-//                 return nil
-//             }
-//         } else {
-//             print("Missing URL in ScrapeStory: \(scrapeStory)")
-//             return nil
-//         }
-// 
-//         self.urlToImage = scrapeStory.urlToImage?.constructValidURL(baseURL: baseURL)
-//         self.additionalImages = scrapeStory.additionalImages?.compactMap { $0.constructValidURL(baseURL: baseURL) }
-//         self.textContent = scrapeStory.textContent
-//         self.author = scrapeStory.author
-//         self.category = scrapeStory.category
-//         self.videoURL = scrapeStory.videoURL?.constructValidURL(baseURL: baseURL)
-// 
-//         // Parse date
-//         if let publishedAtString = scrapeStory.publishedAt {
-//             let isoFormatter = ISO8601DateFormatter()
-//             if let date = isoFormatter.date(from: publishedAtString) {
-//                 self.publishedAt = date
-//             } else {
-//                 print("Invalid date format in ScrapeStory: \(scrapeStory)")
-//                 self.publishedAt = Date()
-//             }
-//         } else {
-//             self.publishedAt = Date()
-//         }
-//     }
-//     
 //     /// Creates a new article with the specified properties.
-//     ///
-//     /// - Parameters:
-//     ///   - id: Unique identifier for the article (defaults to a new UUID string)
-//     ///   - title: Title or headline of the article
-//     ///   - url: URL where the article can be accessed
-//     ///   - urlToImage: URL to a featured image for the article
-//     ///   - additionalImages: Additional images associated with the article
-//     ///   - publishedAt: When the article was published (defaults to current date)
-//     ///   - textContent: The main text content of the article
-//     ///   - author: Author or writer of the article
-//     ///   - category: Category or section the article belongs to
-//     ///   - videoURL: URL to a video associated with the article
-//     ///   - location: Geographic location associated with the article
-//     ///   - relationships: Relationships to other entities in the system
 //     public init(
 //         id: String = UUID().uuidString,
 //         title: String,
@@ -193,17 +85,15 @@
 //         self.location = location
 //         self.relationships = relationships
 //     }
-//     
+// 
+//     // MARK: - Methods
+// 
 //     /// Determines the appropriate MediaType for this Article.
-//     ///
-//     /// - Returns: The MediaType that best matches this content
 //     public func determineMediaType() -> MediaType {
 //         return .text
 //     }
-//     
+// 
 //     /// Converts this Article to a MediaItem with all relevant properties.
-//     ///
-//     /// - Returns: A new MediaItem with properties from this Article
 //     public func toMediaItem() -> MediaItem {
 //         var mediaItem = MediaItem(
 //             id: id,
@@ -215,40 +105,60 @@
 //             publishedAt: publishedAt,
 //             relationships: relationships
 //         )
-//         
+// 
 //         // Add article-specific properties
 //         if let category = category {
 //             mediaItem.tags = [category]
 //         }
-//         
+// 
 //         if let location = location {
 //             mediaItem.location = location
 //         }
-//         
+// 
 //         return mediaItem
+//     }
+// 
+//     // MARK: - JSON Schema Provider
+// 
+//     /// Provides the JSON schema for Article.
+//     public static var jsonSchema: String {
+//         return """
+//             {
+//                 "type": "object",
+//                 "properties": {
+//                     "id": {"type": "string"},
+//                     "title": {"type": "string"},
+//                     "url": {"type": "string"},
+//                     "urlToImage": {"type": ["string", "null"]},
+//                     "additionalImages": {"type": ["array", "null"], "items": {"type": "string"}},
+//                     "publishedAt": {"type": "string", "format": "date-time"},
+//                     "textContent": {"type": ["string", "null"]},
+//                     "author": {"type": ["string", "null"]},
+//                     "category": {"type": ["string", "null"]},
+//                     "videoURL": {"type": ["string", "null"]},
+//                     "location": {"type": ["object", "null"]}
+//                 },
+//                 "required": ["id", "title", "url", "publishedAt"]
+//             }
+//             """
 //     }
 // }
 // 
-// /// Extension providing an example Article for previews and testing
-// public extension Article {
+// /// Extension providing an example Article for previews and testing.
+// extension Article {
 //     /// An example instance of `Article` for previews and testing.
-//     @MainActor static let example = Article(
+//     @MainActor public static let example = Article(
 //         title: "Utah News App Launches Today: Get the Latest News, Sports, and Weather",
 //         url: "https://www.utahnews.com",
 //         urlToImage: "https://picsum.photos/800/1200",
 //         textContent: """
-//         Utah News is a news app for Utah. Get the latest news, sports, and weather from Utah News. Stay informed about local events and stories that matter to you.
-//         """,
+//             Utah News is a news app for Utah. Get the latest news, sports, and weather from Utah News.
+//             Stay informed about local events and stories that matter to you.
+//             """,
 //         author: "Mark Evans",
 //         category: "News"
 //     )
 // }
-// 
-// public struct MapResponse: Codable {
-//     public let success: Bool
-//     public let links: [String]
-// }
-// 
 
 // File: AssociatedData.swift
 // //
@@ -260,30 +170,30 @@
 // 
 // /*
 //  # Entity Model Foundation
-//  
+// 
 //  This file defines the core protocols and relationship model for the UtahNewsData package.
 //  It provides the foundation for all entity models and their relationships.
-//  
+// 
 //  ## Key Components:
-//  
+// 
 //  1. BaseEntity Protocol: The foundation protocol for all entities
 //  2. AssociatedData Protocol: Extends BaseEntity with relationship capabilities
 //  3. Relationship Struct: Defines connections between entities
 //  4. RelationshipSource Enum: Tracks the origin of relationship information
 //  5. EntityType Enum: Defines all supported entity types
-//  
+// 
 //  ## Usage:
-//  
+// 
 //  All entity models in the system implement at least the BaseEntity protocol,
 //  and most implement the AssociatedData protocol for relationship tracking:
-//  
+// 
 //  ```swift
 //  // Create a person entity
 //  let person = Person(name: "Jane Doe", details: "Reporter")
-//  
+// 
 //  // Create an organization entity
 //  let org = Organization(name: "Utah News Network")
-//  
+// 
 //  // Create a relationship from person to organization
 //  let relationship = Relationship(
 //      id: org.id,
@@ -291,22 +201,22 @@
 //      displayName: "Works at",
 //      context: "Senior reporter since 2020"
 //  )
-//  
+// 
 //  // Add the relationship to the person
 //  var updatedPerson = person
 //  updatedPerson.relationships.append(relationship)
 //  ```
 //  */
 // 
-// import SwiftUI
 // import Foundation
+// import SwiftUI
 // 
 // /// The foundation protocol for all entities in the system.
 // /// Provides consistent identification and naming.
 // public protocol BaseEntity: Identifiable, Codable, Hashable {
 //     /// Unique identifier for the entity
 //     var id: String { get }
-//     
+// 
 //     /// The name or title of the entity, used for display and embedding generation
 //     var name: String { get }
 // }
@@ -319,20 +229,21 @@
 // }
 // 
 // /// Extension to provide default implementations for AssociatedData
-// public extension AssociatedData {
+// extension AssociatedData {
 //     /// Generates text suitable for creating vector embeddings for RAG systems.
 //     /// This text includes the entity's basic information and its relationships.
-//     /// 
+//     ///
 //     /// - Returns: A string representation of the entity for embedding
-//     func toEmbeddingText() -> String {
+//     public func toEmbeddingText() -> String {
 //         let entityType = String(describing: type(of: self))
 //         var text = "This is a \(entityType) with ID \(id) named \(name)."
-//         
+// 
 //         // Add relationship information
 //         if !relationships.isEmpty {
 //             text += " It has the following relationships: "
 //             for relationship in relationships {
-//                 text += "A relationship of type \(relationship.type.rawValue) with entity ID \(relationship.id)"
+//                 text +=
+//                     "A relationship of type \(relationship.type.rawValue) with entity ID \(relationship.id)"
 //                 if let displayName = relationship.displayName {
 //                     text += " (\(displayName))"
 //                 }
@@ -342,37 +253,37 @@
 //                 text += ". "
 //             }
 //         }
-//         
+// 
 //         return text
 //     }
 // }
 // 
 // /// Represents a relationship between two entities in the system.
 // /// Relationships are directional but typically created in pairs to represent bidirectional connections.
-// public struct Relationship: BaseEntity, Codable, Hashable {
+// public struct Relationship: BaseEntity, Codable, Hashable, Sendable {
 //     /// Unique identifier for the relationship
 //     public var id: String = UUID().uuidString
-//     
+// 
 //     /// The name or description of this relationship
 //     public var name: String {
 //         return displayName ?? "Relationship to \(type.rawValue) \(id)"
 //     }
-//     
+// 
 //     /// Unique identifier of the target entity
 //     public let targetId: String
-//     
+// 
 //     /// Type of the target entity
 //     public let type: EntityType
-//     
+// 
 //     /// Optional display name for the relationship (e.g., "Works at", "Located in")
 //     public var displayName: String?
-//     
+// 
 //     /// When the relationship was created
 //     public let createdAt: Date
-//     
+// 
 //     /// Optional additional context about the relationship
 //     public var context: String?
-//     
+// 
 //     /// Creates a new relationship between entities.
 //     ///
 //     /// - Parameters:
@@ -394,20 +305,20 @@
 // public enum RelationshipSource: String, Codable {
 //     /// Created by the system automatically
 //     case system = "system"
-//     
+// 
 //     /// Entered by a human user
 //     case userInput = "user_input"
-//     
+// 
 //     /// Inferred by an AI system
 //     case aiInference = "ai_inference"
-//     
+// 
 //     /// Imported from an external data source
 //     case dataImport = "data_import"
 // }
 // 
 // /// Defines all entity types supported in the system
 // /// Used to categorize entities and their relationships
-// public enum EntityType: String, Codable {
+// public enum EntityType: String, Codable, Sendable {
 //     case person = "persons"
 //     case organization = "organizations"
 //     case location = "locations"
@@ -428,7 +339,7 @@
 //     case jurisdiction = "jurisdictions"
 //     case userSubmission = "userSubmissions"
 //     // Add other types as needed
-//     
+// 
 //     /// Returns the singular name of this entity type
 //     /// Useful for display and text generation
 //     public var singularName: String {
@@ -458,7 +369,6 @@
 // 
 // // For backward compatibility
 // public typealias AssociatedDataType = EntityType
-// 
 
 // File: Audio.swift
 // //
@@ -467,87 +377,44 @@
 // //
 // //  Created by Mark Evans on 11/18/24.
 // //
-// 
-// /*
-//  # Audio Model
-//  
-//  This file defines the Audio model, which represents audio content in the UtahNewsData
-//  system. The Audio struct implements the NewsContent protocol, providing a consistent
-//  interface for working with audio content alongside other news content types.
-//  
-//  ## Key Features:
-//  
-//  1. Core news content properties (title, URL, publication date)
-//  2. Audio-specific metadata (duration, bitrate)
-//  3. Preview support with example instance
-//  
-//  ## Usage:
-//  
-//  ```swift
-//  // Create an audio instance
-//  let podcast = Audio(
-//      title: "Utah Politics Weekly Podcast",
-//      url: "https://www.utahnews.com/podcasts/politics-weekly-ep45",
-//      urlToImage: "https://www.utahnews.com/images/podcast-cover.jpg",
-//      publishedAt: Date(),
-//      textContent: "This week we discuss the latest developments in Utah politics",
-//      author: "Jane Smith",
-//      duration: 2400, // 40 minutes in seconds
-//      bitrate: 192 // 192 kbps
-//  )
-//  
-//  // Access audio properties
-//  print("Podcast: \(podcast.title)")
-//  print("Duration: \(Int(podcast.duration / 60)) minutes")
-//  print("Audio Quality: \(podcast.bitrate) kbps")
-//  
-//  // Use in a list with other news content types
-//  let newsItems: [NewsContent] = [article1, podcast, video]
-//  for item in newsItems {
-//      print(item.basicInfo())
-//  }
-//  ```
-//  
-//  The Audio model is designed to work seamlessly with UI components that display
-//  news content, while providing additional properties specific to audio content.
-//  */
+// //  Summary: Defines the Audio model which represents audio content in the UtahNewsData system.
+// //           Now conforms to JSONSchemaProvider to provide a static JSON schema for LLM responses.
+// //           (Changes: Added JSONSchemaProvider conformance and static jsonSchema property.)
 // 
 // import Foundation
 // 
-// /// A struct representing an audio clip in the news app.
-// /// Audio clips are a type of news content with additional properties for
-// /// duration and audio quality (bitrate).
-// public struct Audio: NewsContent, BaseEntity {
+// // Updated to conform to JSONSchemaProvider and Sendable
+// public struct Audio: NewsContent, BaseEntity, JSONSchemaProvider, Sendable {
 //     /// Unique identifier for the audio clip
 //     public var id: String
-//     
-//     /// The name of the entity (required by BaseEntity)
+// 
+//     /// The name of the entity (derived from the title)
 //     public var name: String { title }
-//     
+// 
 //     /// Title or name of the audio clip
 //     public var title: String
-//     
+// 
 //     /// URL where the audio can be accessed
 //     public var url: String
-//     
+// 
 //     /// URL to an image representing the audio (e.g., podcast cover art)
 //     public var urlToImage: String?
-//     
+// 
 //     /// When the audio was published
 //     public var publishedAt: Date
-//     
+// 
 //     /// Description or transcript of the audio
 //     public var textContent: String?
-//     
+// 
 //     /// Creator or producer of the audio
 //     public var author: String?
-//     
+// 
 //     /// Length of the audio in seconds
 //     public var duration: TimeInterval
-//     
+// 
 //     /// Audio quality in kilobits per second (kbps)
 //     public var bitrate: Int
-//     
+// 
 //     /// Creates a new audio clip with the specified properties.
 //     ///
 //     /// - Parameters:
@@ -581,7 +448,7 @@
 //         self.duration = duration
 //         self.bitrate = bitrate
 //     }
-//     
+// 
 //     /// Returns a formatted duration string in minutes and seconds.
 //     ///
 //     /// - Returns: A string in the format "MM:SS"
@@ -590,27 +457,47 @@
 //         let seconds = Int(duration) % 60
 //         return String(format: "%d:%02d", minutes, seconds)
 //     }
-//     
+// 
 //     /// Returns a formatted bitrate string.
 //     ///
 //     /// - Returns: A string in the format "X kbps"
 //     public func formattedBitrate() -> String {
 //         return "\(bitrate) kbps"
 //     }
+// 
+//     // MARK: - JSON Schema Provider
+//     // Provides the JSON schema for Audio.
+//     public static var jsonSchema: String {
+//         return """
+//             {
+//                 "type": "object",
+//                 "properties": {
+//                     "id": {"type": "string"},
+//                     "title": {"type": "string"},
+//                     "url": {"type": "string"},
+//                     "urlToImage": {"type": ["string", "null"]},
+//                     "publishedAt": {"type": "string", "format": "date-time"},
+//                     "textContent": {"type": ["string", "null"]},
+//                     "author": {"type": ["string", "null"]},
+//                     "duration": {"type": "number"},
+//                     "bitrate": {"type": "integer"}
+//                 },
+//                 "required": ["id", "title", "url", "publishedAt", "duration", "bitrate"]
+//             }
+//             """
+//     }
 // }
 // 
-// public extension Audio {
+// extension Audio {
 //     /// An example instance of `Audio` for previews and testing.
-//     /// This provides a convenient way to use a realistic audio instance
-//     /// in SwiftUI previews and unit tests.
-//     @MainActor static let example = Audio(
+//     @MainActor public static let example = Audio(
 //         title: "Utah News Podcast Episode 1",
 //         url: "https://www.utahnews.com/podcast-episode-1",
 //         urlToImage: "https://picsum.photos/800/600",
 //         textContent: "Listen to the first episode of the Utah News podcast.",
 //         author: "Mark Evans",
-//         duration: 1800, // Duration in seconds
-//         bitrate: 256   // Bitrate in kbps
+//         duration: 1800,  // Duration in seconds
+//         bitrate: 256  // Bitrate in kbps
 //     )
 // }
 
@@ -624,22 +511,22 @@
 // 
 // /*
 //  # CalEvent Model
-//  
+// 
 //  This file defines the CalEvent model, which represents calendar events
 //  in the UtahNewsData system. CalEvents can be used to track scheduled events
 //  such as press conferences, meetings, hearings, and other time-based occurrences
 //  relevant to news coverage.
-//  
+// 
 //  ## Key Features:
-//  
+// 
 //  1. Core event information (title, description, date/time range)
 //  2. Location data
 //  3. Organizer and attendee information
 //  4. Recurrence rules
 //  5. Related entities
-//  
+// 
 //  ## Usage:
-//  
+// 
 //  ```swift
 //  // Create a basic calendar event
 //  let basicEvent = CalEvent(
@@ -647,7 +534,7 @@
 //      startDate: Date(), // March 15, 2023, 19:00
 //      endDate: Date().addingTimeInterval(7200) // 2 hours later
 //  )
-//  
+// 
 //  // Create a detailed calendar event
 //  let detailedEvent = CalEvent(
 //      title: "Public Hearing on Downtown Development",
@@ -662,15 +549,15 @@
 //      recurrenceRule: nil, // One-time event
 //      relatedEntities: [downtownProject] // Other entities
 //  )
-//  
+// 
 //  // Access event information
 //  let eventTitle = detailedEvent.title
 //  let eventDuration = Calendar.current.dateComponents([.minute], from: detailedEvent.startDate, to: detailedEvent.endDate).minute
-//  
+// 
 //  // Generate context for RAG
 //  let context = detailedEvent.generateContext()
 //  ```
-//  
+// 
 //  The CalEvent model implements EntityDetailsProvider, allowing it to generate
 //  rich text descriptions for RAG (Retrieval Augmented Generation) systems.
 //  */
@@ -678,28 +565,28 @@
 // import Foundation
 // 
 // /// Represents a recurrence rule for repeating calendar events
-// public struct RecurrenceRule: BaseEntity, Codable, Hashable, Equatable {
+// public struct RecurrenceRule: BaseEntity, Codable, Hashable, Equatable, Sendable {
 //     /// Unique identifier for the recurrence rule
 //     public var id: String
-//     
+// 
 //     /// The name or description of this recurrence rule
 //     public var name: String
-//     
+// 
 //     /// Frequency of recurrence (daily, weekly, monthly, yearly)
 //     public var frequency: String
-//     
+// 
 //     /// Interval between occurrences (e.g., every 2 weeks)
 //     public var interval: Int
-//     
+// 
 //     /// When the recurrence ends (specific date or after a number of occurrences)
 //     public var endDate: Date?
-//     
+// 
 //     /// Number of occurrences after which the recurrence ends
 //     public var occurrences: Int?
-//     
+// 
 //     /// Days of the week when the event occurs (for weekly recurrence)
 //     public var daysOfWeek: [Int]?
-//     
+// 
 //     /// Creates a new RecurrenceRule with the specified properties.
 //     ///
 //     /// - Parameters:
@@ -732,49 +619,51 @@
 // /// Represents a calendar event in the UtahNewsData system.
 // /// CalEvents can be used to track scheduled events such as press conferences,
 // /// meetings, hearings, and other time-based occurrences relevant to news coverage.
-// public struct CalEvent: AssociatedData, EntityDetailsProvider, BaseEntity {
+// public struct CalEvent: AssociatedData, EntityDetailsProvider, JSONSchemaProvider, BaseEntity,
+//     Sendable
+// {
 //     /// Unique identifier for the calendar event
 //     public var id: String = UUID().uuidString
-//     
+// 
 //     /// The name of the entity (required by BaseEntity)
 //     public var name: String { title }
-//     
+// 
 //     /// Relationships to other entities in the system
 //     public var relationships: [Relationship] = []
-//     
+// 
 //     /// The title of the event
 //     public var title: String
-//     
+// 
 //     /// Detailed description of the event
 //     public var description: String?
-//     
+// 
 //     /// When the event begins
 //     public var startDate: Date
-//     
+// 
 //     /// When the event ends
 //     public var endDate: Date
-//     
+// 
 //     /// Where the event takes place
 //     public var location: Location?
-//     
+// 
 //     /// Person or organization organizing the event
 //     public var organizer: (any EntityDetailsProvider)?
-//     
+// 
 //     /// People or organizations attending the event
 //     public var attendees: [any EntityDetailsProvider]?
-//     
+// 
 //     /// Whether the event is open to the public
 //     public var isPublic: Bool?
-//     
+// 
 //     /// URL with more information about the event
 //     public var url: String?
-//     
+// 
 //     /// Rule for recurring events
 //     public var recurrenceRule: RecurrenceRule?
-//     
+// 
 //     /// Entities related to this event
 //     public var relatedEntities: [any EntityDetailsProvider]?
-//     
+// 
 //     /// Creates a new CalEvent with the specified properties.
 //     ///
 //     /// - Parameters:
@@ -814,15 +703,13 @@
 //         self.recurrenceRule = recurrenceRule
 //         self.relatedEntities = relatedEntities
 //     }
-//     
+// 
 //     // Implement Equatable manually since we have properties that don't conform to Equatable
 //     public static func == (lhs: CalEvent, rhs: CalEvent) -> Bool {
-//         return lhs.id == rhs.id &&
-//                lhs.title == rhs.title &&
-//                lhs.startDate == rhs.startDate &&
-//                lhs.endDate == rhs.endDate
+//         return lhs.id == rhs.id && lhs.title == rhs.title && lhs.startDate == rhs.startDate
+//             && lhs.endDate == rhs.endDate
 //     }
-//     
+// 
 //     // Implement Hashable manually
 //     public func hash(into hasher: inout Hasher) {
 //         hasher.combine(id)
@@ -830,11 +717,11 @@
 //         hasher.combine(startDate)
 //         hasher.combine(endDate)
 //     }
-//     
+// 
 //     // Implement Codable manually
 //     public init(from decoder: Decoder) throws {
 //         let container = try decoder.container(keyedBy: CodingKeys.self)
-//         
+// 
 //         id = try container.decode(String.self, forKey: .id)
 //         title = try container.decode(String.self, forKey: .title)
 //         description = try container.decodeIfPresent(String.self, forKey: .description)
@@ -844,17 +731,18 @@
 //         isPublic = try container.decodeIfPresent(Bool.self, forKey: .isPublic)
 //         url = try container.decodeIfPresent(String.self, forKey: .url)
 //         recurrenceRule = try container.decodeIfPresent(RecurrenceRule.self, forKey: .recurrenceRule)
-//         relationships = try container.decodeIfPresent([Relationship].self, forKey: .relationships) ?? []
-//         
+//         relationships =
+//             try container.decodeIfPresent([Relationship].self, forKey: .relationships) ?? []
+// 
 //         // Skip decoding organizer, attendees, and relatedEntities as they use protocol types
 //         organizer = nil
 //         attendees = nil
 //         relatedEntities = nil
 //     }
-//     
+// 
 //     public func encode(to encoder: Encoder) throws {
 //         var container = encoder.container(keyedBy: CodingKeys.self)
-//         
+// 
 //         try container.encode(id, forKey: .id)
 //         try container.encode(title, forKey: .title)
 //         try container.encodeIfPresent(description, forKey: .description)
@@ -865,39 +753,40 @@
 //         try container.encodeIfPresent(url, forKey: .url)
 //         try container.encodeIfPresent(recurrenceRule, forKey: .recurrenceRule)
 //         try container.encode(relationships, forKey: .relationships)
-//         
+// 
 //         // Skip encoding organizer, attendees, and relatedEntities as they use protocol types
 //     }
-//     
+// 
 //     private enum CodingKeys: String, CodingKey {
-//         case id, title, description, startDate, endDate, location, isPublic, url, recurrenceRule, relationships
+//         case id, title, description, startDate, endDate, location, isPublic, url, recurrenceRule,
+//             relationships
 //     }
-//     
+// 
 //     /// Generates a detailed text description of the calendar event for use in RAG systems.
 //     /// The description includes the title, date/time, location, and other event details.
 //     ///
 //     /// - Returns: A formatted string containing the calendar event's details
 //     public func getDetailedDescription() -> String {
 //         var description = "CALENDAR EVENT: \(title)"
-//         
+// 
 //         if let eventDescription = self.description {
 //             description += "\nDescription: \(eventDescription)"
 //         }
-//         
+// 
 //         let dateFormatter = DateFormatter()
 //         dateFormatter.dateStyle = .medium
 //         dateFormatter.timeStyle = .short
-//         
+// 
 //         description += "\nStart: \(dateFormatter.string(from: startDate))"
 //         description += "\nEnd: \(dateFormatter.string(from: endDate))"
-//         
+// 
 //         if let location = location {
 //             description += "\nLocation: \(location.name)"
 //             if let address = location.address {
 //                 description += " (\(address))"
 //             }
 //         }
-//         
+// 
 //         if let organizer = organizer {
 //             if let person = organizer as? Person {
 //                 description += "\nOrganizer: \(person.name)"
@@ -905,7 +794,7 @@
 //                 description += "\nOrganizer: \(organization.name)"
 //             }
 //         }
-//         
+// 
 //         if let attendees = attendees, !attendees.isEmpty {
 //             description += "\nAttendees:"
 //             for attendee in attendees {
@@ -916,17 +805,18 @@
 //                 }
 //             }
 //         }
-//         
+// 
 //         if let isPublic = isPublic {
 //             description += "\nPublic Event: \(isPublic ? "Yes" : "No")"
 //         }
-//         
+// 
 //         if let url = url {
 //             description += "\nMore Information: \(url)"
 //         }
-//         
+// 
 //         if let recurrenceRule = recurrenceRule {
-//             description += "\nRecurrence: Every \(recurrenceRule.interval) \(recurrenceRule.frequency)"
+//             description +=
+//                 "\nRecurrence: Every \(recurrenceRule.interval) \(recurrenceRule.frequency)"
 //             if let occurrences = recurrenceRule.occurrences {
 //                 description += " for \(occurrences) occurrences"
 //             } else if let endDate = recurrenceRule.endDate {
@@ -936,8 +826,63 @@
 //                 description += " until \(formatter.string(from: endDate))"
 //             }
 //         }
-//         
+// 
 //         return description
+//     }
+// 
+//     /// JSON schema for LLM responses
+//     public static var jsonSchema: String {
+//         """
+//         {
+//             "type": "object",
+//             "properties": {
+//                 "id": {"type": "string"},
+//                 "title": {"type": "string"},
+//                 "description": {"type": "string", "optional": true},
+//                 "startDate": {"type": "string", "format": "date-time"},
+//                 "endDate": {"type": "string", "format": "date-time"},
+//                 "location": {"$ref": "#/definitions/Location", "optional": true},
+//                 "organizer": {"$ref": "#/definitions/Organization", "optional": true},
+//                 "attendees": {
+//                     "type": "array",
+//                     "items": {
+//                         "oneOf": [
+//                             {"$ref": "#/definitions/Organization"},
+//                             {"$ref": "#/definitions/Person"}
+//                         ]
+//                     },
+//                     "optional": true
+//                 },
+//                 "isPublic": {"type": "boolean", "optional": true},
+//                 "url": {"type": "string", "format": "uri", "optional": true},
+//                 "recurrenceRule": {
+//                     "type": "object",
+//                     "properties": {
+//                         "id": {"type": "string"},
+//                         "name": {"type": "string"},
+//                         "frequency": {"type": "string", "enum": ["daily", "weekly", "monthly", "yearly"]},
+//                         "interval": {"type": "integer", "minimum": 1},
+//                         "endDate": {"type": "string", "format": "date-time", "optional": true},
+//                         "count": {"type": "integer", "minimum": 1, "optional": true}
+//                     },
+//                     "required": ["id", "name", "frequency", "interval"],
+//                     "optional": true
+//                 },
+//                 "status": {"type": "string", "enum": ["scheduled", "cancelled", "postponed", "completed"], "optional": true},
+//                 "tags": {
+//                     "type": "array",
+//                     "items": {"type": "string"},
+//                     "optional": true
+//                 }
+//             },
+//             "required": ["id", "title", "startDate", "endDate"],
+//             "definitions": {
+//                 "Location": {"$ref": "Location.jsonSchema"},
+//                 "Organization": {"$ref": "Organization.jsonSchema"},
+//                 "Person": {"$ref": "Person.jsonSchema"}
+//             }
+//         }
+//         """
 //     }
 // }
 
@@ -951,43 +896,43 @@
 // 
 // /*
 //  # Category Model
-//  
+// 
 //  This file defines the Category model, which represents content categories in the UtahNewsData system.
 //  Categories provide a way to organize and classify content such as articles, media items, and other
 //  news-related entities.
-//  
+// 
 //  ## Key Features:
-//  
+// 
 //  1. Core identification (id, name)
 //  2. Hierarchical structure (parent category, subcategories)
 //  3. Descriptive information
-//  
+// 
 //  ## Usage:
-//  
+// 
 //  ```swift
 //  // Create a parent category
 //  let newsCategory = Category(
 //      name: "News",
 //      description: "General news content"
 //  )
-//  
+// 
 //  // Create subcategories
 //  let politicsCategory = Category(
 //      name: "Politics",
 //      description: "Political news and analysis",
 //      parentCategory: newsCategory
 //  )
-//  
+// 
 //  let localPoliticsCategory = Category(
 //      name: "Local Politics",
 //      description: "Utah state and local political news",
 //      parentCategory: politicsCategory
 //  )
-//  
+// 
 //  // Add subcategories to parent
 //  newsCategory.subcategories = [politicsCategory]
 //  politicsCategory.subcategories = [localPoliticsCategory]
-//  
+// 
 //  // Use with an Article
 //  let article = Article(
 //      title: "Utah Legislature Passes New Bill",
@@ -995,7 +940,7 @@
 //      categories: [localPoliticsCategory]
 //  )
 //  ```
-//  
+// 
 //  The Category model implements EntityDetailsProvider, allowing it to generate
 //  rich text descriptions for RAG (Retrieval Augmented Generation) systems.
 //  */
@@ -1005,25 +950,27 @@
 // /// Represents a content category in the UtahNewsData system.
 // /// Categories provide a way to organize and classify content such as articles,
 // /// media items, and other news-related entities.
-// public struct Category: AssociatedData, EntityDetailsProvider, BaseEntity {
+// public struct Category: AssociatedData, EntityDetailsProvider, BaseEntity, JSONSchemaProvider,
+//     Sendable
+// {
 //     /// Unique identifier for the category
 //     public var id: String = UUID().uuidString
-//     
+// 
 //     /// Relationships to other entities in the system
 //     public var relationships: [Relationship] = []
-//     
+// 
 //     /// The name of the category
 //     public var name: String
-//     
+// 
 //     /// Detailed description of what the category encompasses
 //     public var description: String?
-//     
+// 
 //     /// Parent category reference (using id instead of direct reference)
 //     public var parentCategoryId: String?
-//     
+// 
 //     /// Child category references (using ids instead of direct references)
 //     public var subcategoryIds: [String]?
-//     
+// 
 //     /// Creates a new Category with the specified properties.
 //     ///
 //     /// - Parameters:
@@ -1042,7 +989,7 @@
 //         self.parentCategoryId = parentCategoryId
 //         self.subcategoryIds = subcategoryIds
 //     }
-//     
+// 
 //     /// Convenience initializer that takes Category instances for parent and subcategories
 //     ///
 //     /// - Parameters:
@@ -1061,27 +1008,66 @@
 //         self.parentCategoryId = parentCategory?.id
 //         self.subcategoryIds = subcategories?.map { $0.id }
 //     }
-//     
+// 
 //     /// Generates a detailed text description of the category for use in RAG systems.
 //     /// The description includes the category name, description, and hierarchical information.
 //     ///
 //     /// - Returns: A formatted string containing the category's details
 //     public func getDetailedDescription() -> String {
 //         var description = "CATEGORY: \(name)"
-//         
+// 
 //         if let categoryDescription = self.description {
 //             description += "\nDescription: \(categoryDescription)"
 //         }
-//         
+// 
 //         if let parentCategoryId = parentCategoryId {
 //             description += "\nParent Category ID: \(parentCategoryId)"
 //         }
-//         
+// 
 //         if let subcategoryIds = subcategoryIds, !subcategoryIds.isEmpty {
 //             description += "\nSubcategory IDs: \(subcategoryIds.joined(separator: ", "))"
 //         }
-//         
+// 
 //         return description
+//     }
+// 
+//     /// JSON schema for LLM responses
+//     public static var jsonSchema: String {
+//         """
+//         {
+//             "type": "object",
+//             "properties": {
+//                 "id": {"type": "string"},
+//                 "name": {"type": "string"},
+//                 "description": {"type": "string", "optional": true},
+//                 "parentCategory": {
+//                     "$ref": "#/definitions/Category",
+//                     "optional": true
+//                 },
+//                 "subcategories": {
+//                     "type": "array",
+//                     "items": {"$ref": "#/definitions/Category"},
+//                     "optional": true
+//                 },
+//                 "metadata": {
+//                     "type": "object",
+//                     "additionalProperties": true,
+//                     "optional": true
+//                 }
+//             },
+//             "required": ["id", "name"],
+//             "definitions": {
+//                 "Category": {
+//                     "type": "object",
+//                     "properties": {
+//                         "id": {"type": "string"},
+//                         "name": {"type": "string"}
+//                     },
+//                     "required": ["id", "name"]
+//                 }
+//             }
+//         }
+//         """
 //     }
 // }
 
@@ -1092,77 +1078,34 @@
 // //
 // //  Created by Mark Evans on 10/25/24.
 // //
+// //  Summary: Defines the ExpertAnalysis model which represents expert opinions,
+// //           analyses, and commentary in the UtahNewsData system. Now conforms to JSONSchemaProvider
+// //           to provide a static JSON schema for LLM responses.
 // 
-// /*
-//  # ExpertAnalysis Model
-//  
-//  This file defines the ExpertAnalysis model, which represents expert opinions, analyses,
-//  and commentary in the UtahNewsData system. Expert analyses provide authoritative
-//  perspectives on news events, topics, and issues from qualified individuals.
-//  
-//  ## Key Features:
-//  
-//  1. Expert attribution (who provided the analysis)
-//  2. Credential tracking (qualifications of the expert)
-//  3. Topic categorization
-//  4. Relationship tracking with other entities
-//  
-//  ## Usage:
-//  
-//  ```swift
-//  // Create an expert
-//  let expert = Person(
-//      name: "Dr. Jane Smith",
-//      details: "Economics Professor at University of Utah"
-//  )
-//  
-//  // Create an expert analysis
-//  let analysis = ExpertAnalysis(
-//      expert: expert,
-//      date: Date(),
-//      topics: [Category(name: "Economy"), Category(name: "Inflation")]
-//  )
-//  
-//  // Add credentials to the expert
-//  analysis.credentials = [.PhD, .CFA]
-//  
-//  // Associate with a news story
-//  let relationship = Relationship(
-//      id: newsStory.id,
-//      type: .newsStory,
-//      displayName: "Analysis of"
-//  )
-//  analysis.relationships.append(relationship)
-//  ```
-//  
-//  The ExpertAnalysis model implements AssociatedData, allowing it to maintain
-//  relationships with other entities in the system, such as news stories, events,
-//  or other related content.
-//  */
-// 
+// import Foundation
 // import SwiftUI
 // 
 // /// Represents an expert's analysis or commentary on a topic or news event.
 // /// Expert analyses provide authoritative perspectives from qualified individuals.
-// public struct ExpertAnalysis: AssociatedData, Codable {
+// public struct ExpertAnalysis: AssociatedData, Codable, JSONSchemaProvider, Sendable {
 //     /// Unique identifier for the expert analysis
 //     public var id: String
-//     
+// 
 //     /// Relationships to other entities in the system
 //     public var relationships: [Relationship] = []
-//     
+// 
 //     /// The expert providing the analysis
 //     public var expert: Person
-//     
+// 
 //     /// When the analysis was provided
 //     public var date: Date
-//     
+// 
 //     /// Categories or topics covered in the analysis
 //     public var topics: [Category] = []
-//     
+// 
 //     /// Professional credentials of the expert relevant to this analysis
 //     public var credentials: [Credential] = []
-//     
+// 
 //     /// The name property required by the AssociatedData protocol.
 //     /// Returns a descriptive name based on the expert and date.
 //     public var name: String {
@@ -1182,290 +1125,192 @@
 //         self.expert = expert
 //         self.date = date
 //     }
+// 
+//     // MARK: - JSON Schema Provider
+//     /// Provides the JSON schema for ExpertAnalysis.
+//     public static var jsonSchema: String {
+//         return """
+//             {
+//                 "type": "object",
+//                 "properties": {
+//                     "id": {"type": "string"},
+//                     "relationships": {
+//                         "type": "array",
+//                         "items": {"type": "object"}
+//                     },
+//                     "expert": {"type": "object"},
+//                     "date": {"type": "string", "format": "date-time"},
+//                     "topics": {
+//                         "type": "array",
+//                         "items": {"type": "object"}
+//                     },
+//                     "credentials": {
+//                         "type": "array",
+//                         "items": {"type": "string"}
+//                     }
+//                 },
+//                 "required": ["id", "expert", "date"]
+//             }
+//             """
+//     }
 // }
 // 
 // /// Represents professional credentials, degrees, and certifications.
 // /// Used to establish the qualifications and expertise of individuals
 // /// providing expert analysis.
-// public enum Credential: String, Codable {
+// public enum Credential: String, Codable, Sendable {
 //     // Academic Degrees
-//     /// Doctor of Philosophy
 //     case PhD = "Doctor of Philosophy"
-//     /// Doctor of Medicine
 //     case MD = "Doctor of Medicine"
-//     /// Juris Doctor (law degree)
 //     case JD = "Juris Doctor"
-//     /// Doctor of Dental Surgery
 //     case DDS = "Doctor of Dental Surgery"
-//     /// Doctor of Veterinary Medicine
 //     case DVM = "Doctor of Veterinary Medicine"
-//     /// Master of Science
 //     case MS = "Master of Science"
-//     /// Master of Arts
 //     case MA = "Master of Arts"
-//     /// Master of Business Administration
 //     case MBA = "Master of Business Administration"
-//     /// Bachelor of Science
 //     case BS = "Bachelor of Science"
-//     /// Bachelor of Arts
 //     case BA = "Bachelor of Arts"
-//     /// Bachelor of Business Administration
 //     case BBA = "Bachelor of Business Administration"
-//     /// Bachelor of Engineering
 //     case BEng = "Bachelor of Engineering"
-//     /// Bachelor of Fine Arts
 //     case BFA = "Bachelor of Fine Arts"
-//     /// Bachelor of Commerce
 //     case BCom = "Bachelor of Commerce"
-//     /// Bachelor of Architecture
 //     case BArch = "Bachelor of Architecture"
-//     /// Bachelor of Business Administration in Marketing
 //     case BBA_Marketing = "Bachelor of Business Administration in Marketing"
-//     /// Bachelor of Business Administration in Finance
 //     case BBA_Finance = "Bachelor of Business Administration in Finance"
-//     
+// 
 //     // Professional Certifications
-//     /// Certified Public Accountant
 //     case CPA = "Certified Public Accountant"
-//     /// Chartered Financial Analyst
 //     case CFA = "Chartered Financial Analyst"
-//     /// Project Management Professional
 //     case PMP = "Project Management Professional"
-//     /// Certified Information Security Manager
 //     case CISM = "Certified Information Security Manager"
-//     /// Certified Information Systems Security Professional
 //     case CISSP = "Certified Information Systems Security Professional"
-//     /// Certified Information Systems Auditor
 //     case CISA = "Certified Information Systems Auditor"
-//     /// Certified Cloud Security Professional
 //     case CCSP = "Certified Cloud Security Professional"
-//     /// Certified Ethical Hacker
 //     case CEH = "Certified Ethical Hacker"
-//     /// Cisco Certified Network Associate
 //     case CCNA = "Cisco Certified Network Associate"
-//     /// Cisco Certified Network Professional
 //     case CCNP = "Cisco Certified Network Professional"
-//     /// AWS Certified Solutions Architect
 //     case AWS_SA = "AWS Certified Solutions Architect"
-//     /// AWS Certified DevOps Engineer
 //     case AWS_DevOps = "AWS Certified DevOps Engineer"
-//     /// Google Cloud Professional Cloud Architect
 //     case GCA = "Google Cloud Professional Cloud Architect"
-//     /// Microsoft Certified: Azure Administrator Associate
 //     case AZ_Admin = "Microsoft Certified: Azure Administrator Associate"
-//     /// Information Technology Infrastructure Library
 //     case ITIL = "Information Technology Infrastructure Library"
-//     /// Society for Human Resource Management Certified Professional
 //     case SHRM_CP = "Society for Human Resource Management Certified Professional"
-//     /// Society for Human Resource Management Senior Certified Professional
 //     case SHRM_SCP = "Society for Human Resource Management Senior Certified Professional"
-//     /// Lean Six Sigma Black Belt
 //     case LSSBB = "Lean Six Sigma Black Belt"
-//     /// Lean Six Sigma Green Belt
 //     case LSSGB = "Lean Six Sigma Green Belt"
-//     /// PRINCE2 Practitioner
 //     case PRINCE2 = "PRINCE2 Practitioner"
-//     /// The Open Group Architecture Framework
 //     case TOGAF = "The Open Group Architecture Framework"
-//     
+// 
 //     // Scrum Certifications
-//     /// Certified ScrumMaster
 //     case CSM = "Certified ScrumMaster (CSM)"
-//     /// Certified Scrum Product Owner
 //     case CSPO = "Certified Scrum Product Owner"
-//     
+// 
 //     // Information Technology
-//     /// CompTIA A+ Certification
 //     case CompTIA_A = "CompTIA A+"
-//     /// CompTIA Network+ Certification
 //     case CompTIA_Network = "CompTIA Network+"
-//     /// CompTIA Security+ Certification
 //     case CompTIA_Security = "CompTIA Security+"
-//     /// Cisco Certified Internetwork Expert
 //     case CCIE = "Cisco Certified Internetwork Expert"
-//     /// Microsoft Certified: Solutions Expert
 //     case Microsoft_Solutions_Expert = "Microsoft Certified: Solutions Expert"
-//     /// Oracle Certified Professional
 //     case Oracle_Professional = "Oracle Certified Professional"
-//     /// Red Hat Certified Engineer
 //     case RHCE = "Red Hat Certified Engineer"
-//     /// Certified Kubernetes Administrator
 //     case CKA = "Certified Kubernetes Administrator"
-//     /// Certified Artificial Intelligence Engineer
 //     case CAI_E = "Certified Artificial Intelligence Engineer"
-//     /// Certified Data Scientist
 //     case CDS = "Certified Data Scientist"
-//     /// Certified Machine Learning Professional
 //     case CMLP = "Certified Machine Learning Professional"
-//     /// Certified Blockchain Developer
 //     case CBlockchain_Dev = "Certified Blockchain Developer"
-//     /// Certified Virtualization Professional
 //     case CVirtualization_Prof = "Certified Virtualization Professional"
-//     /// Certified Internet of Things Specialist
 //     case CIoT_Specialist = "Certified Internet of Things Specialist"
-//     
+// 
 //     // Healthcare Certifications
-//     /// Registered Nurse
 //     case RN = "Registered Nurse"
-//     /// Nurse Practitioner
 //     case NP = "Nurse Practitioner"
-//     /// Certified Registered Nurse Anesthetist
 //     case CRNA = "Certified Registered Nurse Anesthetist"
-//     /// Doctor of Nursing Practice
 //     case DNP = "Doctor of Nursing Practice"
-//     /// Certified Professional in Healthcare Quality
 //     case CPHQ = "Certified Professional in Healthcare Quality"
-//     /// Certified in Healthcare Compliance
 //     case CHC = "Certified in Healthcare Compliance"
-//     /// Certified Project Manager
 //     case CPM = "Certified Project Manager"
-//     /// Certificate of Clinical Competence
 //     case CCC = "Certificate of Clinical Competence"
-//     
+// 
 //     // Finance and Accounting
-//     /// Certified Public Accountant - Chartered Global Management Accountant
 //     case CPA_CGMA = "Certified Public Accountant - Chartered Global Management Accountant"
-//     /// Certified Fraud Examiner
 //     case CFE = "Certified Fraud Examiner"
-//     /// Certified Management Accountant
 //     case CMA = "Certified Management Accountant"
-//     /// Certified Financial Planner
 //     case CFP = "Certified Financial Planner"
-//     /// Financial Risk Manager
 //     case FRM = "Financial Risk Manager"
-//     /// Chartered Alternative Investment Analyst
 //     case CAIA = "Chartered Alternative Investment Analyst"
-//     /// Chartered Financial Analyst Level I
 //     case CFA_I = "Chartered Financial Analyst Level I"
-//     /// Chartered Financial Analyst Level II
 //     case CFA_II = "Chartered Financial Analyst Level II"
-//     /// Chartered Financial Analyst Level III
 //     case CFA_III = "Chartered Financial Analyst Level III"
-//     
+// 
 //     // Marketing and Sales
-//     /// Chief Marketing Officer Certification
 //     case CMO = "Chief Marketing Officer Certification"
-//     /// Certified Social Media Marketing
 //     case CSMM = "Certified Social Media Marketing"
-//     /// Certified SEO Professional
 //     case CSEO = "Certified SEO Professional"
-//     /// Certified Product Marketing Manager
 //     case CPPM = "Certified Product Marketing Manager"
-//     /// Certified Product Information Manager
 //     case CPIM = "Certified Product Information Manager"
-//     /// Certified Sales and Marketing Professional
 //     case CSEM = "Certified Sales and Marketing Professional"
-//     
+// 
 //     // Human Resources
-//     /// Professional in Human Resources
 //     case PHR = "Professional in Human Resources"
-//     /// Senior Professional in Human Resources
 //     case SPHR = "Senior Professional in Human Resources"
-//     /// Global Professional in Human Resources
 //     case GPHR = "Global Professional in Human Resources"
-//     /// Associate Professional in Human Resources
 //     case aPHR = "Associate Professional in Human Resources"
-//     
+// 
 //     // Legal Certifications
-//     /// Master of Law
 //     case LLM = "Master of Law"
-//     /// Bachelor of Civil Law
 //     case BCL = "Bachelor of Civil Law"
-//     /// Juris Doctor with Specialization
 //     case JD_Specialization = "Juris Doctor - Specialization"
-//     
+// 
 //     // Engineering Certifications
-//     /// Professional Engineer
 //     case PE = "Professional Engineer"
-//     /// Chartered Engineer
 //     case CEng = "Chartered Engineer"
-//     /// Certified Professional Engineer
 //     case CPEng = "Certified Professional Engineer"
-//     
+// 
 //     // Additional Certifications
-//     /// Certified Management Consultant
 //     case CMC = "Certified Management Consultant"
-//     /// Certified Quality Engineer
 //     case ASQ_CQE = "Certified Quality Engineer"
-//     /// Chartered Scientist
 //     case CSD = "Chartered Scientist"
-//     /// Member of the Royal Institution of Chartered Surveyors
 //     case MRICS = "Member of the Royal Institution of Chartered Surveyors"
-//     /// International Fire Safety Professional
 //     case IFSP = "International Fire Safety Professional"
-//     /// Certified Fund Raising Executive
 //     case CFRE = "Certified Fund Raising Executive"
-//     /// Certified Treasury Professional
 //     case CTP = "Certified Treasury Professional"
-//     /// Certified in Planning and Inventory Management
 //     case APICS = "Certified in Planning and Inventory Management"
-//     /// Certified Compliance and Ethics Professional
 //     case CCEP = "Certified Compliance and Ethics Professional"
-//     /// Certified Protection Professional
 //     case CPP = "Certified Protection Professional"
-//     /// American Institute of Certified Public Accountants
 //     case AICPA = "American Institute of Certified Public Accountants"
-//     
+// 
 //     // Emerging and Specialized Fields
-//     /// Certified Digital Marketing Professional
 //     case CDMP = "Certified Digital Marketing Professional"
-//     /// Certified Social Media Manager
 //     case CSM_Manager = "Certified Social Media Manager"
-//     /// Certified Content Marketer
 //     case CCM = "Certified Content Marketer"
-//     /// Certified Pay-Per-Click Specialist
 //     case CPP_Specialist = "Certified Pay-Per-Click Specialist"
-//     /// Certified Email Marketing Specialist
 //     case CEMP = "Certified Email Marketing Specialist"
-//     /// Certified Google Ads Specialist
 //     case CGAS = "Certified Google Ads Specialist"
-//     /// Certified Facebook Ads Specialist
 //     case CFAS = "Certified Facebook Ads Specialist"
-//     /// Certified Twitter Ads Specialist
 //     case CTAS = "Certified Twitter Ads Specialist"
-//     /// Certified LinkedIn Ads Specialist
 //     case CLAS = "Certified LinkedIn Ads Specialist"
-//     /// Certified Instagram Marketing Specialist
 //     case CIM_Specialist = "Certified Instagram Marketing Specialist"
-//     /// Certified YouTube Marketing Specialist
 //     case CYM_Specialist = "Certified YouTube Marketing Specialist"
-//     /// Certified TikTok Marketing Specialist
 //     case CTM_Specialist = "Certified TikTok Marketing Specialist"
-//     /// Certified Slack Administrator
 //     case CSL_Admin = "Certified Slack Administrator"
-//     /// Certified Zoom Administrator
 //     case CZoom_Admin = "Certified Zoom Administrator"
-//     /// Certified Microsoft 365 Administrator
 //     case CMC365_Admin = "Certified Microsoft 365 Administrator"
-//     /// Certified Google Workspace Administrator
 //     case CGWS_Admin = "Certified Google Workspace Administrator"
-//     /// Certified Amazon Web Services Administrator
 //     case CAWS_Admin = "Certified Amazon Web Services Administrator"
-//     /// Certified IBM Cloud Professional
 //     case CIBM_Cloud_Prof = "Certified IBM Cloud Professional"
-//     /// Certified SAP HANA Professional
 //     case CSAP_HANA_Prof = "Certified SAP HANA Professional"
-//     
+// 
 //     // Research and Academia
-//     /// Clinical Research Associate
 //     case CRA = "Clinical Research Associate"
-//     /// Certified Clinical Research Associate
 //     case CCRA = "Certified Clinical Research Associate"
-//     /// Certified Associate in Project Management
 //     case CAPM = "Certified Associate in Project Management"
-//     /// Program Management Professional
 //     case PgMP = "Program Management Professional"
-//     
+// 
 //     // Miscellaneous
-//     /// Certified Life Coach
 //     case CLC = "Certified Life Coach"
-//     /// Chartered Life Underwriter
 //     case CLU = "Chartered Life Underwriter"
-//     /// Certified Human Resources Leader
 //     case CHRL = "Certified Human Resources Leader"
-//     /// Security Awareness Training
 //     case SANS = "Security Awareness Training"
-//     /// Data Protection Officer
 //     case DPO = "Data Protection Officer"
 // }
 
@@ -1557,68 +1402,13 @@
 // //
 // //  Created by Mark Evans on 2/12/25.
 // //
-// 
-// /*
-//  # Fact Model
-//  
-//  This file defines the Fact model, which represents verified pieces of information
-//  in the UtahNewsData system. Facts can be associated with articles, news events, and other
-//  content types, providing verified data points with proper attribution.
-//  
-//  ## Key Features:
-//  
-//  1. Core content (statement of the fact)
-//  2. Verification status and confidence level
-//  3. Source attribution
-//  4. Contextual information (date, topic, category)
-//  5. Related entities
-//  
-//  ## Usage:
-//  
-//  ```swift
-//  // Create a basic fact
-//  let basicFact = Fact(
-//      statement: "Utah has the highest birth rate in the United States.",
-//      sources: [censusBureau] // Organization entity
-//  )
-//  
-//  // Create a detailed fact with verification
-//  let detailedFact = Fact(
-//      statement: "Utah's population grew by 18.4% between 2010 and 2020, making it the fastest-growing state in the nation.",
-//      sources: [censusBureau, utahDemographicOffice], // Organization entities
-//      verificationStatus: .verified,
-//      confidenceLevel: .high,
-//      date: Date(),
-//      topics: ["Demographics", "Population Growth"],
-//      category: demographicsCategory, // Category entity
-//      relatedEntities: [saltLakeCity, utahState] // Location entities
-//  )
-//  
-//  // Associate fact with an article
-//  let article = Article(
-//      title: "Utah's Population Boom Continues",
-//      body: ["Utah continues to lead the nation in population growth..."]
-//  )
-//  
-//  // Create relationship between fact and article
-//  let relationship = Relationship(
-//      fromEntity: detailedFact,
-//      toEntity: article,
-//      type: .supportedBy
-//  )
-//  
-//  detailedFact.relationships.append(relationship)
-//  article.relationships.append(relationship)
-//  ```
-//  
-//  The Fact model implements EntityDetailsProvider, allowing it to generate
-//  rich text descriptions for RAG (Retrieval Augmented Generation) systems.
-//  */
+// //  Summary: Defines the Fact model which represents verified pieces of information
+// //           in the UtahNewsData system. Now conforms to JSONSchemaProvider to provide a static JSON schema for LLM responses.
 // 
 // import Foundation
 // 
 // /// Represents the verification status of a fact
-// public enum VerificationStatus: String, Codable {
+// public enum VerificationStatus: String, Codable, Sendable {
 //     case verified
 //     case unverified
 //     case disputed
@@ -1626,7 +1416,7 @@
 // }
 // 
 // /// Represents the confidence level in a fact's accuracy
-// public enum ConfidenceLevel: String, Codable {
+// public enum ConfidenceLevel: String, Codable, Sendable {
 //     case high
 //     case medium
 //     case low
@@ -1635,43 +1425,44 @@
 // /// Represents a verified piece of information in the UtahNewsData system.
 // /// Facts can be associated with articles, news events, and other content types,
 // /// providing verified data points with proper attribution.
-// public struct Fact: AssociatedData, EntityDetailsProvider, BaseEntity {
+// public struct Fact: AssociatedData, EntityDetailsProvider, BaseEntity, JSONSchemaProvider, Sendable
+// {  // Added JSONSchemaProvider and Sendable conformance
 //     /// Unique identifier for the fact
 //     public var id: String = UUID().uuidString
-//     
+// 
 //     /// The name of the entity (required by BaseEntity)
-//     public var name: String { 
+//     public var name: String {
 //         let truncatedStatement = statement.count > 50 ? statement.prefix(50) + "..." : statement
 //         return String(truncatedStatement)
 //     }
-//     
+// 
 //     /// Relationships to other entities in the system
 //     public var relationships: [Relationship] = []
-//     
+// 
 //     /// The factual statement
 //     public var statement: String
-//     
+// 
 //     /// Organizations or persons that are the source of this fact
 //     public var sources: [any EntityDetailsProvider]?
-//     
+// 
 //     /// Current verification status of the fact
 //     public var verificationStatus: VerificationStatus?
-//     
+// 
 //     /// Confidence level in the fact's accuracy
 //     public var confidenceLevel: ConfidenceLevel?
-//     
+// 
 //     /// When the fact was established or reported
 //     public var date: Date?
-//     
+// 
 //     /// Subject areas or keywords related to the fact
 //     public var topics: [String]?
-//     
+// 
 //     /// Category ID the fact belongs to (instead of direct reference)
 //     public var categoryId: String?
-//     
+// 
 //     /// Entities (people, organizations, locations) related to this fact
 //     public var relatedEntities: [any EntityDetailsProvider]?
-//     
+// 
 //     /// Creates a new Fact with the specified properties.
 //     ///
 //     /// - Parameters:
@@ -1702,7 +1493,7 @@
 //         self.categoryId = categoryId
 //         self.relatedEntities = relatedEntities
 //     }
-//     
+// 
 //     /// Convenience initializer that takes a Category instance
 //     ///
 //     /// - Parameters:
@@ -1733,40 +1524,42 @@
 //         self.categoryId = category?.id
 //         self.relatedEntities = relatedEntities
 //     }
-//     
+// 
 //     // Implement Equatable manually since we have properties that don't conform to Equatable
 //     public static func == (lhs: Fact, rhs: Fact) -> Bool {
-//         return lhs.id == rhs.id &&
-//                lhs.statement == rhs.statement
+//         return lhs.id == rhs.id && lhs.statement == rhs.statement
 //     }
-//     
+// 
 //     // Implement Hashable manually
 //     public func hash(into hasher: inout Hasher) {
 //         hasher.combine(id)
 //         hasher.combine(statement)
 //     }
-//     
+// 
 //     // Implement Codable manually
 //     public init(from decoder: Decoder) throws {
 //         let container = try decoder.container(keyedBy: CodingKeys.self)
-//         
+// 
 //         id = try container.decode(String.self, forKey: .id)
 //         statement = try container.decode(String.self, forKey: .statement)
-//         verificationStatus = try container.decodeIfPresent(VerificationStatus.self, forKey: .verificationStatus)
-//         confidenceLevel = try container.decodeIfPresent(ConfidenceLevel.self, forKey: .confidenceLevel)
+//         verificationStatus = try container.decodeIfPresent(
+//             VerificationStatus.self, forKey: .verificationStatus)
+//         confidenceLevel = try container.decodeIfPresent(
+//             ConfidenceLevel.self, forKey: .confidenceLevel)
 //         date = try container.decodeIfPresent(Date.self, forKey: .date)
 //         topics = try container.decodeIfPresent([String].self, forKey: .topics)
 //         categoryId = try container.decodeIfPresent(String.self, forKey: .categoryId)
-//         relationships = try container.decodeIfPresent([Relationship].self, forKey: .relationships) ?? []
-//         
+//         relationships =
+//             try container.decodeIfPresent([Relationship].self, forKey: .relationships) ?? []
+// 
 //         // Skip decoding sources and relatedEntities as they use protocol types
 //         sources = nil
 //         relatedEntities = nil
 //     }
-//     
+// 
 //     public func encode(to encoder: Encoder) throws {
 //         var container = encoder.container(keyedBy: CodingKeys.self)
-//         
+// 
 //         try container.encode(id, forKey: .id)
 //         try container.encode(statement, forKey: .statement)
 //         try container.encodeIfPresent(verificationStatus, forKey: .verificationStatus)
@@ -1775,58 +1568,116 @@
 //         try container.encodeIfPresent(topics, forKey: .topics)
 //         try container.encodeIfPresent(categoryId, forKey: .categoryId)
 //         try container.encode(relationships, forKey: .relationships)
-//         
+// 
 //         // Skip encoding sources and relatedEntities as they use protocol types
 //     }
-//     
+// 
 //     private enum CodingKeys: String, CodingKey {
-//         case id, statement, verificationStatus, confidenceLevel, date, topics, categoryId, relationships
+//         case id, statement, verificationStatus, confidenceLevel, date, topics, categoryId,
+//             relationships
 //     }
-//     
+// 
 //     /// Generates a detailed text description of the fact for use in RAG systems.
 //     /// The description includes the statement, verification status, sources, and contextual information.
 //     ///
 //     /// - Returns: A formatted string containing the fact's details
 //     public func getDetailedDescription() -> String {
 //         var description = "FACT: \(statement)"
-//         
+// 
 //         if let verificationStatus = verificationStatus {
 //             description += "\nVerification Status: \(verificationStatus.rawValue)"
 //         }
-//         
+// 
 //         if let confidenceLevel = confidenceLevel {
 //             description += "\nConfidence Level: \(confidenceLevel.rawValue)"
 //         }
-//         
+// 
 //         if let sources = sources, !sources.isEmpty {
 //             description += "\nSources:"
 //             for source in sources {
 //                 description += "\n- \(source.name)"
 //             }
 //         }
-//         
+// 
 //         if let date = date {
 //             let formatter = DateFormatter()
 //             formatter.dateStyle = .medium
 //             description += "\nDate: \(formatter.string(from: date))"
 //         }
-//         
+// 
 //         if let categoryId = categoryId {
 //             description += "\nCategory ID: \(categoryId)"
 //         }
-//         
+// 
 //         if let topics = topics, !topics.isEmpty {
 //             description += "\nTopics: \(topics.joined(separator: ", "))"
 //         }
-//         
+// 
 //         return description
 //     }
-// }
 // 
-// public enum Verification: String, CaseIterable {
-//     case none = "None"
-//     case human = "Human"
-//     case ai = "AI"
+//     // MARK: - JSON Schema Provider
+//     /// Provides the JSON schema for Fact.
+//     public static var jsonSchema: String {
+//         """
+//         {
+//             "type": "object",
+//             "properties": {
+//                 "id": {"type": "string"},
+//                 "statement": {"type": "string"},
+//                 "sources": {
+//                     "type": "array",
+//                     "items": {
+//                         "oneOf": [
+//                             {"$ref": "#/definitions/Organization"},
+//                             {"$ref": "#/definitions/Person"}
+//                         ]
+//                     },
+//                     "optional": true
+//                 },
+//                 "verificationStatus": {
+//                     "type": "string",
+//                     "enum": ["verified", "unverified", "disputed", "retracted"],
+//                     "optional": true
+//                 },
+//                 "confidenceLevel": {
+//                     "type": "string",
+//                     "enum": ["high", "medium", "low"],
+//                     "optional": true
+//                 },
+//                 "date": {"type": "string", "format": "date-time", "optional": true},
+//                 "topics": {
+//                     "type": "array",
+//                     "items": {"type": "string"},
+//                     "optional": true
+//                 },
+//                 "categoryId": {"type": "string", "optional": true},
+//                 "relatedEntities": {
+//                     "type": "array",
+//                     "items": {
+//                         "oneOf": [
+//                             {"$ref": "#/definitions/Organization"},
+//                             {"$ref": "#/definitions/Person"},
+//                             {"$ref": "#/definitions/Location"}
+//                         ]
+//                     },
+//                     "optional": true
+//                 },
+//                 "metadata": {
+//                     "type": "object",
+//                     "additionalProperties": true,
+//                     "optional": true
+//                 }
+//             },
+//             "required": ["id", "statement"],
+//             "definitions": {
+//                 "Organization": {"$ref": "Organization.jsonSchema"},
+//                 "Person": {"$ref": "Person.jsonSchema"},
+//                 "Location": {"$ref": "Location.jsonSchema"}
+//             }
+//         }
+//         """
+//     }
 // }
 
 // File: Jurisdiction.swift
@@ -1836,60 +1687,16 @@
 // //
 // //  Created by Mark Evans on 12/10/24.
 // //
-// 
-// /*
-//  # Jurisdiction Model
-//  
-//  This file defines the Jurisdiction model, which represents governmental jurisdictions
-//  in the UtahNewsData system, such as cities, counties, and states. Jurisdictions are
-//  important entities for categorizing and organizing news content by geographic and
-//  administrative boundaries.
-//  
-//  ## Key Features:
-//  
-//  1. Jurisdiction type classification (city, county, state)
-//  2. Geographic location association
-//  3. Website linking
-//  4. Relationship tracking with other entities
-//  
-//  ## Usage:
-//  
-//  ```swift
-//  // Create a city jurisdiction
-//  let saltLakeCity = Jurisdiction(
-//      type: .city,
-//      name: "Salt Lake City",
-//      location: Location(name: "Salt Lake City, Utah")
-//  )
-//  
-//  // Create a county jurisdiction
-//  let saltLakeCounty = Jurisdiction(
-//      type: .county,
-//      name: "Salt Lake County"
-//  )
-//  
-//  // Add website information
-//  saltLakeCity.website = "https://www.slc.gov"
-//  
-//  // Create relationships between jurisdictions
-//  let relationship = Relationship(
-//      id: saltLakeCounty.id,
-//      type: .jurisdiction,
-//      displayName: "Located in"
-//  )
-//  saltLakeCity.relationships.append(relationship)
-//  ```
-//  
-//  The Jurisdiction model implements AssociatedData, allowing it to maintain
-//  relationships with other entities in the system, such as news stories, events,
-//  or other jurisdictions.
-//  */
+// //  Summary: Defines the Jurisdiction model which represents governmental jurisdictions
+// //           in the UtahNewsData system. Now conforms to JSONSchemaProvider to provide a static JSON schema for LLM responses.
 // 
 // import SwiftUI
+// import Foundation
+// import SwiftSoup
 // 
 // /// Represents the type of governmental jurisdiction.
 // /// Used to categorize jurisdictions by their administrative level.
-// public enum JurisdictionType: String, Codable, CaseIterable {
+// public enum JurisdictionType: String, Codable, CaseIterable, Sendable {
 //     /// City or municipal government
 //     case city
 //     
@@ -1912,7 +1719,7 @@
 // /// Represents a governmental jurisdiction such as a city, county, or state.
 // /// Jurisdictions are important entities for categorizing and organizing news
 // /// content by geographic and administrative boundaries.
-// public struct Jurisdiction: AssociatedData, Identifiable, Codable {
+// public struct Jurisdiction: AssociatedData, Identifiable, Codable, JSONSchemaProvider, HTMLParsable, Sendable {
 //     /// Unique identifier for the jurisdiction
 //     public var id: String
 //     
@@ -1972,6 +1779,81 @@
 //         self.location = try? container.decodeIfPresent(Location.self, forKey: .location)
 //         self.website = try? container.decodeIfPresent(String.self, forKey: .website)
 //     }
+//     
+//     // MARK: - JSON Schema Provider
+//     /// Provides the JSON schema for Jurisdiction.
+//     public static var jsonSchema: String {
+//         return """
+//         {
+//             "type": "object",
+//             "properties": {
+//                 "id": {"type": "string"},
+//                 "relationships": {
+//                     "type": "array",
+//                     "items": {"type": "object"}
+//                 },
+//                 "type": {"type": "string"},
+//                 "name": {"type": "string"},
+//                 "location": {"type": ["object", "null"]},
+//                 "website": {"type": ["string", "null"]}
+//             },
+//             "required": ["id", "type", "name"]
+//         }
+//         """
+//     }
+// 
+//     // MARK: - HTMLParsable Implementation
+//     
+//     public static func parse(from document: Document) throws -> Self {
+//         // Try to find the jurisdiction name
+//         let nameOpt = try document.select(".jurisdiction h2[itemprop='name']").first()?.text()
+//             ?? document.select("[itemprop='name'], .jurisdiction-name").first()?.text()
+//             ?? document.select("meta[property='og:site_name']").first()?.attr("content")
+//             ?? document.select("title").first()?.text()
+//         
+//         guard let name = nameOpt else {
+//             throw ParsingError.invalidHTML
+//         }
+//         
+//         // Try to find jurisdiction type
+//         let typeStr = try document.select("[itemprop='jurisdictionType'], .jurisdiction-type").first()?.text()
+//             ?? document.select("meta[name='jurisdiction-type']").first()?.attr("content")
+//         
+//         let type: JurisdictionType
+//         switch typeStr?.lowercased() {
+//         case let str where str?.contains("city") ?? false:
+//             type = .city
+//         case let str where str?.contains("county") ?? false:
+//             type = .county
+//         case let str where str?.contains("state") ?? false:
+//             type = .state
+//         default:
+//             // Default to city if type can't be determined
+//             type = .city
+//         }
+//         
+//         // Try to find website
+//         let website = try document.select(".jurisdiction a[itemprop='url']").first()?.attr("href")
+//             ?? document.select("[itemprop='url']").first()?.attr("href")
+//             ?? document.select("meta[property='og:url']").first()?.attr("content")
+//         
+//         // Try to find location
+//         var location: Location? = nil
+//         if let locationElement = try document.select("[itemprop='location'], .jurisdiction-location").first() {
+//             let locationDoc = try SwiftSoup.parse(try locationElement.html())
+//             location = try? Location.parse(from: locationDoc)
+//         }
+//         
+//         var jurisdiction = Jurisdiction(
+//             id: UUID().uuidString,
+//             type: type,
+//             name: name,
+//             location: location
+//         )
+//         jurisdiction.website = website
+//         
+//         return jurisdiction
+//     }
 // }
 
 // File: LegalDocument.swift
@@ -1981,57 +1863,17 @@
 // //
 // //  Created by Mark Evans on 10/25/24.
 // //
-// 
-// /*
-//  # LegalDocument Model
-//  
-//  This file defines the LegalDocument model, which represents legal documents and
-//  official records in the UtahNewsData system. Legal documents can include court
-//  filings, legislation, regulations, and other official legal records relevant to
-//  news coverage.
-//  
-//  ## Key Features:
-//  
-//  1. Document identification (title)
-//  2. Publication tracking (dateIssued)
-//  3. Relationship tracking with other entities
-//  
-//  ## Usage:
-//  
-//  ```swift
-//  // Create a legal document
-//  let legislation = LegalDocument(
-//      title: "Senate Bill 101: Water Conservation Act",
-//      dateIssued: Date()
-//  )
-//  
-//  // Associate with related entities
-//  let legislatorRelationship = Relationship(
-//      id: senator.id,
-//      type: .person,
-//      displayName: "Sponsored by"
-//  )
-//  legislation.relationships.append(legislatorRelationship)
-//  
-//  let topicRelationship = Relationship(
-//      id: waterCategory.id,
-//      type: .category,
-//      displayName: "Related to"
-//  )
-//  legislation.relationships.append(topicRelationship)
-//  ```
-//  
-//  The LegalDocument model implements AssociatedData, allowing it to maintain
-//  relationships with other entities in the system, such as people, organizations,
-//  and categories.
-//  */
+// //  Summary: Defines the LegalDocument model which represents legal documents and
+// //           official records in the UtahNewsData system. Now conforms to JSONSchemaProvider
+// //           to provide a static JSON schema for LLM responses.
 // 
 // import SwiftUI
+// import Foundation
 // 
 // /// Represents a legal document or official record in the news system.
 // /// Legal documents can include court filings, legislation, regulations,
 // /// and other official legal records relevant to news coverage.
-// public struct LegalDocument: AssociatedData {
+// public struct LegalDocument: AssociatedData, JSONSchemaProvider { // Added JSONSchemaProvider conformance
 //     /// Unique identifier for the legal document
 //     public var id: String
 //     
@@ -2083,6 +1925,29 @@
 //         self.documentNumber = documentNumber
 //         self.documentURL = documentURL
 //     }
+//     
+//     // MARK: - JSON Schema Provider
+//     /// Provides the JSON schema for LegalDocument.
+//     public static var jsonSchema: String {
+//         return """
+//         {
+//             "type": "object",
+//             "properties": {
+//                 "id": {"type": "string"},
+//                 "relationships": {
+//                     "type": "array",
+//                     "items": {"type": "object"}
+//                 },
+//                 "title": {"type": "string"},
+//                 "dateIssued": {"type": "string", "format": "date-time"},
+//                 "documentType": {"type": ["string", "null"]},
+//                 "documentNumber": {"type": ["string", "null"]},
+//                 "documentURL": {"type": ["string", "null"]}
+//             },
+//             "required": ["id", "title", "dateIssued"]
+//         }
+//         """
+//     }
 // }
 
 // File: Location.swift
@@ -2092,75 +1957,51 @@
 // //
 // //  Created by Mark Evans on 10/25/24.
 // //
+// //  Summary: Defines the Location model which represents geographic locations
+// //           in the UtahNewsData system. Now conforms to JSONSchemaProvider to provide a static JSON schema for LLM responses.
+// //           Also includes the Coordinates struct with JSON schema updates.
 // 
-// /*
-//  # Location Model
-//  
-//  This file defines the Location model, which represents geographic locations
-//  in the UtahNewsData system. Locations can be cities, neighborhoods, landmarks,
-//  or any place relevant to news content.
-//  
-//  ## Key Features:
-//  
-//  1. Core identification (id, name)
-//  2. Optional address information
-//  3. Optional geographic coordinates
-//  
-//  ## Usage:
-//  
-//  ```swift
-//  // Create a basic location
-//  let location = Location(name: "Salt Lake City")
-//  
-//  // Create a location with coordinates
-//  let detailedLocation = Location(
-//      name: "Utah State Capitol",
-//      coordinates: Coordinates(latitude: 40.7767, longitude: -111.8880)
-//  )
-//  
-//  // Add a relationship to another entity
-//  var updatedLocation = location
-//  updatedLocation.relationships.append(
-//      Relationship(
-//          id: newsEvent.id,
-//          type: .newsEvent,
-//          displayName: "Hosted",
-//          context: "Location of the press conference"
-//      )
-//  )
-//  ```
-//  
-//  Locations can be associated with various entities such as news events,
-//  organizations, people, and more to provide geographic context.
-//  */
-// 
-// // Location.swift
-// // Summary: Defines the Location structure for the UtahNewsData module.
-// //          Now includes a convenience initializer to create a Location with coordinates.
-// 
+// import Foundation
 // import SwiftUI
+// import SwiftSoup
 // 
-// /// Represents a geographic location in the news data system.
-// /// This can be a city, neighborhood, landmark, or any place
-// /// relevant to news content.
-// public struct Location: AssociatedData, Codable, Hashable, Equatable {
+// /// Represents a physical location in the UtahNewsData system
+// public struct Location: Codable, Identifiable, Hashable, Equatable, AssociatedData, HTMLParsable, Sendable, JSONSchemaProvider {
 //     /// Unique identifier for the location
 //     public var id: String
-//     
+// 
 //     /// Relationships to other entities (events, organizations, etc.)
 //     public var relationships: [Relationship] = []
-//     
+// 
 //     /// The location's name (e.g., "Salt Lake City", "Utah State Capitol")
 //     public var name: String
-//     
+// 
 //     /// Optional street address or descriptive location
 //     public var address: String?
-//     
+// 
 //     /// Optional geographic coordinates (latitude/longitude)
 //     public var coordinates: Coordinates?
-//     
+// 
+//     /// Latitude coordinate (north/south position)
+//     public var latitude: Double?
+// 
+//     /// Longitude coordinate (east/west position)
+//     public var longitude: Double?
+// 
+//     /// City of the location
+//     public var city: String?
+// 
+//     /// State of the location
+//     public var state: String?
+// 
+//     /// Zip code of the location
+//     public var zipCode: String?
+// 
+//     /// Country of the location
+//     public var country: String?
+// 
 //     /// Creates a new Location with a name.
-//     /// 
+//     ///
 //     /// - Parameters:
 //     ///   - id: Unique identifier (defaults to a new UUID string)
 //     ///   - name: The location's name
@@ -2168,9 +2009,9 @@
 //         self.id = id
 //         self.name = name
 //     }
-//     
+// 
 //     /// Creates a new Location with a name and coordinates.
-//     /// 
+//     ///
 //     /// - Parameters:
 //     ///   - id: Unique identifier (defaults to a new UUID string)
 //     ///   - name: The location's name
@@ -2180,40 +2021,152 @@
 //         self.name = name
 //         self.coordinates = coordinates
 //     }
+// 
+//     /// Creates a new Location with additional details.
+//     ///
+//     /// - Parameters:
+//     ///   - latitude: Latitude coordinate
+//     ///   - longitude: Longitude coordinate
+//     ///   - address: Street address
+//     ///   - city: City
+//     ///   - state: State
+//     ///   - zipCode: Zip code
+//     ///   - country: Country
+//     ///   - relationships: Array of relationships to other entities
+//     public init(
+//         latitude: Double? = nil,
+//         longitude: Double? = nil,
+//         address: String? = nil,
+//         city: String? = nil,
+//         state: String? = nil,
+//         zipCode: String? = nil,
+//         country: String? = nil,
+//         relationships: [Relationship] = []
+//     ) {
+//         self.id = UUID().uuidString
+//         self.name = [city, state].compactMap { $0 }.joined(separator: ", ")
+//         self.latitude = latitude
+//         self.longitude = longitude
+//         self.address = address
+//         self.city = city
+//         self.state = state
+//         self.zipCode = zipCode
+//         self.country = country
+//         self.relationships = relationships
+//     }
+// 
+//     // MARK: - JSON Schema Provider
+//     /// Provides the JSON schema for Location.
+//     public static var jsonSchema: String {
+//         return """
+//             {
+//                 "type": "object",
+//                 "properties": {
+//                     "id": {"type": "string"},
+//                     "relationships": {
+//                         "type": "array",
+//                         "items": {"type": "object"}
+//                     },
+//                     "name": {"type": "string"},
+//                     "address": {"type": ["string", "null"]},
+//                     "coordinates": {"type": ["object", "null"]},
+//                     "latitude": {"type": ["number", "null"]},
+//                     "longitude": {"type": ["number", "null"]},
+//                     "city": {"type": ["string", "null"]},
+//                     "state": {"type": ["string", "null"]},
+//                     "zipCode": {"type": ["string", "null"]},
+//                     "country": {"type": ["string", "null"]}
+//                 },
+//                 "required": ["id", "name"]
+//             }
+//             """
+//     }
+// 
+//     // MARK: - HTMLParsable Implementation
+//     
+//     public static func parse(from document: Document) throws -> Self {
+//         // Try to find coordinates
+//         let latitudeStr = try document.select("[itemprop='latitude'], meta[property='place:location:latitude']").first()?.attr("content")
+//         let longitudeStr = try document.select("[itemprop='longitude'], meta[property='place:location:longitude']").first()?.attr("content")
+//         
+//         let latitude = latitudeStr.flatMap { Double($0) }
+//         let longitude = longitudeStr.flatMap { Double($0) }
+//         
+//         // Try to find address components
+//         let streetAddress = try document.select("[itemprop='streetAddress']").first()?.text()
+//         let city = try document.select("[itemprop='addressLocality']").first()?.text()
+//         let state = try document.select("[itemprop='addressRegion']").first()?.text()
+//         let zipCode = try document.select("[itemprop='postalCode']").first()?.text()
+//         let country = try document.select("[itemprop='addressCountry']").first()?.text()
+//         
+//         // Try to construct full address (excluding country)
+//         let addressComponents = [streetAddress, city, state, zipCode].compactMap { $0 }
+//         let fullAddress = addressComponents.isEmpty ? nil : addressComponents.joined(separator: ", ")
+//         
+//         return Location(
+//             latitude: latitude,
+//             longitude: longitude,
+//             address: fullAddress,
+//             city: city,
+//             state: state,
+//             zipCode: zipCode,
+//             country: country
+//         )
+//     }
 // }
 // 
 // /// Represents geographic coordinates with latitude and longitude.
-// public struct Coordinates: BaseEntity, Codable, Hashable, Equatable {
+// public struct Coordinates: BaseEntity, Codable, Hashable, Equatable, JSONSchemaProvider, Sendable
+// {  // Added JSONSchemaProvider and Sendable conformance
 //     /// Unique identifier for the coordinates
 //     public var id: String
-//     
+// 
 //     /// The name or description of these coordinates
 //     public var name: String
-//     
+// 
 //     /// Latitude coordinate (north/south position)
 //     public var latitude: Double
-//     
+// 
 //     /// Longitude coordinate (east/west position)
 //     public var longitude: Double
-//     
+// 
 //     /// Creates new geographic coordinates.
 //     /// - Parameters:
 //     ///   - id: Unique identifier for the coordinates
 //     ///   - name: Name or description of these coordinates (e.g., "Downtown SLC")
 //     ///   - latitude: Latitude coordinate
 //     ///   - longitude: Longitude coordinate
-//     public init(id: String = UUID().uuidString, 
-//                 name: String, 
-//                 latitude: Double, 
-//                 longitude: Double) {
+//     public init(
+//         id: String = UUID().uuidString,
+//         name: String,
+//         latitude: Double,
+//         longitude: Double
+//     ) {
 //         self.id = id
 //         self.name = name
 //         self.latitude = latitude
 //         self.longitude = longitude
 //     }
+// 
+//     // MARK: - JSON Schema Provider
+//     /// Provides the JSON schema for Coordinates.
+//     public static var jsonSchema: String {
+//         return """
+//             {
+//                 "type": "object",
+//                 "properties": {
+//                     "id": {"type": "string"},
+//                     "name": {"type": "string"},
+//                     "latitude": {"type": "number"},
+//                     "longitude": {"type": "number"}
+//                 },
+//                 "required": ["id", "name", "latitude", "longitude"]
+//             }
+//             """
+//     }
 // }
 
-// Warning: File Medialtem.swift not found in ./Sources/UtahNewsData
+// Warning: File Medialtem.swift not found in /Users/markevans/Developer/UtahNewsData/Sources/UtahNewsData
 // File: NewsAlert.swift
 // //
 // //  NewsAlert.swift
@@ -2221,55 +2174,17 @@
 // //
 // //  Created by Mark Evans on 10/25/24.
 // //
-// 
-// /*
-//  # NewsAlert Model
-//  
-//  This file defines the NewsAlert model, which represents time-sensitive alerts and
-//  notifications in the UtahNewsData system. News alerts can include breaking news,
-//  emergency notifications, weather alerts, and other time-critical information.
-//  
-//  ## Key Features:
-//  
-//  1. Alert content (title, message)
-//  2. Severity classification (level)
-//  3. Timing information (dateIssued)
-//  4. Relationship tracking with other entities
-//  
-//  ## Usage:
-//  
-//  ```swift
-//  // Create a high-priority news alert
-//  let alert = NewsAlert(
-//      title: "Flash Flood Warning",
-//      message: "The National Weather Service has issued a flash flood warning for Salt Lake County until 8:00 PM.",
-//      dateIssued: Date(),
-//      level: .high
-//  )
-//  
-//  // Associate with related entities
-//  let locationRelationship = Relationship(
-//      id: saltLakeCounty.id,
-//      type: .jurisdiction,
-//      displayName: "Affects"
-//  )
-//  alert.relationships.append(locationRelationship)
-//  
-//  // Publish the alert
-//  alertService.publishAlert(alert)
-//  ```
-//  
-//  The NewsAlert model implements AssociatedData, allowing it to maintain
-//  relationships with other entities in the system, such as locations, events,
-//  or categories.
-//  */
+// //  Summary: Defines the NewsAlert model which represents time-sensitive alerts and notifications
+// //           in the UtahNewsData system. Now conforms to JSONSchemaProvider to provide a static JSON schema for LLM responses.
 // 
 // import SwiftUI
+// import Foundation
+// import SwiftSoup
 // 
 // /// Represents a time-sensitive alert or notification in the news system.
 // /// News alerts can include breaking news, emergency notifications, weather
 // /// alerts, and other time-critical information.
-// public struct NewsAlert: AssociatedData {
+// public struct NewsAlert: AssociatedData, JSONSchemaProvider, HTMLParsable, Sendable {
 //     /// Unique identifier for the alert
 //     public var id: String
 //     
@@ -2280,19 +2195,16 @@
 //     public var title: String
 //     
 //     /// Detailed message or content of the alert
-//     public var message: String
+//     public var content: String
 //     
-//     /// When the alert was issued
-//     public var dateIssued: Date
+//     /// Type of alert (e.g., "Breaking News", "Weather Alert", etc.)
+//     public var alertType: String
 //     
-//     /// Severity or importance level of the alert
-//     public var level: AlertLevel
+//     /// Severity level of the alert
+//     public var severity: AlertSeverity
 //     
-//     /// The name property required by the AssociatedData protocol.
-//     /// Returns the title of the alert.
-//     public var name: String {
-//         return title
-//     }
+//     /// When the alert was published
+//     public var publishedAt: Date
 //     
 //     /// Source or issuer of the alert
 //     public var source: String?
@@ -2300,51 +2212,135 @@
 //     /// When the alert expires or is no longer relevant
 //     public var expirationDate: Date?
 //     
+//     /// The name property required by the AssociatedData protocol.
+//     /// Returns the title of the alert.
+//     public var name: String {
+//         return title
+//     }
+//     
 //     /// Creates a new news alert with the specified properties.
 //     ///
 //     /// - Parameters:
 //     ///   - id: Unique identifier for the alert (defaults to a new UUID string)
 //     ///   - title: Title or headline of the alert
-//     ///   - message: Detailed message or content of the alert
-//     ///   - dateIssued: When the alert was issued
-//     ///   - level: Severity or importance level of the alert
+//     ///   - content: Detailed content of the alert
+//     ///   - alertType: Type of the alert
+//     ///   - severity: Severity level of the alert
+//     ///   - publishedAt: When the alert was published
 //     ///   - source: Source or issuer of the alert
-//     ///   - expirationDate: When the alert expires or is no longer relevant
 //     public init(
 //         id: String = UUID().uuidString,
 //         title: String,
-//         message: String,
-//         dateIssued: Date,
-//         level: AlertLevel,
-//         source: String? = nil,
-//         expirationDate: Date? = nil
+//         content: String,
+//         alertType: String,
+//         severity: AlertSeverity,
+//         publishedAt: Date,
+//         source: String? = nil
 //     ) {
 //         self.id = id
 //         self.title = title
-//         self.message = message
-//         self.dateIssued = dateIssued
-//         self.level = level
+//         self.content = content
+//         self.alertType = alertType
+//         self.severity = severity
+//         self.publishedAt = publishedAt
 //         self.source = source
-//         self.expirationDate = expirationDate
+//     }
+//     
+//     // MARK: - JSON Schema Provider
+//     /// Provides the JSON schema for NewsAlert.
+//     public static var jsonSchema: String {
+//         return """
+//         {
+//             "type": "object",
+//             "properties": {
+//                 "id": {"type": "string"},
+//                 "relationships": {
+//                     "type": "array",
+//                     "items": {"type": "object"}
+//                 },
+//                 "title": {"type": "string"},
+//                 "message": {"type": "string"},
+//                 "dateIssued": {"type": "string", "format": "date-time"},
+//                 "level": {"type": "string"},
+//                 "source": {"type": ["string", "null"]},
+//                 "expirationDate": {"type": ["string", "null"], "format": "date-time"}
+//             },
+//             "required": ["id", "title", "message", "dateIssued", "level"]
+//         }
+//         """
+//     }
+//     
+//     // MARK: - HTMLParsable Implementation
+//     
+//     public static func parse(from document: Document) throws -> Self {
+//         // Try to find the alert title
+//         let titleOpt = try document.select("[itemprop='headline'], .alert-title, .breaking-news").first()?.text()
+//             ?? document.select("meta[property='og:title']").first()?.attr("content")
+//             ?? document.select("title").first()?.text()
+//         
+//         guard let title = titleOpt else {
+//             throw ParsingError.invalidHTML
+//         }
+//         
+//         // Try to find content
+//         let content = try document.select("[itemprop='articleBody'], .alert-content").first()?.text()
+//             ?? document.select("meta[name='description']").first()?.attr("content")
+//             ?? title
+//         
+//         // Try to find alert type
+//         let alertType = try document.select("[itemprop='alertType'], .alert-type").first()?.text()
+//             ?? "Breaking News"  // Default type
+//         
+//         // Try to find severity
+//         let severityStr = try document.select("[itemprop='severity'], .alert-severity").first()?.text()
+//         let severity: AlertSeverity
+//         switch severityStr?.lowercased() {
+//         case let str where str?.contains("high") ?? false:
+//             severity = .high
+//         case let str where str?.contains("medium") ?? false:
+//             severity = .medium
+//         default:
+//             severity = .low
+//         }
+//         
+//         // Try to find publication date
+//         let dateStr = try document.select("[itemprop='datePublished']").first()?.text()
+//             ?? document.select("[itemprop='datePublished']").first()?.attr("datetime")
+//             ?? document.select("[itemprop='datePublished']").first()?.attr("content")
+//             ?? document.select("meta[property='article:published_time']").first()?.attr("content")
+//         
+//         let publishedAt = dateStr.flatMap { DateFormatter.iso8601Full.date(from: $0) } ?? Date()
+//         
+//         // Try to find source
+//         let source = try document.select("[itemprop='publisher'], .alert-source").first()?.text()
+//             ?? document.select("meta[property='og:site_name']").first()?.attr("content")
+//             ?? "Unknown Source"
+//         
+//         return NewsAlert(
+//             id: UUID().uuidString,
+//             title: title,
+//             content: content,
+//             alertType: alertType,
+//             severity: severity,
+//             publishedAt: publishedAt,
+//             source: source
+//         )
 //     }
 // }
 // 
-// /// Represents the severity or importance level of a news alert.
+// /// Represents the severity level of a news alert.
 // /// Used to categorize alerts by their urgency and significance.
-// public enum AlertLevel: String, Codable, CaseIterable {
+// public enum AlertSeverity: String, Codable, CaseIterable, Sendable {
 //     /// Low priority or informational alert
 //     case low
 //     
 //     /// Medium priority alert with moderate importance
 //     case medium
 //     
-//     /// High priority alert requiring attention
+//     /// High priority alert requiring immediate attention
 //     case high
 //     
-//     /// Critical alert requiring immediate attention
-//     case critical
-//     
-//     /// Returns a human-readable description of the alert level
+//     /// Returns a human-readable description of the alert severity
 //     public var description: String {
 //         switch self {
 //         case .low:
@@ -2353,12 +2349,10 @@
 //             return "Medium Priority"
 //         case .high:
 //             return "High Priority"
-//         case .critical:
-//             return "Critical Priority"
 //         }
 //     }
 //     
-//     /// Returns a color associated with this alert level for UI display
+//     /// Returns a color associated with this alert severity for UI display
 //     public var color: String {
 //         switch self {
 //         case .low:
@@ -2367,8 +2361,6 @@
 //             return "yellow"
 //         case .high:
 //             return "orange"
-//         case .critical:
-//             return "red"
 //         }
 //     }
 // }
@@ -2543,46 +2535,46 @@
 // 
 // /*
 //  # NewsEvent Model
-//  
+// 
 //  This file defines the NewsEvent model, which represents significant events covered in the news
 //  in the UtahNewsData system. NewsEvents can be associated with articles, people, organizations,
 //  and locations, providing a way to track and organize coverage of specific occurrences.
-//  
+// 
 //  ## Key Features:
-//  
+// 
 //  1. Core event information (title, date)
 //  2. Associated content (quotes, facts, statistical data)
 //  3. Categorization
 //  4. Relationships to other entities
-//  
+// 
 //  ## Usage:
-//  
+// 
 //  ```swift
 //  // Create a basic news event
 //  let basicEvent = NewsEvent(
 //      title: "Utah State Fair",
 //      date: Date() // September 5, 2023
 //  )
-//  
+// 
 //  // Create a detailed news event with associated content
 //  let detailedEvent = NewsEvent(
 //      title: "Utah Legislative Session 2023",
 //      date: Date() // January 17, 2023
 //  )
-//  
+// 
 //  // Add quotes to the event
 //  let governorQuote = Quote(
 //      text: "This legislative session will focus on water conservation and education funding.",
 //      speaker: governor // Person entity
 //  )
 //  detailedEvent.quotes.append(governorQuote)
-//  
+// 
 //  // Add facts to the event
 //  let budgetFact = Fact(
 //      statement: "The proposed state budget includes $200 million for water infrastructure."
 //  )
 //  detailedEvent.facts.append(budgetFact)
-//  
+// 
 //  // Add statistical data to the event
 //  let educationStat = StatisticalData(
 //      title: "Education Funding",
@@ -2590,12 +2582,12 @@
 //      unit: "billion dollars"
 //  )
 //  detailedEvent.statisticalData.append(educationStat)
-//  
+// 
 //  // Add categories to the event
 //  let politicsCategory = Category(name: "Politics")
 //  let budgetCategory = Category(name: "Budget")
 //  detailedEvent.categories = [politicsCategory, budgetCategory]
-//  
+// 
 //  // Create relationships with other entities
 //  let articleRelationship = Relationship(
 //      fromEntity: detailedEvent,
@@ -2604,56 +2596,219 @@
 //  )
 //  detailedEvent.relationships.append(articleRelationship)
 //  ```
-//  
+// 
 //  The NewsEvent model implements AssociatedData, allowing it to be linked with
 //  other entities in the UtahNewsData system through relationships.
 //  */
 // 
 // import Foundation
+// import SwiftSoup
 // 
 // /// Represents a significant event covered in the news in the UtahNewsData system.
 // /// NewsEvents can be associated with articles, people, organizations, and locations,
 // /// providing a way to track and organize coverage of specific occurrences.
-// public struct NewsEvent: Codable, Identifiable, Hashable, Equatable, AssociatedData, BaseEntity {
+// public struct NewsEvent: Codable, Identifiable, Hashable, Equatable, AssociatedData, HTMLParsable, Sendable,
+//     JSONSchemaProvider
+// {
 //     /// Unique identifier for the news event
 //     public var id: String
-//     
+// 
 //     /// Relationships to other entities in the system
 //     public var relationships: [Relationship] = []
-//     
+// 
 //     /// The name or headline of the event
 //     public var title: String
-//     
+// 
 //     /// The name property required by the BaseEntity protocol
 //     public var name: String {
 //         return title
 //     }
-//     
+// 
 //     /// When the event occurred
 //     public var date: Date
-//     
+// 
 //     /// Direct quotations related to the event
 //     public var quotes: [Quote] = []
-//     
+// 
 //     /// Verified facts related to the event
 //     public var facts: [Fact] = []
-//     
+// 
 //     /// Statistical data points related to the event
 //     public var statisticalData: [StatisticalData] = []
-//     
+// 
 //     /// Categories that the event belongs to
 //     public var categories: [Category] = []
-//     
+// 
+//     /// Description of the event
+//     public var description: String?
+// 
+//     /// Start date of the event
+//     public var startDate: Date?
+// 
+//     /// End date of the event
+//     public var endDate: Date?
+// 
+//     /// Location of the event
+//     public var location: Location?
+// 
+//     /// Participants in the event
+//     public var participants: [Person]?
+// 
+//     /// Organizations involved in the event
+//     public var organizations: [Organization]?
+// 
+//     /// Related events
+//     public var relatedEvents: [String]?
+// 
 //     /// Creates a new NewsEvent with the specified properties.
 //     ///
 //     /// - Parameters:
 //     ///   - id: Unique identifier for the news event (defaults to a new UUID string)
 //     ///   - title: The name or headline of the event
 //     ///   - date: When the event occurred
-//     public init(id: String = UUID().uuidString, title: String, date: Date) {
+//     ///   - description: Description of the event
+//     ///   - startDate: Start date of the event
+//     ///   - endDate: End date of the event
+//     ///   - location: Location of the event
+//     ///   - participants: Participants in the event
+//     ///   - organizations: Organizations involved in the event
+//     ///   - relatedEvents: Related events
+//     ///   - relationships: Relationships to other entities
+//     public init(
+//         id: String = UUID().uuidString,
+//         title: String,
+//         date: Date,
+//         description: String? = nil,
+//         startDate: Date? = nil,
+//         endDate: Date? = nil,
+//         location: Location? = nil,
+//         participants: [Person]? = nil,
+//         organizations: [Organization]? = nil,
+//         relatedEvents: [String]? = nil,
+//         relationships: [Relationship] = []
+//     ) {
 //         self.id = id
 //         self.title = title
 //         self.date = date
+//         self.description = description
+//         self.startDate = startDate
+//         self.endDate = endDate
+//         self.location = location
+//         self.participants = participants
+//         self.organizations = organizations
+//         self.relatedEvents = relatedEvents
+//         self.relationships = relationships
+//     }
+// 
+//     /// JSON schema for LLM responses
+//     public static var jsonSchema: String {
+//         """
+//         {
+//             "type": "object",
+//             "properties": {
+//                 "id": {"type": "string"},
+//                 "title": {"type": "string"},
+//                 "date": {"type": "string", "format": "date-time"},
+//                 "quotes": {
+//                     "type": "array",
+//                     "items": {"$ref": "#/definitions/Quote"},
+//                     "optional": true
+//                 },
+//                 "facts": {
+//                     "type": "array",
+//                     "items": {"$ref": "#/definitions/Fact"},
+//                     "optional": true
+//                 },
+//                 "statisticalData": {
+//                     "type": "array",
+//                     "items": {"$ref": "#/definitions/StatisticalData"},
+//                     "optional": true
+//                 },
+//                 "categories": {
+//                     "type": "array",
+//                     "items": {"$ref": "#/definitions/Category"},
+//                     "optional": true
+//                 },
+//                 "metadata": {
+//                     "type": "object",
+//                     "additionalProperties": true,
+//                     "optional": true
+//                 }
+//             },
+//             "required": ["id", "title", "date"],
+//             "definitions": {
+//                 "Quote": {"$ref": "Quote.jsonSchema"},
+//                 "Fact": {"$ref": "Fact.jsonSchema"},
+//                 "StatisticalData": {"$ref": "StatisticalData.jsonSchema"},
+//                 "Category": {"$ref": "Category.jsonSchema"}
+//             }
+//         }
+//         """
+//     }
+// 
+//     // MARK: - HTMLParsable Implementation
+//     
+//     public static func parse(from document: Document) throws -> Self {
+//         // Try to find the event title
+//         let titleOpt = try document.select("[itemprop='name'], .event-title, h1").first()?.text()
+//             ?? document.select("meta[property='og:title']").first()?.attr("content")
+//             ?? document.select("title").first()?.text()
+//         
+//         guard let title = titleOpt else {
+//             throw ParsingError.invalidHTML
+//         }
+//         
+//         // Try to find description
+//         let description = try document.select("[itemprop='description'], .event-description").first()?.text()
+//             ?? document.select("meta[name='description']").first()?.attr("content")
+//         
+//         // Try to find dates
+//         let startDateStr = try document.select("[itemprop='startDate'], .event-start-date").first()?.attr("datetime")
+//             ?? document.select("time").first()?.attr("datetime")
+//         
+//         let endDateStr = try document.select("[itemprop='endDate'], .event-end-date").first()?.attr("datetime")
+//         
+//         let dateFormatter = ISO8601DateFormatter()
+//         let startDate = startDateStr.flatMap { dateFormatter.date(from: $0) }
+//         let endDate = endDateStr.flatMap { dateFormatter.date(from: $0) }
+//         
+//         // Try to find location
+//         var location: Location? = nil
+//         if let locationElement = try document.select("[itemprop='location'], .event-location").first() {
+//             let locationDoc = try SwiftSoup.parse(try locationElement.html())
+//             location = try Location.parse(from: locationDoc)
+//         }
+//         
+//         // Try to find participants
+//         var participants: [Person] = []
+//         let participantElements = try document.select("[itemprop='performer'], .event-participant")
+//         for element in participantElements {
+//             let personDoc = try SwiftSoup.parse(try element.html())
+//             if let person = try? Person.parse(from: personDoc) {
+//                 participants.append(person)
+//             }
+//         }
+//         
+//         // Try to find organizations
+//         var organizations: [Organization] = []
+//         let organizationElements = try document.select("[itemprop='organizer'], .event-organizer")
+//         for element in organizationElements {
+//             let orgDoc = try SwiftSoup.parse(try element.html())
+//             if let org = try? Organization.parse(from: orgDoc) {
+//                 organizations.append(org)
+//             }
+//         }
+//         
+//         return NewsEvent(
+//             title: title,
+//             date: startDate ?? Date(),
+//             description: description,
+//             startDate: startDate,
+//             endDate: endDate,
+//             location: location,
+//             participants: participants.isEmpty ? nil : participants,
+//             organizations: organizations.isEmpty ? nil : organizations
+//         )
 //     }
 // }
 
@@ -2667,44 +2822,44 @@
 // 
 // /*
 //  # NewsStory Model
-//  
+// 
 //  This file defines the NewsStory model, which represents a complete news story
 //  in the UtahNewsData system. A news story is a comprehensive journalistic piece
 //  that includes a headline, author attribution, publication date, and categorization.
-//  
+// 
 //  ## Key Features:
-//  
+// 
 //  1. Story identification (headline)
 //  2. Author attribution
 //  3. Publication tracking (publishedDate)
 //  4. Categorization
 //  5. Source attribution
 //  6. Relationship tracking with other entities
-//  
+// 
 //  ## Usage:
-//  
+// 
 //  ```swift
 //  // Create a news story
 //  let reporter = Person(name: "Jane Smith", details: "Staff Reporter")
-//  
+// 
 //  let story = NewsStory(
 //      headline: "Utah Legislature Passes New Water Conservation Bill",
 //      author: reporter,
 //      publishedDate: Date()
 //  )
-//  
+// 
 //  // Add categories
 //  story.categories = [
 //      Category(name: "Politics"),
 //      Category(name: "Environment")
 //  ]
-//  
+// 
 //  // Add sources
 //  story.sources = [
 //      Source(name: "Utah State Legislature", url: "https://le.utah.gov"),
 //      Source(name: "Department of Natural Resources", url: "https://dnr.utah.gov")
 //  ]
-//  
+// 
 //  // Associate with related entities
 //  let billRelationship = Relationship(
 //      id: senateBill101.id,
@@ -2713,7 +2868,7 @@
 //  )
 //  story.relationships.append(billRelationship)
 //  ```
-//  
+// 
 //  The NewsStory model implements AssociatedData, allowing it to maintain
 //  relationships with other entities in the system, such as people, organizations,
 //  and legal documents.
@@ -2724,43 +2879,43 @@
 // /// Represents a complete news story in the news system.
 // /// A news story is a comprehensive journalistic piece that includes
 // /// a headline, author attribution, publication date, and categorization.
-// public struct NewsStory: AssociatedData {
+// public struct NewsStory: AssociatedData, JSONSchemaProvider, Sendable {
 //     /// Unique identifier for the news story
 //     public var id: String
-//     
+// 
 //     /// Relationships to other entities in the system
 //     public var relationships: [Relationship] = []
-//     
+// 
 //     /// Headline or title of the news story
 //     public var headline: String
-//     
+// 
 //     /// Author or reporter who wrote the story
 //     public var author: Person
-//     
+// 
 //     /// When the story was published
 //     public var publishedDate: Date
-//     
+// 
 //     /// Categories or topics associated with the story
 //     public var categories: [Category] = []
-//     
+// 
 //     /// Sources cited or referenced in the story
 //     public var sources: [Source] = []
-//     
+// 
 //     /// The name property required by the AssociatedData protocol.
 //     /// Returns the headline of the story.
 //     public var name: String {
 //         return headline
 //     }
-//     
+// 
 //     /// Full text content of the story
 //     public var content: String?
-//     
+// 
 //     /// URL where the story can be accessed
 //     public var url: String?
-//     
+// 
 //     /// Featured image URL for the story
 //     public var featuredImageURL: String?
-//     
+// 
 //     /// Creates a new news story with the specified properties.
 //     ///
 //     /// - Parameters:
@@ -2788,6 +2943,51 @@
 //         self.url = url
 //         self.featuredImageURL = featuredImageURL
 //     }
+// 
+//     /// JSON schema for LLM responses
+//     public static var jsonSchema: String {
+//         """
+//         {
+//             "type": "object",
+//             "properties": {
+//                 "id": {"type": "string"},
+//                 "headline": {"type": "string"},
+//                 "author": {"$ref": "#/definitions/Person"},
+//                 "publishedDate": {"type": "string", "format": "date-time"},
+//                 "categories": {
+//                     "type": "array",
+//                     "items": {"$ref": "#/definitions/Category"},
+//                     "optional": true
+//                 },
+//                 "sources": {
+//                     "type": "array",
+//                     "items": {"$ref": "#/definitions/Source"},
+//                     "optional": true
+//                 },
+//                 "content": {"type": "string", "optional": true},
+//                 "summary": {"type": "string", "optional": true},
+//                 "keywords": {
+//                     "type": "array",
+//                     "items": {"type": "string"},
+//                     "optional": true
+//                 },
+//                 "url": {"type": "string", "format": "uri", "optional": true},
+//                 "mediaItems": {
+//                     "type": "array",
+//                     "items": {"$ref": "#/definitions/MediaItem"},
+//                     "optional": true
+//                 }
+//             },
+//             "required": ["id", "headline", "author", "publishedDate"],
+//             "definitions": {
+//                 "Person": {"$ref": "Person.jsonSchema"},
+//                 "Category": {"$ref": "Category.jsonSchema"},
+//                 "Source": {"$ref": "Source.jsonSchema"},
+//                 "MediaItem": {"$ref": "MediaItem.jsonSchema"}
+//             }
+//         }
+//         """
+//     }
 // }
 
 // File: Organization.swift
@@ -2800,28 +3000,28 @@
 // 
 // /*
 //  # Organization Model
-//  
+// 
 //  This file defines the Organization model, which represents companies, institutions,
 //  government agencies, and other organizational entities in the UtahNewsData system.
 //  The Organization model is one of the core entity types and can be related to many
 //  other entities such as people, locations, news stories, and more.
-//  
+// 
 //  ## Key Features:
-//  
+// 
 //  1. Core identification (id, name)
 //  2. Organizational description
 //  3. Contact information
 //  4. Web presence
-//  
+// 
 //  ## Usage:
-//  
+// 
 //  ```swift
 //  // Create a basic organization
 //  let organization = Organization(
 //      name: "Utah News Network",
 //      orgDescription: "A news organization covering Utah news"
 //  )
-//  
+// 
 //  // Create an organization with contact information
 //  let detailedOrg = Organization(
 //      name: "Utah Tech Association",
@@ -2835,7 +3035,7 @@
 //      ],
 //      website: "https://utatech.org"
 //  )
-//  
+// 
 //  // Add a relationship to another entity
 //  var updatedOrg = organization
 //  updatedOrg.relationships.append(
@@ -2847,35 +3047,44 @@
 //      )
 //  )
 //  ```
-//  
+// 
 //  The Organization model implements EntityDetailsProvider, which allows it to generate
 //  rich text descriptions for RAG systems.
 //  */
 // 
 // import SwiftUI
+// import Foundation
+// import SwiftSoup
 // 
-// /// Represents an organization in the news data system.
-// /// This can be a company, government agency, non-profit, or any
-// /// organizational entity relevant to news content.
-// public struct Organization: AssociatedData, Codable, Identifiable, Hashable, EntityDetailsProvider {
+// /// Represents an organization in the UtahNewsData system
+// public struct Organization: AssociatedData, Codable, Identifiable, Hashable, Equatable, EntityDetailsProvider, HTMLParsable, Sendable {
 //     /// Unique identifier for the organization
 //     public var id: String
-//     
+// 
 //     /// Relationships to other entities (people, locations, etc.)
 //     public var relationships: [Relationship] = []
-//     
+// 
 //     /// The organization's name
 //     public var name: String
-//     
+// 
 //     /// Description of the organization
 //     /// Note: This is stored as `orgDescription` internally to avoid conflicts with Swift's `description`
 //     public var orgDescription: String?
-//     
+// 
 //     /// Array of contact information entries
 //     public var contactInfo: [ContactInfo]? = []
-//     
+// 
 //     /// Organization's website URL
 //     public var website: String?
+// 
+//     /// Organization's logo URL
+//     public var logoURL: String?
+// 
+//     /// Organization's location
+//     public var location: Location?
+// 
+//     /// Organization's type
+//     public var type: String?
 // 
 //     /// Creates a new Organization instance with the specified properties.
 //     ///
@@ -2885,20 +3094,29 @@
 //     ///   - orgDescription: Description of the organization
 //     ///   - contactInfo: Array of contact information entries
 //     ///   - website: Organization's website URL
+//     ///   - logoURL: Organization's logo URL
+//     ///   - location: Organization's location
+//     ///   - type: Organization's type
 //     public init(
 //         id: String = UUID().uuidString,
 //         name: String,
 //         orgDescription: String? = nil,
 //         contactInfo: [ContactInfo]? = nil,
-//         website: String? = nil
+//         website: String? = nil,
+//         logoURL: String? = nil,
+//         location: Location? = nil,
+//         type: String? = nil
 //     ) {
 //         self.id = id
 //         self.name = name
 //         self.orgDescription = orgDescription
 //         self.contactInfo = contactInfo
 //         self.website = website
+//         self.logoURL = logoURL
+//         self.location = location
+//         self.type = type
 //     }
-//     
+// 
 //     /// Creates an Organization instance by decoding from the given decoder.
 //     /// Handles backward compatibility with the legacy "description" field.
 //     ///
@@ -2908,16 +3126,21 @@
 //         let container = try decoder.container(keyedBy: CodingKeys.self)
 //         // Use decodeIfPresent for id and fall back to a new UUID if missing.
 //         self.id = (try? container.decodeIfPresent(String.self, forKey: .id)) ?? UUID().uuidString
-//         self.relationships = (try? container.decode([Relationship].self, forKey: .relationships)) ?? []
+//         self.relationships =
+//             (try? container.decode([Relationship].self, forKey: .relationships)) ?? []
 //         self.name = try container.decode(String.self, forKey: .name)
 //         // First try the new key "orgDescription", then fall back to the legacy key "description"
-//         let decodedDesc = (try? container.decodeIfPresent(String.self, forKey: .orgDescription))
+//         let decodedDesc =
+//             (try? container.decodeIfPresent(String.self, forKey: .orgDescription))
 //             ?? (try? container.decodeIfPresent(String.self, forKey: .oldDescription))
 //         self.orgDescription = (decodedDesc?.isEmpty ?? true) ? nil : decodedDesc
-//         self.contactInfo = (try? container.decode([ContactInfo].self, forKey: .contactInfo)) ?? []
+//         self.contactInfo = try? container.decode([ContactInfo].self, forKey: .contactInfo)
 //         self.website = try? container.decode(String.self, forKey: .website)
+//         self.logoURL = try? container.decode(String.self, forKey: .logoURL)
+//         self.location = try? container.decode(Location.self, forKey: .location)
+//         self.type = try? container.decode(String.self, forKey: .type)
 //     }
-//     
+// 
 //     /// Encodes the Organization instance to the given encoder.
 //     /// Maintains backward compatibility by encoding to both the new and legacy description fields.
 //     ///
@@ -2932,60 +3155,63 @@
 //         try container.encode(orgDescription, forKey: .oldDescription)
 //         try container.encode(contactInfo, forKey: .contactInfo)
 //         try container.encode(website, forKey: .website)
+//         try container.encode(logoURL, forKey: .logoURL)
+//         try container.encode(location, forKey: .location)
+//         try container.encode(type, forKey: .type)
 //     }
-//     
+// 
 //     /// Keys used for encoding and decoding Organization instances
 //     private enum CodingKeys: String, CodingKey {
 //         case id, relationships, name
 //         case orgDescription
 //         case oldDescription = "description"
-//         case contactInfo, website
+//         case contactInfo, website, logoURL, location, type
 //     }
-//     
+// 
 //     // MARK: - EntityDetailsProvider Implementation
-//     
+// 
 //     /// Generates a detailed description of the organization for RAG context.
 //     /// This includes the organization's description, website, and contact information.
 //     ///
 //     /// - Returns: A formatted string containing the organization's details
 //     public func getDetailedDescription() -> String {
 //         var description = ""
-//         
+// 
 //         if let desc = orgDescription {
 //             description += desc + "\n\n"
 //         }
-//         
+// 
 //         if let website = website {
 //             description += "**Website**: \(website)\n\n"
 //         }
-//         
+// 
 //         // Add contact information
 //         if let contacts = contactInfo, !contacts.isEmpty {
 //             description += "**Contact Information**:\n\n"
-//             
+// 
 //             for (index, contact) in contacts.enumerated() {
 //                 if contacts.count > 1 {
 //                     description += "### Contact \(index + 1)\n"
 //                 }
-//                 
+// 
 //                 description += "**Name**: \(contact.name)\n"
-//                 
+// 
 //                 if let email = contact.email {
 //                     description += "**Email**: \(email)\n"
 //                 }
-//                 
+// 
 //                 if let phone = contact.phone {
 //                     description += "**Phone**: \(phone)\n"
 //                 }
-//                 
+// 
 //                 if let address = contact.address {
 //                     description += "**Address**: \(address)\n"
 //                 }
-//                 
+// 
 //                 if let website = contact.website {
 //                     description += "**Website**: \(website)\n"
 //                 }
-//                 
+// 
 //                 // Add social media handles
 //                 if let socialMedia = contact.socialMediaHandles, !socialMedia.isEmpty {
 //                     description += "\n**Social Media**:\n"
@@ -2993,12 +3219,132 @@
 //                         description += "- \(platform): \(handle)\n"
 //                     }
 //                 }
-//                 
+// 
 //                 description += "\n"
 //             }
 //         }
-//         
+// 
 //         return description
+//     }
+// 
+//     /// JSON schema for LLM responses
+//     public static var jsonSchema: String {
+//         """
+//         {
+//             "type": "object",
+//             "properties": {
+//                 "id": {"type": "string"},
+//                 "name": {"type": "string"},
+//                 "orgDescription": {"type": "string", "optional": true},
+//                 "website": {"type": "string", "format": "uri", "optional": true},
+//                 "contactInfo": {
+//                     "type": "array",
+//                     "items": {
+//                         "$ref": "#/definitions/ContactInfo"
+//                     },
+//                     "optional": true
+//                 },
+//                 "logoURL": {"type": "string", "format": "uri", "optional": true},
+//                 "location": {"$ref": "#/definitions/Location"},
+//                 "type": {"type": "string", "optional": true}
+//             },
+//             "required": ["id", "name"],
+//             "definitions": {
+//                 "ContactInfo": {
+//                     "type": "object",
+//                     "properties": {
+//                         "name": {"type": "string"},
+//                         "email": {"type": "string", "format": "email", "optional": true},
+//                         "phone": {"type": "string", "optional": true},
+//                         "address": {"type": "string", "optional": true},
+//                         "website": {"type": "string", "format": "uri", "optional": true},
+//                         "socialMediaHandles": {
+//                             "type": "object",
+//                             "additionalProperties": {"type": "string"},
+//                             "optional": true
+//                         }
+//                     },
+//                     "required": ["name"]
+//                 },
+//                 "Location": {
+//                     "type": "object",
+//                     "properties": {
+//                         "latitude": {"type": "number"},
+//                         "longitude": {"type": "number"},
+//                         "address": {"type": "string"},
+//                         "city": {"type": "string"},
+//                         "state": {"type": "string"},
+//                         "zipCode": {"type": "string"},
+//                         "country": {"type": "string"}
+//                     },
+//                     "required": ["latitude", "longitude", "address", "city", "state", "zipCode", "country"]
+//                 }
+//             }
+//         }
+//         """
+//     }
+// 
+//     // MARK: - HTMLParsable Implementation
+//     
+//     public static func parse(from document: Document) throws -> Self {
+//         // Try to find the organization name
+//         let nameOpt = try document.select("[itemprop='name'], .org-name, .organization-name").first()?.text()
+//             ?? document.select("meta[property='og:site_name']").first()?.attr("content")
+//             ?? document.select("title").first()?.text()
+//         
+//         guard let name = nameOpt else {
+//             throw ParsingError.invalidHTML
+//         }
+//         
+//         // Try to find description
+//         let description = try document.select("[itemprop='description'], .org-description").first()?.text()
+//             ?? document.select("meta[name='description']").first()?.attr("content")
+//         
+//         // Try to find website
+//         let website = try document.select("[itemprop='url'], link[rel='canonical']").first()?.attr("href")
+//             ?? document.select("meta[property='og:url']").first()?.attr("content")
+//         
+//         // Try to find logo URL
+//         let logoURL = try document.select("[itemprop='logo'], img.org-logo").first()?.attr("src")
+//             ?? document.select("meta[property='og:image']").first()?.attr("content")
+//         
+//         // Try to find organization type
+//         let type = try document.select("[itemprop='organizationType'], .org-type").first()?.text()
+//         
+//         // Try to find location
+//         var location: Location? = nil
+//         if let locationElement = try document.select("[itemprop='location'], .org-location").first() {
+//             let locationDoc = try SwiftSoup.parse(try locationElement.html())
+//             location = try? Location.parse(from: locationDoc)
+//         }
+//         
+//         // Try to find contact info
+//         var contactInfo: [ContactInfo] = []
+//         let contactElements = try document.select("[itemprop='contactPoint'], .contact-info")
+//         for element in contactElements {
+//             let name = try element.select("[itemprop='name'], .contact-name").first()?.text() ?? "Main Contact"
+//             let email = try element.select("[itemprop='email']").first()?.text()
+//             let phone = try element.select("[itemprop='telephone']").first()?.text()
+//             let address = try element.select("[itemprop='address']").first()?.text()
+//             
+//             contactInfo.append(ContactInfo(
+//                 name: name,
+//                 email: email,
+//                 phone: phone,
+//                 address: address
+//             ))
+//         }
+//         
+//         return Organization(
+//             id: UUID().uuidString,
+//             name: name,
+//             orgDescription: description,
+//             contactInfo: contactInfo.isEmpty ? nil : contactInfo,
+//             website: website,
+//             logoURL: logoURL,
+//             location: location,
+//             type: type
+//         )
 //     }
 // }
 
@@ -3013,29 +3359,29 @@
 // 
 // /*
 //  # Person Model
-//  
+// 
 //  This file defines the Person model, which represents individuals in the UtahNewsData system.
 //  The Person model is one of the core entity types and can be related to many other entities
 //  such as organizations, news stories, quotes, and more.
-//  
+// 
 //  ## Key Features:
-//  
+// 
 //  1. Core identification (id, name, details)
 //  2. Biographical information (biography, birth/death dates, nationality)
 //  3. Professional details (occupation, achievements)
 //  4. Contact information (email, phone, website, address)
 //  5. Location data (string representation and coordinates)
 //  6. Social media presence
-//  
+// 
 //  ## Usage:
-//  
+// 
 //  ```swift
 //  // Create a basic person
 //  let person = Person(
 //      name: "Jane Doe",
 //      details: "Reporter for Utah News Network"
 //  )
-//  
+// 
 //  // Create a person with more details
 //  let detailedPerson = Person(
 //      name: "John Smith",
@@ -3045,7 +3391,7 @@
 //      nationality: "American",
 //      notableAchievements: ["Published 3 books", "Regular contributor to major news outlets"]
 //  )
-//  
+// 
 //  // Add a relationship to another entity
 //  var updatedPerson = person
 //  updatedPerson.relationships.append(
@@ -3057,81 +3403,85 @@
 //      )
 //  )
 //  ```
-//  
+// 
 //  The Person model implements EntityDetailsProvider, which allows it to generate
 //  rich text descriptions for RAG systems.
 //  */
 // 
 // import SwiftUI
+// import Foundation
+// import SwiftSoup
 // 
 // /// Represents a person in the news data system.
 // /// This can be a journalist, public figure, expert, or any individual
 // /// relevant to news content.
-// public struct Person: AssociatedData, Codable, Identifiable, Hashable, EntityDetailsProvider {
+// public struct Person: AssociatedData, Codable, Identifiable, Hashable, EntityDetailsProvider,
+//     JSONSchemaProvider, Sendable, HTMLParsable
+// {
 //     // MARK: - Core Properties
-//     
+// 
 //     /// Unique identifier for the person
 //     public var id: String
-//     
+// 
 //     /// Relationships to other entities (organizations, locations, etc.)
 //     public var relationships: [Relationship] = []
-//     
+// 
 //     /// The person's full name
 //     public var name: String
-//     
+// 
 //     /// Brief description or summary of the person
 //     public var details: String
 // 
 //     // MARK: - Additional Public Figure Properties
-//     
+// 
 //     /// Detailed biography or background information
 //     public var biography: String?
-//     
+// 
 //     /// Date of birth, if known
 //     public var birthDate: Date?
-//     
+// 
 //     /// Date of death, if applicable
 //     public var deathDate: Date?
-//     
+// 
 //     /// Professional occupation or role
 //     public var occupation: String?
-//     
+// 
 //     /// Nationality or citizenship
 //     public var nationality: String?
-//     
+// 
 //     /// List of significant achievements or contributions
 //     public var notableAchievements: [String]?
-//     
+// 
 //     /// URL to a profile image or photo
 //     public var imageURL: String?
-//     
+// 
 //     /// Text description of location (e.g., "Salt Lake City, Utah")
 //     public var locationString: String?
-//     
+// 
 //     /// Latitude coordinate for precise location
 //     public var locationLatitude: Double?
-//     
+// 
 //     /// Longitude coordinate for precise location
 //     public var locationLongitude: Double?
-//     
+// 
 //     /// Email address for contact
 //     public var email: String?
-//     
+// 
 //     /// Personal or professional website
 //     public var website: String?
-//     
+// 
 //     /// Phone number for contact
 //     public var phone: String?
-//     
+// 
 //     /// Physical address
 //     public var address: String?
-//     
+// 
 //     /// Dictionary of social media platforms and corresponding handles
 //     /// Example: ["Twitter": "@janedoe", "LinkedIn": "jane-doe"]
 //     public var socialMediaHandles: [String: String]?
 // 
 //     // MARK: - Initializer
-//     
+// 
 //     /// Creates a new Person instance with the specified properties.
 //     ///
 //     /// - Parameters:
@@ -3197,9 +3547,9 @@
 //         self.address = address
 //         self.socialMediaHandles = socialMediaHandles
 //     }
-//     
+// 
 //     // MARK: - Decodable
-//     
+// 
 //     /// Creates a Person instance by decoding from the given decoder.
 //     /// Provides fallbacks for optional properties and generates a UUID if id is missing.
 //     ///
@@ -3210,14 +3560,16 @@
 //         self.name = try container.decode(String.self, forKey: .name)
 //         self.details = try container.decode(String.self, forKey: .details)
 //         self.id = (try? container.decode(String.self, forKey: .id)) ?? UUID().uuidString
-//         self.relationships = (try? container.decode([Relationship].self, forKey: .relationships)) ?? []
-//         
+//         self.relationships =
+//             (try? container.decode([Relationship].self, forKey: .relationships)) ?? []
+// 
 //         self.biography = try? container.decode(String.self, forKey: .biography)
 //         self.birthDate = try? container.decode(Date.self, forKey: .birthDate)
 //         self.deathDate = try? container.decode(Date.self, forKey: .deathDate)
 //         self.occupation = try? container.decode(String.self, forKey: .occupation)
 //         self.nationality = try? container.decode(String.self, forKey: .nationality)
-//         self.notableAchievements = try? container.decode([String].self, forKey: .notableAchievements)
+//         self.notableAchievements = try? container.decode(
+//             [String].self, forKey: .notableAchievements)
 // 
 //         // New properties decoding
 //         self.imageURL = try? container.decode(String.self, forKey: .imageURL)
@@ -3228,11 +3580,12 @@
 //         self.website = try? container.decode(String.self, forKey: .website)
 //         self.phone = try? container.decode(String.self, forKey: .phone)
 //         self.address = try? container.decode(String.self, forKey: .address)
-//         self.socialMediaHandles = try? container.decode([String: String].self, forKey: .socialMediaHandles)
+//         self.socialMediaHandles = try? container.decode(
+//             [String: String].self, forKey: .socialMediaHandles)
 //     }
-//     
+// 
 //     // MARK: - Encodable
-//     
+// 
 //     /// Encodes the Person instance to the given encoder.
 //     ///
 //     /// - Parameter encoder: The encoder to write data to
@@ -3243,14 +3596,14 @@
 //         try container.encode(relationships, forKey: .relationships)
 //         try container.encode(name, forKey: .name)
 //         try container.encode(details, forKey: .details)
-//         
+// 
 //         try container.encode(biography, forKey: .biography)
 //         try container.encode(birthDate, forKey: .birthDate)
 //         try container.encode(deathDate, forKey: .deathDate)
 //         try container.encode(occupation, forKey: .occupation)
 //         try container.encode(nationality, forKey: .nationality)
 //         try container.encode(notableAchievements, forKey: .notableAchievements)
-//         
+// 
 //         // New properties encoding
 //         try container.encode(imageURL, forKey: .imageURL)
 //         try container.encode(locationString, forKey: .locationString)
@@ -3262,19 +3615,20 @@
 //         try container.encode(address, forKey: .address)
 //         try container.encode(socialMediaHandles, forKey: .socialMediaHandles)
 //     }
-//     
+// 
 //     // MARK: - Coding Keys
-//     
+// 
 //     /// Keys used for encoding and decoding Person instances
 //     enum CodingKeys: String, CodingKey {
 //         case id, relationships, name, details
 //         case biography, birthDate, deathDate, occupation, nationality, notableAchievements
 //         // New keys added
-//         case imageURL, locationString, locationLatitude, locationLongitude, email, website, phone, address, socialMediaHandles
+//         case imageURL, locationString, locationLatitude, locationLongitude, email, website, phone,
+//             address, socialMediaHandles
 //     }
-//     
+// 
 //     // MARK: - EntityDetailsProvider Implementation
-//     
+// 
 //     /// Generates a detailed description of the person for RAG context.
 //     /// This includes biographical information, professional details,
 //     /// achievements, location, and contact information.
@@ -3282,23 +3636,23 @@
 //     /// - Returns: A formatted string containing the person's details
 //     public func getDetailedDescription() -> String {
 //         var description = details + "\n\n"
-//         
+// 
 //         if let bio = biography {
 //             description += "**Biography**: \(bio)\n\n"
 //         }
-//         
+// 
 //         if let occupation = occupation {
 //             description += "**Occupation**: \(occupation)\n"
 //         }
-//         
+// 
 //         if let nationality = nationality {
 //             description += "**Nationality**: \(nationality)\n"
 //         }
-//         
+// 
 //         // Add birth/death dates if available
 //         let dateFormatter = DateFormatter()
 //         dateFormatter.dateStyle = .medium
-//         
+// 
 //         if let birthDate = birthDate {
 //             description += "**Born**: \(dateFormatter.string(from: birthDate))"
 //             if let deathDate = deathDate {
@@ -3308,7 +3662,7 @@
 //         } else if let deathDate = deathDate {
 //             description += "**Died**: \(dateFormatter.string(from: deathDate))\n"
 //         }
-//         
+// 
 //         // Add notable achievements
 //         if let achievements = notableAchievements, !achievements.isEmpty {
 //             description += "\n**Notable Achievements**:\n"
@@ -3317,12 +3671,12 @@
 //             }
 //             description += "\n"
 //         }
-//         
+// 
 //         // Add location information
 //         if let location = locationString {
 //             description += "**Location**: \(location)\n"
 //         }
-//         
+// 
 //         // Add contact information
 //         var contactInfo = ""
 //         if let email = email {
@@ -3334,13 +3688,13 @@
 //         if let website = website {
 //             contactInfo += "Website: \(website) | "
 //         }
-//         
+// 
 //         if !contactInfo.isEmpty {
 //             // Remove trailing separator
 //             contactInfo = String(contactInfo.dropLast(3))
 //             description += "\n**Contact**: \(contactInfo)\n"
 //         }
-//         
+// 
 //         // Add social media handles
 //         if let socialMedia = socialMediaHandles, !socialMedia.isEmpty {
 //             description += "\n**Social Media**:\n"
@@ -3348,8 +3702,77 @@
 //                 description += "- \(platform): \(handle)\n"
 //             }
 //         }
-//         
+// 
 //         return description
+//     }
+// 
+//     /// JSON schema for LLM responses
+//     public static var jsonSchema: String {
+//         """
+//         {
+//             "type": "object",
+//             "properties": {
+//                 "id": {"type": "string"},
+//                 "name": {"type": "string"},
+//                 "details": {"type": "string"},
+//                 "biography": {"type": "string", "optional": true},
+//                 "birthDate": {"type": "string", "format": "date-time", "optional": true},
+//                 "deathDate": {"type": "string", "format": "date-time", "optional": true},
+//                 "occupation": {"type": "string", "optional": true},
+//                 "nationality": {"type": "string", "optional": true},
+//                 "notableAchievements": {"type": "array", "items": {"type": "string"}, "optional": true},
+//                 "imageURL": {"type": "string", "optional": true},
+//                 "locationString": {"type": "string", "optional": true},
+//                 "locationLatitude": {"type": "number", "optional": true},
+//                 "locationLongitude": {"type": "number", "optional": true},
+//                 "email": {"type": "string", "format": "email", "optional": true},
+//                 "website": {"type": "string", "format": "uri", "optional": true},
+//                 "phone": {"type": "string", "optional": true},
+//                 "address": {"type": "string", "optional": true},
+//                 "socialMediaHandles": {
+//                     "type": "object",
+//                     "additionalProperties": {"type": "string"},
+//                     "optional": true
+//                 }
+//             },
+//             "required": ["id", "name", "details"]
+//         }
+//         """
+//     }
+// 
+//     // MARK: - HTMLParsable Implementation
+//     
+//     public static func parse(from document: Document) throws -> Self {
+//         // Try to find the person's name
+//         let nameOpt = try document.select("[itemprop='name'], .person-name").first()?.text()
+//             ?? document.select("meta[property='og:title']").first()?.attr("content")
+//             ?? document.select("title").first()?.text()
+//         
+//         guard let name = nameOpt else {
+//             throw ParsingError.invalidHTML
+//         }
+//         
+//         // Try to find role or title
+//         let details = try document.select("[itemprop='jobTitle'], .role, .title, .position").first()?.text()
+//             ?? document.select("meta[name='author:role']").first()?.attr("content")
+//             ?? "Unknown Role"
+//         
+//         // Try to find biography
+//         let biography = try document.select("[itemprop='description'], .biography").first()?.text()
+//             ?? document.select("meta[name='description']").first()?.attr("content")
+//         
+//         // Try to find image URL
+//         let imageURL = try document.select("[itemprop='image'], img.person-image").first()?.attr("src")
+//             ?? document.select("meta[property='og:image']").first()?.attr("content")
+//         
+//         return Person(
+//             id: UUID().uuidString,
+//             relationships: [],
+//             name: name,
+//             details: details,
+//             biography: biography,
+//             imageURL: imageURL
+//         )
 //     }
 // }
 
@@ -3363,32 +3786,32 @@
 // 
 // /*
 //  # Poll Model
-//  
+// 
 //  This file defines the Poll model, which represents opinion polls and surveys
 //  in the UtahNewsData system. Polls capture public opinion on various topics
 //  and issues, providing valuable data for news reporting and analysis.
-//  
+// 
 //  ## Key Features:
-//  
+// 
 //  1. Poll content (question, options)
 //  2. Response tracking
 //  3. Source attribution
 //  4. Timing information (dateConducted)
 //  5. Relationship tracking with other entities
-//  
+// 
 //  ## Usage:
-//  
+// 
 //  ```swift
 //  // Create a poll
 //  let pollster = Source(name: "Utah Opinion Research", url: "https://example.com")
-//  
+// 
 //  let poll = Poll(
 //      question: "Do you support the proposed water conservation bill?",
 //      options: ["Yes", "No", "Undecided"],
 //      dateConducted: Date(),
 //      source: pollster
 //  )
-//  
+// 
 //  // Add responses
 //  poll.responses = [
 //      PollResponse(selectedOption: "Yes"),
@@ -3396,7 +3819,7 @@
 //      PollResponse(selectedOption: "No"),
 //      PollResponse(selectedOption: "Undecided")
 //  ]
-//  
+// 
 //  // Associate with related entities
 //  let topicRelationship = Relationship(
 //      id: waterConservationCategory.id,
@@ -3404,7 +3827,7 @@
 //      displayName: "Related to"
 //  )
 //  poll.relationships.append(topicRelationship)
-//  
+// 
 //  let billRelationship = Relationship(
 //      id: senateBill101.id,
 //      type: .legalDocument,
@@ -3412,29 +3835,50 @@
 //  )
 //  poll.relationships.append(billRelationship)
 //  ```
-//  
+// 
 //  The Poll model implements AssociatedData, allowing it to maintain
 //  relationships with other entities in the system, such as categories,
 //  legal documents, and news stories.
 //  */
 // 
 // import SwiftUI
+// import Foundation
+// import SwiftSoup
 // 
-// /// Represents an opinion poll or survey in the news system.
+// /// Represents an option in a poll that users can vote for.
+// public struct PollOption: Codable, Hashable, Equatable, Sendable {
+//     /// The text of the poll option
+//     public var text: String
+//     
+//     /// The number of votes this option has received
+//     public var votes: Int
+//     
+//     /// Creates a new poll option.
+//     ///
+//     /// - Parameters:
+//     ///   - text: The text of the poll option
+//     ///   - votes: The number of votes this option has received
+//     public init(text: String, votes: Int = 0) {
+//         self.text = text
+//         self.votes = votes
+//     }
+// }
+// 
+// /// Represents a poll or survey in the news system.
 // /// Polls capture public opinion on various topics and issues,
 // /// providing valuable data for news reporting and analysis.
-// public struct Poll: AssociatedData {
+// public struct Poll: AssociatedData, JSONSchemaProvider, HTMLParsable, Codable, Identifiable, Hashable, Equatable, Sendable {
 //     /// Unique identifier for the poll
 //     public var id: String
 //     
 //     /// Relationships to other entities in the system
 //     public var relationships: [Relationship] = []
 //     
-//     /// Question being asked in the poll
+//     /// The question being asked in the poll
 //     public var question: String
 //     
 //     /// Possible answer options for the poll
-//     public var options: [String]
+//     public var options: [PollOption]
 //     
 //     /// Collected responses to the poll
 //     public var responses: [PollResponse] = []
@@ -3443,40 +3887,40 @@
 //     public var dateConducted: Date
 //     
 //     /// Organization or entity that conducted the poll
-//     public var source: Source
+//     public var source: String
+//     
+//     /// Statistical margin of error for the poll results
+//     public var marginOfError: Double?
+//     
+//     /// Number of people who participated in the poll
+//     public var sampleSize: Int?
+//     
+//     /// Description of the demographic groups included in the poll
+//     public var demographics: String?
 //     
 //     /// The name property required by the AssociatedData protocol.
-//     /// Returns the question of the poll.
+//     /// Returns the poll question.
 //     public var name: String {
 //         return question
 //     }
-//     
-//     /// Margin of error for the poll results (as a percentage)
-//     public var marginOfError: Double?
-//     
-//     /// Size of the sample population
-//     public var sampleSize: Int?
-//     
-//     /// Demographic information about the poll respondents
-//     public var demographics: String?
 //     
 //     /// Creates a new poll with the specified properties.
 //     ///
 //     /// - Parameters:
 //     ///   - id: Unique identifier for the poll (defaults to a new UUID string)
-//     ///   - question: Question being asked in the poll
+//     ///   - question: The question being asked in the poll
 //     ///   - options: Possible answer options for the poll
 //     ///   - dateConducted: When the poll was conducted
 //     ///   - source: Organization or entity that conducted the poll
-//     ///   - marginOfError: Margin of error for the poll results (as a percentage)
-//     ///   - sampleSize: Size of the sample population
-//     ///   - demographics: Demographic information about the poll respondents
+//     ///   - marginOfError: Statistical margin of error for the poll results
+//     ///   - sampleSize: Number of people who participated in the poll
+//     ///   - demographics: Description of the demographic groups included in the poll
 //     public init(
 //         id: String = UUID().uuidString,
 //         question: String,
-//         options: [String],
+//         options: [PollOption],
 //         dateConducted: Date,
-//         source: Source,
+//         source: String,
 //         marginOfError: Double? = nil,
 //         sampleSize: Int? = nil,
 //         demographics: String? = nil
@@ -3496,41 +3940,153 @@
 //     /// - Returns: A dictionary mapping option strings to response counts
 //     public func getResults() -> [String: Int] {
 //         var results: [String: Int] = [:]
-//         
+// 
 //         // Initialize all options with zero responses
 //         for option in options {
-//             results[option] = 0
+//             results[option.text] = 0
 //         }
-//         
+// 
 //         // Count responses for each option
 //         for response in responses {
 //             if let count = results[response.selectedOption] {
 //                 results[response.selectedOption] = count + 1
 //             }
 //         }
-//         
+// 
 //         return results
+//     }
+// 
+//     /// Provides the JSON schema for Poll.
+//     public static var jsonSchema: String {
+//         return """
+//         {
+//             "type": "object",
+//             "properties": {
+//                 "id": {"type": "string"},
+//                 "relationships": {
+//                     "type": "array",
+//                     "items": {"type": "object"}
+//                 },
+//                 "question": {"type": "string"},
+//                 "options": {
+//                     "type": "array",
+//                     "items": {
+//                         "type": "object",
+//                         "properties": {
+//                             "text": {"type": "string"},
+//                             "votes": {"type": "integer"}
+//                         },
+//                         "required": ["text", "votes"]
+//                     }
+//                 },
+//                 "responses": {
+//                     "type": "array",
+//                     "items": {
+//                         "type": "object",
+//                         "properties": {
+//                             "selectedOption": {"type": "string"},
+//                             "timestamp": {"type": "string", "format": "date-time", "optional": true},
+//                             "respondentId": {"type": "string", "optional": true},
+//                             "metadata": {
+//                                 "type": "object",
+//                                 "additionalProperties": true,
+//                                 "optional": true
+//                             }
+//                         },
+//                         "required": ["selectedOption"]
+//                     }
+//                 },
+//                 "dateConducted": {"type": "string", "format": "date-time"},
+//                 "source": {"type": "string"},
+//                 "marginOfError": {"type": ["number", "null"]},
+//                 "sampleSize": {"type": ["integer", "null"]},
+//                 "demographics": {"type": ["string", "null"]}
+//             },
+//             "required": ["id", "question", "options", "dateConducted", "source"]
+//         }
+//         """
+//     }
+// 
+//     // MARK: - HTMLParsable Implementation
+//     
+//     public static func parse(from document: Document) throws -> Self {
+//         // Try to find the poll question
+//         let questionOpt = try document.select("[itemprop='question'], .poll-question").first()?.text()
+//             ?? document.select("meta[property='og:title']").first()?.attr("content")
+//             ?? document.select("title").first()?.text()
+//         
+//         guard let question = questionOpt else {
+//             throw ParsingError.invalidHTML
+//         }
+//         
+//         // Try to find poll options
+//         var options: [PollOption] = []
+//         let optionElements = try document.select("[itemprop='option'], .poll-option")
+//         for element in optionElements {
+//             let text = try element.text()
+//             let votes = Int(try element.attr("data-votes")) ?? 0
+//             options.append(PollOption(text: text, votes: votes))
+//         }
+//         
+//         // If no options found, try looking for list items
+//         if options.isEmpty {
+//             let listItems = try document.select("ul.poll-options li, ol.poll-options li")
+//             for item in listItems {
+//                 options.append(PollOption(text: try item.text(), votes: 0))
+//             }
+//         }
+//         
+//         // Try to find source
+//         let source = try document.select("[itemprop='sourceOrganization'], .poll-source").first()?.text()
+//             ?? document.select("meta[property='og:site_name']").first()?.attr("content")
+//             ?? "Unknown Source"
+//         
+//         // Try to find date
+//         let dateStr = try document.select("[itemprop='datePublished']").first()?.attr("datetime")
+//             ?? document.select("meta[property='article:published_time']").first()?.attr("content")
+//         
+//         let dateConducted = dateStr.flatMap { DateFormatter.iso8601Full.date(from: $0) } ?? Date()
+//         
+//         // Try to find margin of error
+//         let marginOfError = try Double(document.select(".margin-of-error").first()?.text().replacingOccurrences(of: "%", with: "") ?? "")
+//         
+//         // Try to find sample size
+//         let sampleSize = try Int(document.select(".sample-size").first()?.text() ?? "")
+//         
+//         // Try to find demographics
+//         let demographics = try document.select(".demographics").first()?.text()
+//         
+//         return Poll(
+//             id: UUID().uuidString,
+//             question: question,
+//             options: options,
+//             dateConducted: dateConducted,
+//             source: source,
+//             marginOfError: marginOfError,
+//             sampleSize: sampleSize,
+//             demographics: demographics
+//         )
 //     }
 // }
 // 
 // /// Represents a single response to a poll.
 // /// Each response captures the selected option and optionally
 // /// the person who responded.
-// public struct PollResponse: BaseEntity, Codable, Hashable {
+// public struct PollResponse: BaseEntity, Codable, Hashable, Sendable {
 //     /// Unique identifier for the poll response
 //     public var id: String
-//     
+// 
 //     /// The name or description of this poll response
 //     public var name: String {
 //         return "Response to poll: \(selectedOption)"
 //     }
-//     
+// 
 //     /// Person who responded to the poll (optional for anonymous polls)
 //     public var respondent: Person?
-//     
+// 
 //     /// The option selected by the respondent
 //     public var selectedOption: String
-//     
+// 
 //     /// Creates a new poll response with the specified properties.
 //     ///
 //     /// - Parameters:
@@ -3554,27 +4110,27 @@
 // 
 // /*
 //  # Quote Model
-//  
+// 
 //  This file defines the Quote model, which represents direct quotations from individuals
 //  in the UtahNewsData system. Quotes can be associated with articles, news events, and other
 //  content types, providing attribution and context for statements.
-//  
+// 
 //  ## Key Features:
-//  
+// 
 //  1. Core content (text of the quote)
 //  2. Attribution (speaker, source)
 //  3. Contextual information (date, location, topic)
 //  4. Related entities
-//  
+// 
 //  ## Usage:
-//  
+// 
 //  ```swift
 //  // Create a basic quote
 //  let basicQuote = Quote(
 //      text: "We're committed to improving Utah's water infrastructure.",
 //      speaker: governor // Person entity
 //  )
-//  
+// 
 //  // Create a detailed quote with context
 //  let detailedQuote = Quote(
 //      text: "The new legislation represents a significant step forward in addressing our state's water conservation needs.",
@@ -3585,66 +4141,67 @@
 //      topics: ["Water Conservation", "Legislation", "Infrastructure"],
 //      location: capitolBuilding // Location entity
 //  )
-//  
+// 
 //  // Associate quote with an article
 //  let article = Article(
 //      title: "Utah Passes Water Conservation Bill",
 //      body: ["The Utah Legislature passed a comprehensive water conservation bill on Monday..."]
 //  )
-//  
+// 
 //  // Create relationship between quote and article
 //  let relationship = Relationship(
 //      fromEntity: detailedQuote,
 //      toEntity: article,
 //      type: .quotedIn
 //  )
-//  
+// 
 //  detailedQuote.relationships.append(relationship)
 //  article.relationships.append(relationship)
 //  ```
-//  
+// 
 //  The Quote model implements EntityDetailsProvider, allowing it to generate
 //  rich text descriptions for RAG (Retrieval Augmented Generation) systems.
 //  */
 // 
 // import Foundation
+// import SwiftSoup
 // 
 // /// Represents a direct quotation from an individual in the UtahNewsData system.
 // /// Quotes can be associated with articles, news events, and other content types,
 // /// providing attribution and context for statements.
-// public struct Quote: Identifiable, EntityDetailsProvider {
+// public struct Quote: Identifiable, EntityDetailsProvider, JSONSchemaProvider, Sendable {
 //     /// Unique identifier for the quote
 //     public var id: String = UUID().uuidString
-//     
+// 
 //     /// The name property required by the BaseEntity protocol
 //     public var name: String {
 //         return text.count > 50 ? String(text.prefix(47)) + "..." : text
 //     }
-//     
+// 
 //     /// Relationships to other entities in the system
 //     public var relationships: [Relationship] = []
-//     
+// 
 //     /// The actual text of the quotation
 //     public var text: String
-//     
+// 
 //     /// The person who made the statement
 //     public var speaker: Person?
-//     
+// 
 //     /// The event, article, or other source where the quote originated
 //     public var source: (any EntityDetailsProvider)?
-//     
+// 
 //     /// When the statement was made
 //     public var date: Date?
-//     
+// 
 //     /// Additional information about the circumstances of the quote
 //     public var context: String?
-//     
+// 
 //     /// Subject areas or keywords related to the quote
 //     public var topics: [String]?
-//     
+// 
 //     /// Where the statement was made
 //     public var location: Location?
-//     
+// 
 //     /// Creates a new Quote with the specified properties.
 //     ///
 //     /// - Parameters:
@@ -3672,53 +4229,149 @@
 //         self.topics = topics
 //         self.location = location
 //     }
-//     
+// 
 //     /// Generates a detailed text description of the quote for use in RAG systems.
 //     /// The description includes the quote text, speaker, source, and contextual information.
 //     ///
 //     /// - Returns: A formatted string containing the quote's details
 //     public func getDetailedDescription() -> String {
 //         var description = "QUOTE: \"\(text)\""
-//         
+// 
 //         if let speaker = speaker {
 //             description += "\nSpeaker: \(speaker.name)"
 //         }
-//         
+// 
 //         if let date = date {
 //             let formatter = DateFormatter()
 //             formatter.dateStyle = .medium
 //             description += "\nDate: \(formatter.string(from: date))"
 //         }
-//         
+// 
 //         if let context = context {
 //             description += "\nContext: \(context)"
 //         }
-//         
+// 
 //         if let location = location {
 //             description += "\nLocation: \(location.name)"
 //         }
-//         
+// 
 //         if let topics = topics, !topics.isEmpty {
 //             description += "\nTopics: \(topics.joined(separator: ", "))"
 //         }
-//         
+// 
 //         return description
+//     }
+// 
+//     /// JSON schema for LLM responses
+//     public static var jsonSchema: String {
+//         """
+//         {
+//             "type": "object",
+//             "properties": {
+//                 "id": {"type": "string"},
+//                 "text": {"type": "string"},
+//                 "speaker": {"$ref": "#/definitions/Person"},
+//                 "source": {"$ref": "#/definitions/NewsEvent", "optional": true},
+//                 "date": {"type": "string", "format": "date-time", "optional": true},
+//                 "context": {"type": "string", "optional": true},
+//                 "topics": {
+//                     "type": "array",
+//                     "items": {"type": "string"},
+//                     "optional": true
+//                 },
+//                 "location": {"$ref": "#/definitions/Location", "optional": true},
+//                 "sentiment": {"type": "string", "optional": true},
+//                 "verificationStatus": {
+//                     "type": "string",
+//                     "enum": ["verified", "unverified", "disputed", "retracted"],
+//                     "optional": true
+//                 },
+//                 "metadata": {
+//                     "type": "object",
+//                     "additionalProperties": true,
+//                     "optional": true
+//                 }
+//             },
+//             "required": ["id", "text", "speaker"],
+//             "definitions": {
+//                 "Person": {"$ref": "Person.jsonSchema"},
+//                 "NewsEvent": {"$ref": "NewsEvent.jsonSchema"},
+//                 "Location": {"$ref": "Location.jsonSchema"}
+//             }
+//         }
+//         """
+//     }
+// 
+//     // MARK: - HTMLParsable Implementation
+//     
+//     public static func parse(from document: Document) throws -> Self {
+//         // Try to find quote text
+//         let textOpt = try document.select("[itemprop='text'], .quote-text, blockquote").first()?.text()
+//             ?? document.select("meta[property='og:description']").first()?.attr("content")
+//             ?? document.select("title").first()?.text()
+//         
+//         guard let text = textOpt else {
+//             throw ParsingError.invalidHTML
+//         }
+//         
+//         // Try to find speaker
+//         let speakerName = try document.select("[itemprop='author'], .quote-author").first()?.text()
+//             ?? document.select("meta[name='author']").first()?.attr("content")
+//         
+//         // Create Person object from speaker name if available
+//         var speaker: Person? = nil
+//         if let speakerName = speakerName {
+//             speaker = Person(name: speakerName, details: "Speaker of the quote")
+//         }
+//         
+//         // Try to find source
+//         let source = try document.select("[itemprop='publisher'], .quote-source").first()?.text()
+//             ?? document.select("meta[property='og:site_name']").first()?.attr("content")
+//         
+//         // Try to find date
+//         let dateStr = try document.select("[itemprop='datePublished']").first()?.attr("datetime")
+//             ?? document.select("meta[property='article:published_time']").first()?.attr("content")
+//         
+//         let date = dateStr.flatMap { DateFormatter.iso8601Full.date(from: $0) }
+//         
+//         // Try to find context
+//         let context = try document.select("[itemprop='description'], .quote-context").first()?.text()
+//             ?? document.select("meta[name='description']").first()?.attr("content")
+//         
+//         // Try to find topics
+//         let keywordsText = try document.select("[itemprop='keywords'], .quote-topics").first()?.text()
+//             ?? document.select("meta[name='keywords']").first()?.attr("content")
+//         
+//         let topics = keywordsText?.components(separatedBy: ",").map { $0.trimmingCharacters(in: .whitespaces) } ?? []
+//         
+//         // Try to find location
+//         var location: Location? = nil
+//         if let locationElement = try document.select("[itemprop='location'], .quote-location").first() {
+//             let locationDoc = try SwiftSoup.parse(try locationElement.html())
+//             location = try? Location.parse(from: locationDoc)
+//         }
+//         
+//         return Quote(
+//             text: text,
+//             speaker: speaker,
+//             source: nil, // TODO: Create appropriate source object based on source string
+//             date: date,
+//             context: context,
+//             topics: topics.isEmpty ? nil : topics,
+//             location: location
+//         )
 //     }
 // }
 // 
 // // MARK: - Equatable & Hashable
 // extension Quote: Equatable, Hashable {
 //     public static func == (lhs: Quote, rhs: Quote) -> Bool {
-//         lhs.id == rhs.id &&
-//         lhs.text == rhs.text &&
-//         lhs.speaker == rhs.speaker &&
-//         lhs.date == rhs.date &&
-//         lhs.context == rhs.context &&
-//         lhs.topics == rhs.topics &&
-//         lhs.location == rhs.location
+//         lhs.id == rhs.id && lhs.text == rhs.text && lhs.speaker == rhs.speaker
+//             && lhs.date == rhs.date && lhs.context == rhs.context && lhs.topics == rhs.topics
+//             && lhs.location == rhs.location
 //         // Note: source is not compared as it's an EntityDetailsProvider which doesn't conform to Equatable
 //     }
-//     
+// 
 //     public func hash(into hasher: inout Hasher) {
 //         hasher.combine(id)
 //         hasher.combine(text)
@@ -3737,10 +4390,10 @@
 //         case id, relationships, text, speaker, date, context, topics, location
 //         // Note: source is excluded as it's an EntityDetailsProvider which doesn't conform to Codable
 //     }
-//     
+// 
 //     public init(from decoder: Decoder) throws {
 //         let container = try decoder.container(keyedBy: CodingKeys.self)
-//         
+// 
 //         id = try container.decode(String.self, forKey: .id)
 //         relationships = try container.decode([Relationship].self, forKey: .relationships)
 //         text = try container.decode(String.self, forKey: .text)
@@ -3749,12 +4402,12 @@
 //         context = try container.decodeIfPresent(String.self, forKey: .context)
 //         topics = try container.decodeIfPresent([String].self, forKey: .topics)
 //         location = try container.decodeIfPresent(Location.self, forKey: .location)
-//         source = nil // Cannot decode EntityDetailsProvider
+//         source = nil  // Cannot decode EntityDetailsProvider
 //     }
-//     
+// 
 //     public func encode(to encoder: Encoder) throws {
 //         var container = encoder.container(keyedBy: CodingKeys.self)
-//         
+// 
 //         try container.encode(id, forKey: .id)
 //         try container.encode(relationships, forKey: .relationships)
 //         try container.encode(text, forKey: .text)
@@ -3777,25 +4430,25 @@
 // 
 // /*
 //  # ScrapeStory Model
-//  
+// 
 //  This file defines the ScrapeStory model and related response structures used for
 //  web scraping operations in the UtahNewsData system. These models represent the raw
 //  data extracted from news websites before it's processed into the system's domain models.
-//  
+// 
 //  ## Key Components:
-//  
+// 
 //  1. ScrapeStory: Raw story data extracted from a web page
 //  2. StoryExtract: Collection of scraped stories
 //  3. Response structures: Wrappers for API responses
-//  
+// 
 //  ## Usage:
-//  
+// 
 //  ```swift
 //  // Process a scraped story into an Article
 //  func processScrapedStory(story: ScrapeStory, baseURL: String) -> Article? {
 //      return Article(from: story, baseURL: baseURL)
 //  }
-//  
+// 
 //  // Handle a FirecrawlResponse from the scraping service
 //  func handleScrapingResponse(response: FirecrawlResponse) {
 //      if response.success {
@@ -3809,7 +4462,7 @@
 //      }
 //  }
 //  ```
-//  
+// 
 //  The ScrapeStory model is designed to be a flexible container for raw scraped data,
 //  with optional properties to accommodate the varying information available from
 //  different news sources.
@@ -3818,16 +4471,16 @@
 // import Foundation
 // 
 // /// Collection of scraped stories from a web source.
-// public struct StoryExtract: BaseEntity, Codable {
+// public struct StoryExtract: BaseEntity, Codable, Sendable {
 //     /// Unique identifier for the story extract
 //     public var id: String = UUID().uuidString
-//     
+// 
 //     /// The name or description of this story extract
 //     public var name: String = "Story Extract"
-//     
+// 
 //     /// Array of scraped stories
 //     public let stories: [ScrapeStory]
-//     
+// 
 //     /// Creates a new story extract with the specified stories.
 //     /// - Parameter stories: Array of scraped stories
 //     public init(stories: [ScrapeStory]) {
@@ -3840,90 +4493,90 @@
 // public struct ScrapeStory: BaseEntity, Codable, Sendable {
 //     /// Unique identifier for the scraped story
 //     public var id: String
-//     
+// 
 //     /// The name or title of this scraped story
 //     public var name: String {
 //         return title ?? "Untitled Story"
 //     }
-//     
+// 
 //     /// Title or headline of the story
 //     public var title: String?
-//     
+// 
 //     /// Main text content of the story
 //     public var textContent: String?
-//     
+// 
 //     /// URL where the story can be accessed
 //     public var url: String?
-//     
+// 
 //     /// URL to the main image for the story
 //     public var urlToImage: String?
-//     
+// 
 //     /// URLs to additional images in the story
 //     public var additionalImages: [String]?
-//     
+// 
 //     /// When the story was published (as a string, needs parsing)
 //     public var publishedAt: String?
-//     
+// 
 //     /// Author or creator of the story
 //     public var author: String?
-//     
+// 
 //     /// Category or section the story belongs to
 //     public var category: String?
-//     
+// 
 //     /// URL to video content associated with the story
 //     public var videoURL: String?
 // }
 // 
 // /// Response structure for a single story extraction API call.
-// public struct SingleStoryResponse: BaseEntity, Codable {
+// public struct SingleStoryResponse: BaseEntity, Codable, Sendable {
 //     /// Unique identifier for the response
 //     public var id: String = UUID().uuidString
-//     
+// 
 //     /// The name or description of this response
 //     public var name: String = "Single Story Response"
-//     
+// 
 //     /// Whether the extraction was successful
 //     public let success: Bool
-//     
+// 
 //     /// The extracted data
 //     public let data: SingleStoryData
 // }
 // 
 // /// Container for a single extracted story.
-// public struct SingleStoryData: BaseEntity, Codable {
+// public struct SingleStoryData: BaseEntity, Codable, Sendable {
 //     /// Unique identifier for the data container
 //     public var id: String = UUID().uuidString
-//     
+// 
 //     /// The name or description of this data container
 //     public var name: String = "Single Story Data"
-//     
+// 
 //     /// The extracted story
 //     public let extract: ScrapeStory
 // }
 // 
 // /// Response structure for a batch crawling API call.
-// public struct FirecrawlResponse: BaseEntity, Codable {
+// public struct FirecrawlResponse: BaseEntity, Codable, Sendable {
 //     /// Unique identifier for the response
 //     public var id: String = UUID().uuidString
-//     
+// 
 //     /// The name or description of this response
 //     public var name: String = "Firecrawl Response"
-//     
+// 
 //     /// Whether the crawling operation was successful
 //     public let success: Bool
-//     
+// 
 //     /// The extracted data
 //     public let data: FirecrawlData
 // }
 // 
 // /// Container for batch extracted stories.
-// public struct FirecrawlData: BaseEntity, Codable {
+// public struct FirecrawlData: BaseEntity, Codable, Sendable {
 //     /// Unique identifier for the data container
 //     public var id: String = UUID().uuidString
-//     
+// 
 //     /// The name or description of this data container
 //     public var name: String = "Firecrawl Data"
-//     
+// 
 //     /// Collection of extracted stories
 //     public let extract: StoryExtract
 // }
@@ -4074,21 +4727,21 @@
 // 
 // /*
 //  # Source Model
-//  
+// 
 //  This file defines the Source model, which represents news sources and information providers
 //  in the UtahNewsData system. Sources can include news organizations, government agencies,
 //  academic institutions, and other entities that produce or distribute news content.
-//  
+// 
 //  ## Key Features:
-//  
+// 
 //  1. Source identification and attribution
 //  2. Credibility assessment
 //  3. Categorization by type and subject area
 //  4. Metadata for content discovery (siteMapURL, JSONSchema)
 //  5. Relationship tracking with other entities
-//  
+// 
 //  ## Usage:
-//  
+// 
 //  ```swift
 //  // Create a news source
 //  let tribune = Source(
@@ -4099,10 +4752,10 @@
 //      subCategory: .newspaper,
 //      description: "Utah's largest newspaper, covering news, politics, business, and sports across the state."
 //  )
-//  
+// 
 //  // Add sitemap information for content discovery
 //  tribune.siteMapURL = URL(string: "https://www.sltrib.com/sitemap.xml")
-//  
+// 
 //  // Associate with related entities
 //  let ownerRelationship = Relationship(
 //      id: mediaGroup.id,
@@ -4111,14 +4764,15 @@
 //  )
 //  tribune.relationships.append(ownerRelationship)
 //  ```
-//  
+// 
 //  The Source model implements AssociatedData, allowing it to maintain
 //  relationships with other entities in the system, such as parent companies,
 //  affiliated organizations, and key personnel.
 //  */
 // 
 // import SwiftUI
-// 
+// import Foundation
+// import SwiftSoup
 // 
 // // By aligning the Source struct with the schema defined in NewsSource, you can decode
 // // Firestore documents that match the NewsSource structure directly into Source.
@@ -4129,7 +4783,8 @@
 // /// Represents a news source or information provider in the news system.
 // /// Sources can include news organizations, government agencies, academic institutions,
 // /// and other entities that produce or distribute news content.
-// public struct Source: AssociatedData, Codable, Identifiable, Hashable, Equatable { // Adding Identifiable for convenience
+// public struct Source: AssociatedData, Codable, Identifiable, Hashable, Equatable, JSONSchemaProvider, HTMLParsable, Sendable
+// {
 //     /// Unique identifier for the source
 //     public var id: String
 //     /// Relationships to other entities in the system
@@ -4146,31 +4801,47 @@
 //     /// URL to the source's sitemap, used for content discovery
 //     public var siteMapURL: URL?
 //     /// Primary category of the source
-//     public var category: NewsSourceCategory
+//     public var category: String?
 //     /// Subcategory providing more specific classification
 //     public var subCategory: NewsSourceSubcategory?
 //     /// Detailed description of the source, its focus, and its background
 //     public var description: String?
 //     /// JSON schema for parsing content from this source, if available
 //     public var JSONSchema: JSONSchema?
+//     /// Type of the source
+//     public var type: String
+//     /// Whether the source is active
+//     public var isActive: Bool
+//     /// Last checked date
+//     public var lastChecked: Date
+//     /// Whether the source has robots.txt
+//     public var hasRobotsTxt: Bool
+//     /// Whether the source has sitemap
+//     public var hasSitemap: Bool
+//     /// Feed URLs
+//     public var feedUrls: [String]
+//     /// Metadata
+//     public var metadata: [String: String]
+//     /// Language code for the source's content (e.g., "en-US")
+//     public var language: String?
 // 
 //     // If needed, a custom initializer to create a Source from a NewsSource instance:
-// //    public init(
-// //        newsSource: NewsSource,
-// //        credibilityRating: Int? = nil,
-// //        relationships: [Relationship] = []
-// //    ) {
-// //        self.id = newsSource.id
-// //        self.name = newsSource.name
-// //        self.url = newsSource.url
-// //        self.category = newsSource.category
-// //        self.subCategory = newsSource.subCategory
-// //        self.description = newsSource.description
-// //        self.JSONSchema = newsSource.JSONSchema
-// //        self.siteMapURL = newsSource.siteMapURL
-// //        self.credibilityRating = credibilityRating
-// //        self.relationships = relationships
-// //    }
+//     //    public init(
+//     //        newsSource: NewsSource,
+//     //        credibilityRating: Int? = nil,
+//     //        relationships: [Relationship] = []
+//     //    ) {
+//     //        self.id = newsSource.id
+//     //        self.name = newsSource.name
+//     //        self.url = newsSource.url
+//     //        self.category = newsSource.category
+//     //        self.subCategory = newsSource.subCategory
+//     //        self.description = newsSource.description
+//     //        self.JSONSchema = newsSource.JSONSchema
+//     //        self.siteMapURL = newsSource.siteMapURL
+//     //        self.credibilityRating = credibilityRating
+//     //        self.relationships = relationships
+//     //    }
 // 
 //     // If you do not have a direct use for the old initializer, you can remove it,
 //     // or provide a default one that suits your Firestore decode scenario.
@@ -4180,45 +4851,121 @@
 //     ///   - id: Unique identifier for the source (defaults to a new UUID string)
 //     ///   - name: Name of the news source or information provider
 //     ///   - url: URL to the source's website or main page
-//     ///   - credibilityRating: Rating from 1-5 indicating the source's credibility
-//     ///   - siteMapURL: URL to the source's sitemap, used for content discovery
-//     ///   - category: Primary category of the source
-//     ///   - subCategory: Subcategory providing more specific classification
 //     ///   - description: Detailed description of the source
-//     ///   - JSONSchema: JSON schema for parsing content from this source
+//     ///   - category: Primary category of the source
+//     ///   - language: Language code for the source's content
 //     public init(
 //         id: String = UUID().uuidString,
 //         name: String,
 //         url: String,
-//         category: NewsSourceCategory = .general,
-//         subCategory: NewsSourceSubcategory? = nil,
 //         description: String? = nil,
-//         JSONSchema: JSONSchema? = nil,
-//         siteMapURL: URL? = nil,
-//         credibilityRating: Int? = nil,
-//         relationships: [Relationship] = []
+//         category: String? = nil,
+//         language: String? = nil
 //     ) {
 //         self.id = id
 //         self.name = name
 //         self.url = url
-//         self.category = category
-//         self.subCategory = subCategory
 //         self.description = description
-//         self.JSONSchema = JSONSchema
-//         self.siteMapURL = siteMapURL
-//         self.credibilityRating = credibilityRating
-//         self.relationships = relationships
+//         self.category = category
+//         self.language = language
+//         self.type = "news" // Default type
+//         self.isActive = true // Default to active
+//         self.lastChecked = Date() // Current date
+//         self.hasRobotsTxt = false // Default to false
+//         self.hasSitemap = false // Default to false
+//         self.feedUrls = [] // Empty array
+//         self.metadata = [:] // Empty dictionary
+//     }
+// 
+//     /// JSON schema for LLM responses
+//     public static var jsonSchema: String {
+//         """
+//         {
+//             "type": "object",
+//             "properties": {
+//                 "id": {"type": "string"},
+//                 "name": {"type": "string"},
+//                 "url": {"type": "string", "format": "uri"},
+//                 "credibilityRating": {"type": "number", "minimum": 0, "maximum": 5, "optional": true},
+//                 "category": {"type": "string", "optional": true},
+//                 "subCategory": {"type": "string", "optional": true},
+//                 "description": {"type": "string", "optional": true},
+//                 "siteMapURL": {"type": "string", "format": "uri", "optional": true},
+//                 "rssFeeds": {
+//                     "type": "array",
+//                     "items": {"type": "string", "format": "uri"},
+//                     "optional": true
+//                 },
+//                 "contactInfo": {
+//                     "type": "object",
+//                     "properties": {
+//                         "email": {"type": "string", "format": "email"},
+//                         "phone": {"type": "string"},
+//                         "address": {"type": "string"}
+//                     },
+//                     "optional": true
+//                 }
+//             },
+//             "required": ["id", "name", "url"]
+//         }
+//         """
+//     }
+// 
+//     // MARK: - HTMLParsable Implementation
+//     
+//     public static func parse(from document: Document) throws -> Self {
+//         // Try to find the source name
+//         let nameOpt = try document.select(".source h2[itemprop='name']").first()?.text()
+//             ?? document.select("[itemprop='name'], .source-name").first()?.text()
+//             ?? document.select("meta[property='og:site_name']").first()?.attr("content")
+//             ?? document.select("meta[name='author']").first()?.attr("content")
+//             ?? document.select("title").first()?.text()
+//         
+//         guard let name = nameOpt else {
+//             throw ParsingError.invalidHTML
+//         }
+//         
+//         // Try to find URL
+//         let url = try document.select(".source a[itemprop='url']").first()?.attr("href")
+//             ?? document.select("[itemprop='url']").first()?.attr("href")
+//             ?? document.select("meta[property='og:url']").first()?.attr("content")
+//             ?? document.select("link[rel='canonical']").first()?.attr("href")
+//             ?? ""
+//         
+//         // Try to find description
+//         let description = try document.select(".source p[itemprop='description']").first()?.text()
+//             ?? document.select("[itemprop='description'], .source-description").first()?.text()
+//             ?? document.select("meta[name='description']").first()?.attr("content")
+//         
+//         // Try to find category
+//         let category = try document.select(".source [itemprop='category']").first()?.text()
+//             ?? document.select("[itemprop='category'], .source-category").first()?.text()
+//             ?? document.select("meta[property='article:section']").first()?.attr("content")
+//         
+//         // Try to find language
+//         let language = try document.select(".source meta[itemprop='inLanguage']").first()?.attr("content")
+//             ?? document.select("[itemprop='inLanguage']").first()?.text()
+//             ?? document.select("[itemprop='inLanguage']").first()?.attr("content")
+//             ?? document.select("html").first()?.attr("lang")
+//             ?? "en"  // Default to English
+//         
+//         return Source(
+//             id: UUID().uuidString,
+//             name: name,
+//             url: url,
+//             description: description,
+//             category: category,
+//             language: language
+//         )
 //     }
 // }
 // 
-// 
-// 
-// public enum JSONSchema: String, CaseIterable, Codable {
+// public enum JSONSchema: String, CaseIterable, Codable, Sendable {
 //     case schema1
 //     case schema2
 //     // Add more schemas as needed
 // 
-//    public var label: String {
+//     public var label: String {
 //         switch self {
 //         case .schema1:
 //             return "Schema 1"
@@ -4229,7 +4976,7 @@
 // }
 // 
 // /// Primary categories for news sources and information providers
-// public enum NewsSourceCategory: String, CaseIterable, Codable {
+// public enum NewsSourceCategory: String, CaseIterable, Codable, Sendable {
 //     /// Traditional news media organizations
 //     case localGovernmentAndPolitics
 //     /// Government agencies and official sources
@@ -4267,7 +5014,7 @@
 //     /// Human-readable label for the category
 //     case religion
 // 
-//    public var label: String {
+//     public var label: String {
 //         switch self {
 //         case .localGovernmentAndPolitics:
 //             return "Local Government and Politics"
@@ -4310,7 +5057,7 @@
 // }
 // 
 // /// Subcategories for more specific classification of news sources
-// public enum NewsSourceSubcategory: String, CaseIterable, Codable {
+// public enum NewsSourceSubcategory: String, CaseIterable, Codable, Sendable {
 //     /// Print newspapers and their digital properties
 //     case none
 //     /// Television news networks and stations
@@ -4343,9 +5090,8 @@
 //     }
 // }
 // 
-// 
 // /// Represents a specific news source with additional metadata
-// public struct NewsSource: BaseEntity, Codable {
+// public struct NewsSource: BaseEntity, Codable, Sendable {
 //     /// Unique identifier for the news source
 //     public var id: String
 //     /// Name of the news source
@@ -4390,21 +5136,21 @@
 // 
 // /*
 //  # StatisticalData Model
-//  
+// 
 //  This file defines the StatisticalData model, which represents numerical data points
 //  in the UtahNewsData system. StatisticalData can be associated with articles, news events,
 //  and other content types, providing quantitative information with proper attribution.
-//  
+// 
 //  ## Key Features:
-//  
+// 
 //  1. Core data (title, value, unit)
 //  2. Source attribution
 //  3. Contextual information (date, methodology, margin of error)
 //  4. Visualization hints
 //  5. Related entities
-//  
+// 
 //  ## Usage:
-//  
+// 
 //  ```swift
 //  // Create a basic statistical data point
 //  let basicStat = StatisticalData(
@@ -4412,7 +5158,7 @@
 //      value: "3.3",
 //      unit: "million people"
 //  )
-//  
+// 
 //  // Create a detailed statistical data point
 //  let detailedStat = StatisticalData(
 //      title: "Utah Unemployment Rate",
@@ -4427,24 +5173,24 @@
 //      topics: ["Economy", "Employment"],
 //      relatedEntities: [saltLakeCounty, utahState] // Location entities
 //  )
-//  
+// 
 //  // Associate statistical data with an article
 //  let article = Article(
 //      title: "Utah's Economy Continues Strong Performance",
 //      body: ["Utah's economy showed strong performance in the latest economic indicators..."]
 //  )
-//  
+// 
 //  // Create relationship between statistical data and article
 //  let relationship = Relationship(
 //      fromEntity: detailedStat,
 //      toEntity: article,
 //      type: .supportedBy
 //  )
-//  
+// 
 //  detailedStat.relationships.append(relationship)
 //  article.relationships.append(relationship)
 //  ```
-//  
+// 
 //  The StatisticalData model implements EntityDetailsProvider, allowing it to generate
 //  rich text descriptions for RAG (Retrieval Augmented Generation) systems.
 //  */
@@ -4452,7 +5198,7 @@
 // import Foundation
 // 
 // /// Represents the type of visualization suitable for the statistical data
-// public enum VisualizationType: String, Codable {
+// public enum VisualizationType: String, Codable, Sendable {
 //     case barChart
 //     case lineChart
 //     case pieChart
@@ -4464,51 +5210,51 @@
 // /// Represents a numerical data point in the UtahNewsData system.
 // /// StatisticalData can be associated with articles, news events, and other content types,
 // /// providing quantitative information with proper attribution.
-// public struct StatisticalData: EntityDetailsProvider {
+// public struct StatisticalData: AssociatedData, EntityDetailsProvider, JSONSchemaProvider {
 //     /// Unique identifier for the statistical data
 //     public var id: String = UUID().uuidString
-//     
+// 
 //     /// The name property required by the BaseEntity protocol
 //     public var name: String {
 //         return title
 //     }
-//     
+// 
 //     /// Relationships to other entities in the system
 //     public var relationships: [Relationship] = []
-//     
+// 
 //     /// The name or description of the statistical data
 //     public var title: String
-//     
+// 
 //     /// The numerical value of the statistic
 //     public var value: String
-//     
+// 
 //     /// The unit of measurement (e.g., "percent", "million dollars")
 //     public var unit: String
-//     
+// 
 //     /// Organization or person that is the source of this data
 //     public var source: (any EntityDetailsProvider)?
-//     
+// 
 //     /// When the data was collected or published
 //     public var date: Date?
-//     
+// 
 //     /// Information about how the data was collected or calculated
 //     public var methodology: String?
-//     
+// 
 //     /// Statistical margin of error if applicable
 //     public var marginOfError: String?
-//     
+// 
 //     /// Recommended visualization type for this data
 //     public var visualizationType: VisualizationType?
-//     
+// 
 //     /// A comparison value for context (e.g., previous year, national average)
 //     public var comparisonValue: String?
-//     
+// 
 //     /// Subject areas or keywords related to the data
 //     public var topics: [String]?
-//     
+// 
 //     /// Entities (people, organizations, locations) related to this data
 //     public var relatedEntities: [any EntityDetailsProvider]?
-//     
+// 
 //     /// Creates a new StatisticalData with the specified properties.
 //     ///
 //     /// - Parameters:
@@ -4548,7 +5294,7 @@
 //         self.topics = topics
 //         self.relatedEntities = relatedEntities
 //     }
-//     
+// 
 //     /// Generates a detailed text description of the statistical data for use in RAG systems.
 //     /// The description includes the title, value, unit, source, and contextual information.
 //     ///
@@ -4556,11 +5302,11 @@
 //     public func getDetailedDescription() -> String {
 //         var description = "STATISTICAL DATA: \(title)"
 //         description += "\nValue: \(value) \(unit)"
-//         
+// 
 //         if let marginOfError = marginOfError {
 //             description += " (±\(marginOfError))"
 //         }
-//         
+// 
 //         if let source = source {
 //             if let organization = source as? Organization {
 //                 description += "\nSource: \(organization.name)"
@@ -4568,45 +5314,90 @@
 //                 description += "\nSource: \(person.name)"
 //             }
 //         }
-//         
+// 
 //         if let date = date {
 //             let formatter = DateFormatter()
 //             formatter.dateStyle = .medium
 //             description += "\nDate: \(formatter.string(from: date))"
 //         }
-//         
+// 
 //         if let methodology = methodology {
 //             description += "\nMethodology: \(methodology)"
 //         }
-//         
+// 
 //         if let comparisonValue = comparisonValue {
 //             description += "\nComparison Value: \(comparisonValue) \(unit)"
 //         }
-//         
+// 
 //         if let topics = topics, !topics.isEmpty {
 //             description += "\nTopics: \(topics.joined(separator: ", "))"
 //         }
-//         
+// 
 //         return description
+//     }
+// 
+//     /// JSON schema for LLM responses
+//     public static var jsonSchema: String {
+//         """
+//         {
+//             "type": "object",
+//             "properties": {
+//                 "id": {"type": "string"},
+//                 "title": {"type": "string"},
+//                 "value": {"type": "string"},
+//                 "unit": {"type": "string"},
+//                 "source": {"$ref": "#/definitions/Organization", "optional": true},
+//                 "date": {"type": "string", "format": "date-time", "optional": true},
+//                 "methodology": {"type": "string", "optional": true},
+//                 "marginOfError": {"type": "string", "optional": true},
+//                 "visualizationType": {
+//                     "type": "string",
+//                     "enum": ["barChart", "lineChart", "pieChart", "scatterPlot", "table"],
+//                     "optional": true
+//                 },
+//                 "comparisonValue": {"type": "string", "optional": true},
+//                 "topics": {
+//                     "type": "array",
+//                     "items": {"type": "string"},
+//                     "optional": true
+//                 },
+//                 "relatedEntities": {
+//                     "type": "array",
+//                     "items": {
+//                         "oneOf": [
+//                             {"$ref": "#/definitions/Location"},
+//                             {"$ref": "#/definitions/Organization"}
+//                         ]
+//                     },
+//                     "optional": true
+//                 },
+//                 "metadata": {
+//                     "type": "object",
+//                     "additionalProperties": true,
+//                     "optional": true
+//                 }
+//             },
+//             "required": ["id", "title", "value", "unit"],
+//             "definitions": {
+//                 "Organization": {"$ref": "Organization.jsonSchema"},
+//                 "Location": {"$ref": "Location.jsonSchema"}
+//             }
+//         }
+//         """
 //     }
 // }
 // 
 // // MARK: - Equatable & Hashable
 // extension StatisticalData: Equatable, Hashable {
 //     public static func == (lhs: StatisticalData, rhs: StatisticalData) -> Bool {
-//         lhs.id == rhs.id &&
-//         lhs.title == rhs.title &&
-//         lhs.value == rhs.value &&
-//         lhs.unit == rhs.unit &&
-//         lhs.date == rhs.date &&
-//         lhs.methodology == rhs.methodology &&
-//         lhs.marginOfError == rhs.marginOfError &&
-//         lhs.visualizationType == rhs.visualizationType &&
-//         lhs.comparisonValue == rhs.comparisonValue &&
-//         lhs.topics == rhs.topics
+//         lhs.id == rhs.id && lhs.title == rhs.title && lhs.value == rhs.value && lhs.unit == rhs.unit
+//             && lhs.date == rhs.date && lhs.methodology == rhs.methodology
+//             && lhs.marginOfError == rhs.marginOfError
+//             && lhs.visualizationType == rhs.visualizationType
+//             && lhs.comparisonValue == rhs.comparisonValue && lhs.topics == rhs.topics
 //         // Note: source and relatedEntities are not compared as they're EntityDetailsProvider which doesn't conform to Equatable
 //     }
-//     
+// 
 //     public func hash(into hasher: inout Hasher) {
 //         hasher.combine(id)
 //         hasher.combine(title)
@@ -4625,13 +5416,14 @@
 // // MARK: - Codable
 // extension StatisticalData: Codable {
 //     private enum CodingKeys: String, CodingKey {
-//         case id, relationships, title, value, unit, date, methodology, marginOfError, visualizationType, comparisonValue, topics
+//         case id, relationships, title, value, unit, date, methodology, marginOfError,
+//             visualizationType, comparisonValue, topics
 //         // Note: source and relatedEntities are excluded as they're EntityDetailsProvider which doesn't conform to Codable
 //     }
-//     
+// 
 //     public init(from decoder: Decoder) throws {
 //         let container = try decoder.container(keyedBy: CodingKeys.self)
-//         
+// 
 //         id = try container.decode(String.self, forKey: .id)
 //         relationships = try container.decode([Relationship].self, forKey: .relationships)
 //         title = try container.decode(String.self, forKey: .title)
@@ -4640,16 +5432,17 @@
 //         date = try container.decodeIfPresent(Date.self, forKey: .date)
 //         methodology = try container.decodeIfPresent(String.self, forKey: .methodology)
 //         marginOfError = try container.decodeIfPresent(String.self, forKey: .marginOfError)
-//         visualizationType = try container.decodeIfPresent(VisualizationType.self, forKey: .visualizationType)
+//         visualizationType = try container.decodeIfPresent(
+//             VisualizationType.self, forKey: .visualizationType)
 //         comparisonValue = try container.decodeIfPresent(String.self, forKey: .comparisonValue)
 //         topics = try container.decodeIfPresent([String].self, forKey: .topics)
-//         source = nil // Cannot decode EntityDetailsProvider
-//         relatedEntities = nil // Cannot decode [EntityDetailsProvider]
+//         source = nil  // Cannot decode EntityDetailsProvider
+//         relatedEntities = nil  // Cannot decode [EntityDetailsProvider]
 //     }
-//     
+// 
 //     public func encode(to encoder: Encoder) throws {
 //         var container = encoder.container(keyedBy: CodingKeys.self)
-//         
+// 
 //         try container.encode(id, forKey: .id)
 //         try container.encode(relationships, forKey: .relationships)
 //         try container.encode(title, forKey: .title)
@@ -4675,20 +5468,20 @@
 // 
 // /*
 //  # UserSubmission Model
-//  
+// 
 //  This file defines the UserSubmission model, which represents content submitted by users
 //  to the UtahNewsData system. User submissions can include various types of media content
 //  such as text, images, videos, audio, and documents.
-//  
+// 
 //  ## Key Features:
-//  
+// 
 //  1. Core submission metadata (title, description, submission date)
 //  2. User attribution (who submitted the content)
 //  3. Multiple media item support using the unified MediaItem model
 //  4. Relationship tracking with other entities
-//  
+// 
 //  ## Usage:
-//  
+// 
 //  ```swift
 //  // Create a user submission with text and an image
 //  let submission = UserSubmission(
@@ -4701,10 +5494,10 @@
 //          MediaItem(title: "Photo", type: .image, url: "https://example.com/accident-photo.jpg")
 //      ]
 //  )
-//  
+// 
 //  // Add the submission to the system
 //  dataStore.addUserSubmission(submission)
-//  
+// 
 //  // Add a relationship to a location
 //  let location = Location(name: "Main Street and State Street")
 //  submission.relationships.append(Relationship(
@@ -4713,7 +5506,7 @@
 //      displayName: "Location"
 //  ))
 //  ```
-//  
+// 
 //  UserSubmission implements AssociatedData, allowing it to maintain relationships
 //  with other entities in the system, such as locations, events, or people mentioned
 //  in the submission.
@@ -4724,28 +5517,28 @@
 // /// Represents content submitted by users to the news system.
 // /// User submissions can include various types of media content such as
 // /// text, images, videos, audio, and documents.
-// public struct UserSubmission: AssociatedData, EntityDetailsProvider {
+// public struct UserSubmission: AssociatedData, EntityDetailsProvider, JSONSchemaProvider {
 //     /// Unique identifier for the submission
 //     public var id: String
-//     
+// 
 //     /// Relationships to other entities in the system
 //     public var relationships: [Relationship] = []
-//     
+// 
 //     /// Title or headline of the submission
 //     public var title: String
-//     
+// 
 //     /// Detailed description of the submission
 //     public var description: String
-//     
+// 
 //     /// When the content was submitted
 //     public var dateSubmitted: Date
-//     
+// 
 //     /// User who submitted the content
 //     public var user: Person
-//     
+// 
 //     /// Media items included in the submission
 //     public var mediaItems: [MediaItem]
-//     
+// 
 //     /// Creates a new user submission with the specified properties.
 //     ///
 //     /// - Parameters:
@@ -4773,13 +5566,13 @@
 //         self.mediaItems = mediaItems
 //         self.relationships = relationships
 //     }
-//     
+// 
 //     /// The name property required by the AssociatedData protocol.
 //     /// Returns the title of the submission.
 //     public var name: String {
 //         return title
 //     }
-//     
+// 
 //     /// Generates a detailed text description of the user submission for use in RAG systems.
 //     /// The description includes the title, description, user information, and media items.
 //     ///
@@ -4788,17 +5581,17 @@
 //         var description = "USER SUBMISSION: \(title)"
 //         description += "\nDescription: \(self.description)"
 //         description += "\nSubmitted by: \(user.name) on \(formatDate(dateSubmitted))"
-//         
+// 
 //         if !mediaItems.isEmpty {
 //             description += "\n\nMedia Items:"
 //             for (index, item) in mediaItems.enumerated() {
 //                 description += "\n\n[\(index + 1)] \(item.getDetailedDescription())"
 //             }
 //         }
-//         
+// 
 //         return description
 //     }
-//     
+// 
 //     /// Helper method to format a date for display
 //     private func formatDate(_ date: Date) -> String {
 //         let formatter = DateFormatter()
@@ -4806,18 +5599,62 @@
 //         formatter.timeStyle = .short
 //         return formatter.string(from: date)
 //     }
+// 
+//     /// JSON schema for LLM responses
+//     public static var jsonSchema: String {
+//         """
+//         {
+//             "type": "object",
+//             "properties": {
+//                 "id": {"type": "string"},
+//                 "title": {"type": "string"},
+//                 "description": {"type": "string"},
+//                 "user": {"$ref": "#/definitions/Person"},
+//                 "submissionDate": {"type": "string", "format": "date-time"},
+//                 "mediaItems": {
+//                     "type": "array",
+//                     "items": {"$ref": "#/definitions/MediaItem"},
+//                     "optional": true
+//                 },
+//                 "status": {
+//                     "type": "string",
+//                     "enum": ["pending", "approved", "rejected", "archived"],
+//                     "optional": true
+//                 },
+//                 "moderatorNotes": {"type": "string", "optional": true},
+//                 "tags": {
+//                     "type": "array",
+//                     "items": {"type": "string"},
+//                     "optional": true
+//                 },
+//                 "location": {"$ref": "#/definitions/Location", "optional": true},
+//                 "metadata": {
+//                     "type": "object",
+//                     "additionalProperties": true,
+//                     "optional": true
+//                 }
+//             },
+//             "required": ["id", "title", "description", "user", "submissionDate"],
+//             "definitions": {
+//                 "Person": {"$ref": "Person.jsonSchema"},
+//                 "MediaItem": {"$ref": "MediaItem.jsonSchema"},
+//                 "Location": {"$ref": "Location.jsonSchema"}
+//             }
+//         }
+//         """
+//     }
 // }
 // 
 // // MARK: - Legacy Support
 // 
 // /// Extension to provide backward compatibility with the old media type model
-// public extension UserSubmission {
+// extension UserSubmission {
 //     /// Creates a UserSubmission from the legacy model that used separate media type arrays
 //     ///
 //     /// - Parameters:
 //     ///   - legacySubmission: The legacy UserSubmission with separate media arrays
 //     /// - Returns: A new UserSubmission with a unified mediaItems array
-//     static func fromLegacy(
+//     public static func fromLegacy(
 //         id: String,
 //         title: String,
 //         description: String,
@@ -4842,18 +5679,18 @@
 // 
 // /// A text-based media item in a user submission
 // @available(*, deprecated, message: "Use MediaItem with type .text instead")
-// public struct TextMedia: BaseEntity, Codable, Hashable {
+// public struct TextMedia: BaseEntity, Codable, Hashable, Sendable {
 //     /// Unique identifier for the text media
 //     public var id: String
-//     
+// 
 //     /// The text content
 //     public var content: String
-//     
+// 
 //     /// The name of the text media, used for display and embedding generation
 //     public var name: String {
 //         return content.prefix(50) + (content.count > 50 ? "..." : "")
 //     }
-//     
+// 
 //     /// Creates a new text media item
 //     public init(id: String = UUID().uuidString, content: String) {
 //         self.id = id
@@ -4863,21 +5700,21 @@
 // 
 // /// An image media item in a user submission
 // @available(*, deprecated, message: "Use MediaItem with type .image instead")
-// public struct ImageMedia: BaseEntity, Codable, Hashable {
+// public struct ImageMedia: BaseEntity, Codable, Hashable, Sendable {
 //     /// Unique identifier for the image media
 //     public var id: String
-//     
+// 
 //     /// URL or path to the image
 //     public var url: String
-//     
+// 
 //     /// Caption or description of the image
 //     public var caption: String?
-//     
+// 
 //     /// The name of the image media, used for display and embedding generation
 //     public var name: String {
 //         return caption ?? "Image \(id)"
 //     }
-//     
+// 
 //     /// Creates a new image media item
 //     public init(id: String = UUID().uuidString, url: String, caption: String? = nil) {
 //         self.id = id
@@ -4888,26 +5725,29 @@
 // 
 // /// A video media item in a user submission
 // @available(*, deprecated, message: "Use MediaItem with type .video instead")
-// public struct VideoMedia: BaseEntity, Codable, Hashable {
+// public struct VideoMedia: BaseEntity, Codable, Hashable, Sendable {
 //     /// Unique identifier for the video media
 //     public var id: String
-//     
+// 
 //     /// URL or path to the video
 //     public var url: String
-//     
+// 
 //     /// Caption or description of the video
 //     public var caption: String?
-//     
+// 
 //     /// Duration of the video in seconds
 //     public var duration: TimeInterval?
-//     
+// 
 //     /// The name of the video media, used for display and embedding generation
 //     public var name: String {
 //         return caption ?? "Video \(id)"
 //     }
-//     
+// 
 //     /// Creates a new video media item
-//     public init(id: String = UUID().uuidString, url: String, caption: String? = nil, duration: TimeInterval? = nil) {
+//     public init(
+//         id: String = UUID().uuidString, url: String, caption: String? = nil,
+//         duration: TimeInterval? = nil
+//     ) {
 //         self.id = id
 //         self.url = url
 //         self.caption = caption
@@ -4917,26 +5757,29 @@
 // 
 // /// An audio media item in a user submission
 // @available(*, deprecated, message: "Use MediaItem with type .audio instead")
-// public struct AudioMedia: BaseEntity, Codable, Hashable {
+// public struct AudioMedia: BaseEntity, Codable, Hashable, Sendable {
 //     /// Unique identifier for the audio media
 //     public var id: String
-//     
+// 
 //     /// URL or path to the audio
 //     public var url: String
-//     
+// 
 //     /// Caption or description of the audio
 //     public var caption: String?
-//     
+// 
 //     /// Duration of the audio in seconds
 //     public var duration: TimeInterval?
-//     
+// 
 //     /// The name of the audio media, used for display and embedding generation
 //     public var name: String {
 //         return caption ?? "Audio \(id)"
 //     }
-//     
+// 
 //     /// Creates a new audio media item
-//     public init(id: String = UUID().uuidString, url: String, caption: String? = nil, duration: TimeInterval? = nil) {
+//     public init(
+//         id: String = UUID().uuidString, url: String, caption: String? = nil,
+//         duration: TimeInterval? = nil
+//     ) {
 //         self.id = id
 //         self.url = url
 //         self.caption = caption
@@ -4946,26 +5789,29 @@
 // 
 // /// A document media item in a user submission
 // @available(*, deprecated, message: "Use MediaItem with type .document instead")
-// public struct DocumentMedia: BaseEntity, Codable, Hashable {
+// public struct DocumentMedia: BaseEntity, Codable, Hashable, Sendable {
 //     /// Unique identifier for the document media
 //     public var id: String
-//     
+// 
 //     /// URL or path to the document
 //     public var url: String
-//     
+// 
 //     /// Title or name of the document
 //     public var title: String?
-//     
+// 
 //     /// Description of the document
 //     public var description: String?
-//     
+// 
 //     /// The name of the document media, used for display and embedding generation
 //     public var name: String {
 //         return title ?? "Document \(id)"
 //     }
-//     
+// 
 //     /// Creates a new document media item
-//     public init(id: String = UUID().uuidString, url: String, title: String? = nil, description: String? = nil) {
+//     public init(
+//         id: String = UUID().uuidString, url: String, title: String? = nil,
+//         description: String? = nil
+//     ) {
 //         self.id = id
 //         self.url = url
 //         self.title = title
@@ -5089,7 +5935,7 @@
 // /// A struct representing a video in the news app.
 // /// Videos are a type of news content with additional properties for
 // /// duration and resolution.
-// public struct Video: NewsContent, BaseEntity {
+// public struct Video: NewsContent, BaseEntity, Sendable {
 //     /// Unique identifier for the video
 //     public var id: String
 //     

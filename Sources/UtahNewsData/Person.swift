@@ -58,12 +58,14 @@
  */
 
 import SwiftUI
+import Foundation
+import SwiftSoup
 
 /// Represents a person in the news data system.
 /// This can be a journalist, public figure, expert, or any individual
 /// relevant to news content.
 public struct Person: AssociatedData, Codable, Identifiable, Hashable, EntityDetailsProvider,
-    JSONSchemaProvider, Sendable
+    JSONSchemaProvider, Sendable, HTMLParsable
 {
     // MARK: - Core Properties
 
@@ -385,5 +387,40 @@ public struct Person: AssociatedData, Codable, Identifiable, Hashable, EntityDet
             "required": ["id", "name", "details"]
         }
         """
+    }
+
+    // MARK: - HTMLParsable Implementation
+    
+    public static func parse(from document: Document) throws -> Self {
+        // Try to find the person's name
+        let nameOpt = try document.select("[itemprop='name'], .person-name").first()?.text()
+            ?? document.select("meta[property='og:title']").first()?.attr("content")
+            ?? document.select("title").first()?.text()
+        
+        guard let name = nameOpt else {
+            throw ParsingError.invalidHTML
+        }
+        
+        // Try to find role or title
+        let details = try document.select("[itemprop='jobTitle'], .role, .title, .position").first()?.text()
+            ?? document.select("meta[name='author:role']").first()?.attr("content")
+            ?? "Unknown Role"
+        
+        // Try to find biography
+        let biography = try document.select("[itemprop='description'], .biography").first()?.text()
+            ?? document.select("meta[name='description']").first()?.attr("content")
+        
+        // Try to find image URL
+        let imageURL = try document.select("[itemprop='image'], img.person-image").first()?.attr("src")
+            ?? document.select("meta[property='og:image']").first()?.attr("content")
+        
+        return Person(
+            id: UUID().uuidString,
+            relationships: [],
+            name: name,
+            details: details,
+            biography: biography,
+            imageURL: imageURL
+        )
     }
 }
