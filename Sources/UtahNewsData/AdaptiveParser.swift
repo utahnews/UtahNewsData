@@ -104,10 +104,23 @@ public class AdaptiveParser: @unchecked Sendable {
             let document = try SwiftSoup.parse(html)
             let parsedContent = try T.parse(from: document)
             
-            // Check if we got empty content - if so, treat as parsing failure
-            let contentIsEmpty = try document.select("body").text().trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-            if contentIsEmpty {
-                throw ParsingError.invalidHTML
+            // Check for empty content based on type
+            if T.self == Article.self {
+                // For Articles, check if we got any content from article selectors
+                let articleContent = try document.select(".article-content").text().trimmingCharacters(in: .whitespacesAndNewlines)
+                let articleBody = try document.select("[itemprop='articleBody']").text().trimmingCharacters(in: .whitespacesAndNewlines)
+                let mainContent = try document.select("main").text().trimmingCharacters(in: .whitespacesAndNewlines)
+                
+                if articleContent.isEmpty && articleBody.isEmpty && mainContent.isEmpty {
+                    throw ParsingError.invalidHTML
+                }
+            } else if T.self == NewsStory.self {
+                // For NewsStory, check story content
+                let storyContent = try document.select(".story-content, .article-body, [itemprop='articleBody']").text().trimmingCharacters(in: .whitespacesAndNewlines)
+                
+                if storyContent.isEmpty {
+                    throw ParsingError.invalidHTML
+                }
             }
             
             return .success(parsedContent, source: .htmlParsing)
