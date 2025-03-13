@@ -60,14 +60,61 @@ public class ContentExtractionService: @unchecked Sendable {
         from url: URL, as type: T.Type
     ) async throws -> [T] {
         let html = try await fetchHTML(from: url)
+        print("📄 Fetched HTML content length: \(html.count) characters")
 
+        // Try parsing with common section selectors first
+        let document = try SwiftSoup.parse(html, url.absoluteString)
+        let commonSelectors = [
+            "section", ".person-section", ".council-member", ".member-section",
+            ".staff-section", ".employee-section", ".official-section",
+            ".elected-official", ".department-head", ".leadership",
+        ]
+
+        print("🔍 Trying common section selectors...")
+        for selector in commonSelectors {
+            let sections = try document.select(selector)
+            if !sections.isEmpty() {
+                print("✅ Found \(sections.size()) sections using selector: \(selector)")
+                // Try parsing each section individually
+                var items: [T] = []
+                for section in sections {
+                    do {
+                        let sectionHtml = try section.outerHtml()
+                        let result = try await parser.parseCollectionWithFallback(
+                            html: sectionHtml,
+                            from: url,
+                            as: type
+                        )
+                        if case .success(let sectionItems, _) = result {
+                            items.append(contentsOf: sectionItems)
+                        }
+                    } catch {
+                        print("⚠️ Failed to parse section: \(error.localizedDescription)")
+                        continue
+                    }
+                }
+
+                if !items.isEmpty {
+                    print("✅ Successfully parsed \(items.count) items from sections")
+                    return items
+                }
+            }
+        }
+
+        // If section parsing failed, try parsing the whole document
+        print("🔄 Trying to parse whole document...")
         let result = try await parser.parseCollectionWithFallback(html: html, from: url, as: type)
 
         switch result {
-        case .success(let content, _):
+        case .success(let content, let source):
+            print("✅ Successfully parsed \(content.count) items using \(source)")
+            if content.isEmpty {
+                throw ContentExtractionError.noItemsFound
+            }
             return content
         case .failure(let error):
-            throw error
+            print("❌ Failed to parse content: \(error.localizedDescription)")
+            throw ContentExtractionError.parsingError(error.localizedDescription)
         }
     }
 
@@ -126,4 +173,18 @@ public enum ContentExtractionError: Error {
     case invalidResponse
     case invalidEncoding
     case parsingError(String)
+    case noItemsFound
+
+    public var localizedDescription: String {
+        switch self {
+        case .invalidResponse:
+            return "Failed to get a valid response from the server"
+        case .invalidEncoding:
+            return "Failed to decode the HTML content"
+        case .parsingError(let message):
+            return "Failed to parse content: \(message)"
+        case .noItemsFound:
+            return "No items were found in the content"
+        }
+    }
 }
