@@ -3,14 +3,28 @@ import SwiftSoup
 
 extension Person: HTMLParsable {
     public static func parse(from document: Document) throws -> Person {
+        // First try to parse as a single person
+        do {
+            return try parseSinglePerson(from: document)
+        } catch {
+            // If that fails, try to parse as multiple people
+            if let firstPerson = try parseMultiplePeople(from: document).first {
+                return firstPerson
+            }
+            throw error
+        }
+    }
+
+    private static func parseSinglePerson(from document: Document) throws -> Person {
         guard try !document.select("body").isEmpty(),
-              try !document.select("head").isEmpty() else {
+            try !document.select("head").isEmpty()
+        else {
             throw ParsingError.invalidFormat("Invalid HTML document structure")
         }
-        
+
         // Extract required fields
         let name = try extractName(from: document)
-        
+
         // Extract optional fields
         let title = try extractTitle(from: document)
         let biography = try extractBiography(from: document)
@@ -19,7 +33,7 @@ extension Person: HTMLParsable {
         let locationString = try extractLocation(from: document)
         let contactInfo = try extractContactInfo(from: document)
         let socialMediaProfiles = try extractSocialMediaProfiles(from: document)
-        
+
         // Create and return the Person
         return Person(
             name: name,
@@ -41,103 +55,135 @@ extension Person: HTMLParsable {
             socialMediaHandles: socialMediaProfiles
         )
     }
-    
+
+    private static func parseMultiplePeople(from document: Document) throws -> [Person] {
+        var people: [Person] = []
+
+        // Look for sections that might contain person information
+        let sections = try document.select("section, .person-section, .council-member")
+
+        for section in sections {
+            do {
+                // Create a new document with just this section
+                let sectionDoc = try SwiftSoup.parse(section.outerHtml())
+                let person = try parseSinglePerson(from: sectionDoc)
+                people.append(person)
+            } catch {
+                // Skip sections that don't contain valid person data
+                continue
+            }
+        }
+
+        if people.isEmpty {
+            throw ParsingError.missingRequiredField("No valid person data found")
+        }
+
+        return people
+    }
+
     // MARK: - Private Helper Methods
-    
+
     private static func extractName(from document: Document) throws -> String {
         let nameSelectors = [
             "[itemprop='name']",
             ".person-name",
             "h1.name",
-            "meta[property='profile:first_name']"
+            "meta[property='profile:first_name']",
         ]
-        
+
         for selector in nameSelectors {
             if selector.contains("meta") {
                 if let name = try document.select(selector).first()?.attr("content"),
-                   !name.isEmpty {
+                    !name.isEmpty
+                {
                     return name
                 }
             } else {
                 if let name = try document.select(selector).first()?.text(),
-                   !name.isEmpty {
+                    !name.isEmpty
+                {
                     return name
                 }
             }
         }
-        
+
         throw ParsingError.missingRequiredField("name")
     }
-    
+
     private static func extractTitle(from document: Document) throws -> String? {
         let titleSelectors = [
             "[itemprop='jobTitle']",
             ".person-title",
             ".job-title",
-            "meta[property='profile:title']"
+            "meta[property='profile:title']",
         ]
-        
+
         for selector in titleSelectors {
             if selector.contains("meta") {
                 if let title = try document.select(selector).first()?.attr("content"),
-                   !title.isEmpty {
+                    !title.isEmpty
+                {
                     return title
                 }
             } else {
                 if let title = try document.select(selector).first()?.text(),
-                   !title.isEmpty {
+                    !title.isEmpty
+                {
                     return title
                 }
             }
         }
-        
+
         return nil
     }
-    
+
     private static func extractBiography(from document: Document) throws -> String? {
         let bioSelectors = [
             "[itemprop='description']",
             ".biography",
             ".person-bio",
-            "meta[property='og:description']"
+            "meta[property='og:description']",
         ]
-        
+
         for selector in bioSelectors {
             if selector.contains("meta") {
                 if let bio = try document.select(selector).first()?.attr("content"),
-                   !bio.isEmpty {
+                    !bio.isEmpty
+                {
                     return bio
                 }
             } else {
                 if let bio = try document.select(selector).first()?.text(),
-                   !bio.isEmpty {
+                    !bio.isEmpty
+                {
                     return bio
                 }
             }
         }
-        
+
         return nil
     }
-    
+
     private static func extractAffiliations(from document: Document) throws -> [Organization]? {
         let affiliationSelectors = [
             "[itemprop='affiliation']",
             ".affiliations li",
-            ".organization-list li"
+            ".organization-list li",
         ]
-        
+
         var affiliations: [Organization] = []
-        
+
         for selector in affiliationSelectors {
             let elements = try document.select(selector)
             for element in elements {
                 let name = try element.select("[itemprop='name']").first()?.text()
                 let type = try element.select("[itemprop='type']").first()?.text()
-                
+
                 if let name = name {
                     let org = Organization(
                         name: name,
-                        orgDescription: try element.select("[itemprop='description']").first()?.text(),
+                        orgDescription: try element.select("[itemprop='description']").first()?
+                            .text(),
                         contactInfo: nil,
                         website: try element.select("[itemprop='url']").first()?.attr("href"),
                         logoURL: nil,
@@ -148,19 +194,19 @@ extension Person: HTMLParsable {
                 }
             }
         }
-        
+
         return affiliations.isEmpty ? nil : affiliations
     }
-    
+
     private static func extractEducation(from document: Document) throws -> [Education]? {
         let educationSelectors = [
             "[itemprop='alumniOf']",
             ".education li",
-            ".education-history li"
+            ".education-history li",
         ]
-        
+
         var educationList: [Education] = []
-        
+
         for selector in educationSelectors {
             let elements = try document.select(selector)
             for element in elements {
@@ -169,58 +215,61 @@ extension Person: HTMLParsable {
                 let field = try element.select("[itemprop='field']").first()?.text()
                 let yearStr = try element.select("[itemprop='year']").first()?.text()
                 let year = yearStr.flatMap { Int($0) }
-                
+
                 if !institution.isEmpty {
-                    educationList.append(Education(
-                        institution: institution,
-                        degree: degree,
-                        field: field,
-                        year: year
-                    ))
+                    educationList.append(
+                        Education(
+                            institution: institution,
+                            degree: degree,
+                            field: field,
+                            year: year
+                        ))
                 }
             }
         }
-        
+
         return educationList.isEmpty ? nil : educationList
     }
-    
+
     private static func extractLocation(from document: Document) throws -> String? {
         let locationSelectors = [
             "[itemprop='location']",
             ".location",
-            "meta[property='profile:location']"
+            "meta[property='profile:location']",
         ]
-        
+
         for selector in locationSelectors {
             if selector.contains("meta") {
                 if let location = try document.select(selector).first()?.attr("content"),
-                   !location.isEmpty {
+                    !location.isEmpty
+                {
                     return location
                 }
             } else {
                 if let location = try document.select(selector).first()?.text(),
-                   !location.isEmpty {
+                    !location.isEmpty
+                {
                     return location
                 }
             }
         }
-        
+
         return nil
     }
-    
+
     private static func extractContactInfo(from document: Document) throws -> ContactInfo? {
         let contactSelectors = [
             "[itemprop='contactInfo']",
             ".contact-info",
-            ".contact-details"
+            ".contact-details",
         ]
-        
+
         for selector in contactSelectors {
             if let element = try document.select(selector).first() {
                 let email = try element.select("[itemprop='email']").first()?.text()
                 let phone = try element.select("[itemprop='telephone']").first()?.text()
                 let website = try element.select("[itemprop='url']").first()?.attr("href")
-                
+
                 if email != nil || phone != nil || website != nil {
                     return ContactInfo(
                         email: email,
@@ -230,33 +279,36 @@ extension Person: HTMLParsable {
                 }
             }
         }
-        
+
         return nil
     }
-    
-    private static func extractSocialMediaProfiles(from document: Document) throws -> [String: String]? {
+
+    private static func extractSocialMediaProfiles(from document: Document) throws -> [String:
+        String]?
+    {
         let profileSelectors = [
             "[itemprop='sameAs']",
             ".social-profiles li",
-            ".social-media a"
+            ".social-media a",
         ]
-        
+
         var profiles: [String: String] = [:]
-        
+
         for selector in profileSelectors {
             let elements = try document.select(selector)
             for element in elements {
                 if let url = try? element.attr("href"),
-                   !url.isEmpty {
+                    !url.isEmpty
+                {
                     let platform = determinePlatform(from: url)
                     profiles[platform] = url
                 }
             }
         }
-        
+
         return profiles.isEmpty ? nil : profiles
     }
-    
+
     private static func determinePlatform(from url: String) -> String {
         if url.contains("twitter.com") || url.contains("x.com") {
             return "Twitter"
@@ -270,4 +322,4 @@ extension Person: HTMLParsable {
             return "Other"
         }
     }
-} 
+}
