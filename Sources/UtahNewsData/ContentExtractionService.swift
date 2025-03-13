@@ -64,29 +64,73 @@ public class ContentExtractionService: @unchecked Sendable {
 
         // Try parsing with common section selectors first
         let document = try SwiftSoup.parse(html, url.absoluteString)
-        let commonSelectors = [
-            "section", ".person-section", ".council-member", ".member-section",
-            ".staff-section", ".employee-section", ".official-section",
-            ".elected-official", ".department-head", ".leadership",
+
+        // First try to find a container that might hold all the people
+        let containerSelectors = [
+            ".council-members", "#council-members",
+            ".elected-officials", "#elected-officials",
+            ".staff-directory", "#staff-directory",
+            ".directory-listing", "#directory-listing",
+            "main", "#main-content", ".main-content",
+            "article", ".article",
         ]
 
-        print("🔍 Trying common section selectors...")
-        for selector in commonSelectors {
-            let sections = try document.select(selector)
+        print("🔍 Trying to find main container...")
+        var mainContainer = document
+        for selector in containerSelectors {
+            if let container = try document.select(selector).first() {
+                print("✅ Found main container using selector: \(selector)")
+                mainContainer = try SwiftSoup.parse(container.outerHtml())
+                break
+            }
+        }
+
+        // Now look for individual person sections within the container
+        let personSelectors = [
+            // Generic person selectors
+            ".person", ".member", ".official", ".staff-member",
+            // Common grid/list item selectors
+            ".directory-item", ".grid-item", ".list-item",
+            // Specific to government sites
+            ".council-member", ".elected-official", ".department-head",
+            // Common card selectors
+            ".card", ".profile-card", ".member-card",
+            // Specific to Lehi City website
+            ".official-card", ".staff-card", ".bio-card",
+            // Fallback to any div with person-related classes
+            "div[class*='person']", "div[class*='member']", "div[class*='official']",
+        ]
+
+        print("🔍 Trying to find person sections...")
+        var allPeople: [T] = []
+
+        for selector in personSelectors {
+            let sections = try mainContainer.select(selector)
             if !sections.isEmpty() {
                 print("✅ Found \(sections.size()) sections using selector: \(selector)")
-                // Try parsing each section individually
-                var items: [T] = []
+
+                // Create a minimal HTML wrapper for each section
                 for section in sections {
                     do {
-                        let sectionHtml = try section.outerHtml()
+                        let wrappedHtml = """
+                            <!DOCTYPE html>
+                            <html>
+                            <head><title>\(try document.title() ?? "")</title></head>
+                            <body>
+                            \(try section.outerHtml())
+                            </body>
+                            </html>
+                            """
+
                         let result = try await parser.parseCollectionWithFallback(
-                            html: sectionHtml,
+                            html: wrappedHtml,
                             from: url,
                             as: type
                         )
-                        if case .success(let sectionItems, _) = result {
-                            items.append(contentsOf: sectionItems)
+
+                        if case .success(let items, let source) = result {
+                            print("✅ Parsed section using \(source)")
+                            allPeople.append(contentsOf: items)
                         }
                     } catch {
                         print("⚠️ Failed to parse section: \(error.localizedDescription)")
@@ -94,9 +138,9 @@ public class ContentExtractionService: @unchecked Sendable {
                     }
                 }
 
-                if !items.isEmpty {
-                    print("✅ Successfully parsed \(items.count) items from sections")
-                    return items
+                if !allPeople.isEmpty {
+                    print("✅ Successfully parsed \(allPeople.count) people from sections")
+                    return allPeople
                 }
             }
         }
