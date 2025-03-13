@@ -133,19 +133,9 @@ struct ExampleEntityExtractorView: View {
                             from: url, as: NewsStory.self)
                         contents.append(stories)
                     case .person:
-                        let html = try await URLSession.shared.data(from: url).0
-                        let htmlString = String(data: html, encoding: .utf8) ?? ""
-                        let result = try await service.parser.parseCollectionWithFallback(
-                            html: htmlString,
-                            from: url,
-                            as: Person.self
-                        )
-                        switch result {
-                        case .success(let people, _):
-                            contents.append(contentsOf: people)
-                        case .failure(let error):
-                            throw error
-                        }
+                        let people = try await service.extractContentAsCollection(
+                            from: url, as: Person.self)
+                        contents.append(contentsOf: people)
                     case .organization:
                         let orgs = try await service.extractContent(
                             from: url, as: Organization.self)
