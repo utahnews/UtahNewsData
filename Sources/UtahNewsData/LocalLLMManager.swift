@@ -224,19 +224,42 @@ public class LocalLLMManager: @unchecked Sendable {
         for selector in contentSelectors {
             let elements = try document.select(selector)
             if !elements.isEmpty() {
-                contentHTML += try elements.array().map { try $0.outerHtml() }.joined(separator: "\n") + "\n"
-                foundContent = true
-                break
+                // Instead of taking the entire container, just extract paragraphs and headings
+                let contentElements = try elements.first()?.select("p, h2, h3, h4, h5, h6")
+                if let contentElements = contentElements, !contentElements.isEmpty() {
+                    // Filter out short paragraphs and boilerplate
+                    let substantiveElements = try contentElements.filter { element in
+                        let text = try element.text().trimmingCharacters(in: .whitespacesAndNewlines)
+                        return text.count > 30 && // Longer than 30 chars
+                               !text.lowercased().contains("cookie") && // Not cookie notices
+                               !text.lowercased().contains("subscribe") && // Not subscription prompts
+                               !text.lowercased().contains("sign up") && // Not signup prompts
+                               !text.lowercased().contains("advertisement") // Not ads
+                    }
+                    
+                    if !substantiveElements.isEmpty {
+                        contentHTML += try substantiveElements.map { try $0.outerHtml() }.joined(separator: "\n") + "\n"
+                        foundContent = true
+                        break
+                    }
+                }
             }
         }
         
-        // If no main content found, collect all substantive paragraphs
+        // If no main content found, try to find substantive paragraphs directly
         if !foundContent {
-            let paragraphs = try document.select("p").filter { element in
-                let text = try? element.text()
-                return text?.count ?? 0 > 50
+            let paragraphs = try document.select("body p").filter { element in
+                let text = try? element.text().trimmingCharacters(in: .whitespacesAndNewlines)
+                return (text?.count ?? 0) > 50 && // Longer paragraphs only
+                       !(text?.lowercased().contains("cookie") ?? false) &&
+                       !(text?.lowercased().contains("subscribe") ?? false) &&
+                       !(text?.lowercased().contains("sign up") ?? false) &&
+                       !(text?.lowercased().contains("advertisement") ?? false)
             }
-            contentHTML += try paragraphs.map { try $0.outerHtml() }.joined(separator: "\n")
+            
+            if !paragraphs.isEmpty {
+                contentHTML += try paragraphs.map { try $0.outerHtml() }.joined(separator: "\n")
+            }
         }
         
         contentHTML += "\n</body>"
