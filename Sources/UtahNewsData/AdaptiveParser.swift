@@ -92,6 +92,85 @@ public class AdaptiveParser: @unchecked Sendable {
 
     // MARK: - Parsing Methods
 
+    /// Parse HTML content with fallback to LLM if needed, returning a collection for types that support it
+    /// - Parameters:
+    ///   - html: The HTML content to parse
+    ///   - url: The URL of the content
+    ///   - type: The type to parse into
+    /// - Returns: The parsing result, containing an array of parsed items
+    public func parseCollectionWithFallback<T: HTMLCollectionParsable>(
+        html: String, from url: URL? = nil, as type: T.Type
+    ) async throws -> ParsingResult<[T]> {
+        do {
+            print("🔍 Starting HTML collection parsing for type: \(T.self)")
+            // First try HTML parsing with URL if available
+            let document =
+                try url.map { try SwiftSoup.parse(html, $0.absoluteString) }
+                ?? SwiftSoup.parse(html)
+
+            // Log the document structure for debugging
+            print("📄 Document structure:")
+            print("  - Title: \(try? document.title() ?? "No title")")
+            print("  - Body content length: \(try document.body()?.text().count ?? 0) characters")
+
+            let parsedContent = try T.parseCollection(from: document)
+
+            if parsedContent.isEmpty {
+                print("⚠️ No items found in HTML parsing, falling back to LLM")
+                return try await extractCollectionUsingLLM(from: html, as: type)
+            }
+
+            print("✅ Returning HTML parsed content")
+            return .success(parsedContent, source: .htmlParsing)
+
+        } catch {
+            print("❌ HTML parsing failed completely: \(error)")
+            if useLLMFallback {
+                return try await extractCollectionUsingLLM(from: html, as: type)
+            } else {
+                throw ParsingError.invalidHTML
+            }
+        }
+    }
+
+    /// Helper method to extract a collection using LLM
+    private func extractCollectionUsingLLM<T: HTMLCollectionParsable>(
+        from html: String, as type: T.Type
+    ) async throws -> ParsingResult<[T]> {
+        print("🤖 Attempting full LLM extraction for collection")
+        do {
+            // First try to get the number of items
+            let countPrompt =
+                "How many distinct items are there in this content? Just return the number."
+            let countStr = try await llmManager.extractContent(from: html, contentType: countPrompt)
+            let count = Int(countStr) ?? 1
+
+            var items: [T] = []
+
+            // Extract each item
+            for i in 0..<count {
+                let itemPrompt = "Extract details for item #\(i + 1) in a structured format."
+                let content = try await llmManager.extractContent(
+                    from: html, contentType: itemPrompt)
+                if let item = try? createInstance(
+                    ofType: T.self, withTitle: "Item \(i + 1)", content: content)
+                {
+                    items.append(item)
+                }
+            }
+
+            if items.isEmpty {
+                throw ParsingError.llmExtractionFailed
+            }
+
+            print("✅ Successfully extracted \(items.count) items using LLM")
+            return .success(items, source: .llmExtraction)
+        } catch {
+            print("❌ LLM extraction failed: \(error)")
+            throw ParsingError.llmExtractionFailed
+        }
+    }
+
     /// Parse HTML content with fallback to LLM if needed
     /// - Parameters:
     ///   - html: The HTML content to parse

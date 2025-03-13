@@ -8,7 +8,7 @@ struct ExampleEntityExtractorView: View {
     @State private var isLoading = false
     @State private var extractedContents: [Any] = []
     @State private var errorMessage: String?
-    
+
     private let entityTypes: [EntityType] = [
         .article,
         .newsStory,
@@ -16,9 +16,9 @@ struct ExampleEntityExtractorView: View {
         .organization,
         .alert,
         .poll,
-        .jurisdiction
+        .jurisdiction,
     ]
-    
+
     var body: some View {
         NavigationView {
             Form {
@@ -27,7 +27,7 @@ struct ExampleEntityExtractorView: View {
                         .textFieldStyle(RoundedBorderTextFieldStyle())
                         .textContentType(.URL)
                         .disableAutocorrection(true)
-                    
+
                     Button("Add URL") {
                         if !urlInput.isEmpty {
                             urls.append(urlInput)
@@ -35,7 +35,7 @@ struct ExampleEntityExtractorView: View {
                         }
                     }
                     .disabled(urlInput.isEmpty)
-                    
+
                     if !urls.isEmpty {
                         Section(header: Text("URLs to Process")) {
                             ForEach(urls, id: \.self) { url in
@@ -50,7 +50,7 @@ struct ExampleEntityExtractorView: View {
                                     }
                                 }
                             }
-                            
+
                             Button(action: {
                                 urls.removeAll()
                             }) {
@@ -59,14 +59,14 @@ struct ExampleEntityExtractorView: View {
                             }
                         }
                     }
-                    
+
                     Picker("Entity Type", selection: $selectedEntityType) {
                         ForEach(entityTypes, id: \.self) { type in
                             Text(type.displayName)
                                 .tag(type)
                         }
                     }
-                    
+
                     Button(action: extractContent) {
                         if isLoading {
                             ProgressView()
@@ -77,24 +77,25 @@ struct ExampleEntityExtractorView: View {
                     }
                     .disabled(urls.isEmpty || isLoading)
                 }
-                
+
                 if let error = errorMessage {
                     Section(header: Text("Error")) {
                         Text(error)
                             .foregroundColor(.red)
                     }
                 }
-                
+
                 if !extractedContents.isEmpty {
                     Section(header: Text("Extracted Content")) {
-                        ForEach(Array(extractedContents.enumerated()), id: \.offset) { index, content in
+                        ForEach(Array(extractedContents.enumerated()), id: \.offset) {
+                            index, content in
                             VStack(alignment: .leading) {
                                 Text("Result \(index + 1)")
                                     .font(.headline)
                                 ExtractedContentView(content: content)
                             }
                             .padding(.vertical, 5)
-                            
+
                             if index < extractedContents.count - 1 {
                                 Divider()
                             }
@@ -105,49 +106,65 @@ struct ExampleEntityExtractorView: View {
             .navigationTitle("Entity Extractor")
         }
     }
-    
+
     private func extractContent() {
         let validUrls = urls.compactMap { URL(string: $0) }
         guard !validUrls.isEmpty else {
             errorMessage = "No valid URLs to process"
             return
         }
-        
+
         isLoading = true
         errorMessage = nil
         extractedContents = []
-        
+
         Task {
             do {
                 let service = ContentExtractionService.shared
                 var contents: [Any] = []
-                
-                switch selectedEntityType {
-                case .article:
-                    let articles = try await service.extractContent(from: validUrls, as: Article.self)
-                    contents = articles
-                case .newsStory:
-                    let stories = try await service.extractContent(from: validUrls, as: NewsStory.self)
-                    contents = stories
-                case .person:
-                    let people = try await service.extractContent(from: validUrls, as: Person.self)
-                    contents = people
-                case .organization:
-                    let orgs = try await service.extractContent(from: validUrls, as: Organization.self)
-                    contents = orgs
-                case .alert:
-                    let alerts = try await service.extractContent(from: validUrls, as: NewsAlert.self)
-                    contents = alerts
-                case .poll:
-                    let polls = try await service.extractContent(from: validUrls, as: Poll.self)
-                    contents = polls
-                case .jurisdiction:
-                    let jurisdictions = try await service.extractContent(from: validUrls, as: Jurisdiction.self)
-                    contents = jurisdictions
-                default:
-                    throw ParsingError.unsupportedEntityType
+
+                for url in validUrls {
+                    switch selectedEntityType {
+                    case .article:
+                        let articles = try await service.extractContent(from: url, as: Article.self)
+                        contents.append(articles)
+                    case .newsStory:
+                        let stories = try await service.extractContent(
+                            from: url, as: NewsStory.self)
+                        contents.append(stories)
+                    case .person:
+                        let html = try await URLSession.shared.data(from: url).0
+                        let htmlString = String(data: html, encoding: .utf8) ?? ""
+                        let result = try await service.parser.parseCollectionWithFallback(
+                            html: htmlString,
+                            from: url,
+                            as: Person.self
+                        )
+                        switch result {
+                        case .success(let people, _):
+                            contents.append(contentsOf: people)
+                        case .failure(let error):
+                            throw error
+                        }
+                    case .organization:
+                        let orgs = try await service.extractContent(
+                            from: url, as: Organization.self)
+                        contents.append(orgs)
+                    case .alert:
+                        let alerts = try await service.extractContent(from: url, as: NewsAlert.self)
+                        contents.append(alerts)
+                    case .poll:
+                        let polls = try await service.extractContent(from: url, as: Poll.self)
+                        contents.append(polls)
+                    case .jurisdiction:
+                        let jurisdictions = try await service.extractContent(
+                            from: url, as: Jurisdiction.self)
+                        contents.append(jurisdictions)
+                    default:
+                        throw ParsingError.unsupportedEntityType
+                    }
                 }
-                
+
                 await MainActor.run {
                     self.extractedContents = contents
                     self.isLoading = false
@@ -165,7 +182,7 @@ struct ExampleEntityExtractorView: View {
 // Helper view to display extracted content
 struct ExtractedContentView: View {
     let content: Any
-    
+
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             switch content {
@@ -183,7 +200,7 @@ struct ExtractedContentView: View {
                 if let image = article.urlToImage {
                     Text("Featured Image: \(image)")
                 }
-                
+
             case let newsStory as NewsStory:
                 Text("Headline: \(newsStory.headline)")
                 Text("Author: \(newsStory.author.name)")
@@ -196,7 +213,7 @@ struct ExtractedContentView: View {
                 if let featuredImage = newsStory.featuredImageURL {
                     Text("Featured Image: \(featuredImage)")
                 }
-                
+
             case let person as Person:
                 Text("Name: \(person.name)")
                 Text("Details: \(person.details)")
@@ -212,7 +229,7 @@ struct ExtractedContentView: View {
                 if let imageURL = person.imageURL {
                     Text("Image: \(imageURL)")
                 }
-                
+
             case let org as Organization:
                 Text("Name: \(org.name)")
                 if let desc = org.orgDescription {
@@ -221,7 +238,7 @@ struct ExtractedContentView: View {
                 if let website = org.website {
                     Text("Website: \(website)")
                 }
-                
+
             case let alert as NewsAlert:
                 Text("Title: \(alert.title)")
                 Text("Content: \(alert.content)")
@@ -230,7 +247,7 @@ struct ExtractedContentView: View {
                 if let source = alert.source {
                     Text("Source: \(source)")
                 }
-                
+
             case let poll as Poll:
                 Text("Question: \(poll.question)")
                 Text("Source: \(poll.source)")
@@ -249,7 +266,7 @@ struct ExtractedContentView: View {
                         Text("- \(option.text) (\(option.votes) votes)")
                     }
                 }
-                
+
             case let jurisdiction as Jurisdiction:
                 Text("Name: \(jurisdiction.name)")
                 Text("Type: \(jurisdiction.type.label)")
@@ -265,7 +282,7 @@ struct ExtractedContentView: View {
                         Text("State: \(state)")
                     }
                 }
-                
+
             default:
                 Text("Unsupported content type")
             }
@@ -291,7 +308,7 @@ extension EntityType {
 
 enum ParsingError: LocalizedError {
     case unsupportedEntityType
-    
+
     var errorDescription: String? {
         switch self {
         case .unsupportedEntityType:
@@ -302,4 +319,4 @@ enum ParsingError: LocalizedError {
 
 #Preview {
     ExampleEntityExtractorView()
-} 
+}

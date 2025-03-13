@@ -1,18 +1,57 @@
 import Foundation
 import SwiftSoup
 
-extension Person: HTMLParsable {
-    public static func parse(from document: Document) throws -> Person {
-        // First try to parse as a single person
-        do {
-            return try parseSinglePerson(from: document)
-        } catch {
-            // If that fails, try to parse as multiple people
-            if let firstPerson = try parseMultiplePeople(from: document).first {
-                return firstPerson
+/// Protocol for types that can be parsed as a collection from HTML
+public protocol HTMLCollectionParsable: HTMLParsable {
+    static func parseCollection(from document: Document) throws -> [Self]
+}
+
+extension Person: HTMLCollectionParsable {
+    public static func parseCollection(from document: Document) throws -> [Person] {
+        var people: [Person] = []
+
+        // First try to find sections that might contain person information
+        let sections = try document.select("section, .person-section, .council-member, h3")
+
+        if !sections.isEmpty() {
+            for section in sections {
+                do {
+                    // Create a new document with just this section
+                    let sectionDoc = try SwiftSoup.parse(section.outerHtml())
+                    let person = try parseSinglePerson(from: sectionDoc)
+                    people.append(person)
+                } catch {
+                    // Skip sections that don't contain valid person data
+                    continue
+                }
             }
-            throw error
         }
+
+        // If no sections found, try parsing the whole document as a single person
+        if people.isEmpty {
+            do {
+                let person = try parseSinglePerson(from: document)
+                people.append(person)
+            } catch {
+                // If that fails too, throw an error
+                throw ParsingError.missingRequiredField("No valid person data found")
+            }
+        }
+
+        return people
+    }
+
+    public static func parse(from document: Document) throws -> Person {
+        // Try to parse as collection first
+        let people = try parseCollection(from: document)
+
+        // Return the first person if found
+        if let firstPerson = people.first {
+            return firstPerson
+        }
+
+        // If no people found, throw an error
+        throw ParsingError.missingRequiredField("No valid person data found")
     }
 
     private static func parseSinglePerson(from document: Document) throws -> Person {
@@ -54,31 +93,6 @@ extension Person: HTMLParsable {
             address: nil,
             socialMediaHandles: socialMediaProfiles
         )
-    }
-
-    private static func parseMultiplePeople(from document: Document) throws -> [Person] {
-        var people: [Person] = []
-
-        // Look for sections that might contain person information
-        let sections = try document.select("section, .person-section, .council-member")
-
-        for section in sections {
-            do {
-                // Create a new document with just this section
-                let sectionDoc = try SwiftSoup.parse(section.outerHtml())
-                let person = try parseSinglePerson(from: sectionDoc)
-                people.append(person)
-            } catch {
-                // Skip sections that don't contain valid person data
-                continue
-            }
-        }
-
-        if people.isEmpty {
-            throw ParsingError.missingRequiredField("No valid person data found")
-        }
-
-        return people
     }
 
     // MARK: - Private Helper Methods
