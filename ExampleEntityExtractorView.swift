@@ -2,10 +2,11 @@ import SwiftUI
 import UtahNewsData
 
 struct ExampleEntityExtractorView: View {
-    @State private var urlString = ""
+    @State private var urlInput = ""
+    @State private var urls: [String] = []
     @State private var selectedEntityType = EntityType.article
     @State private var isLoading = false
-    @State private var extractedContent: Any?
+    @State private var extractedContents: [Any] = []
     @State private var errorMessage: String?
     
     private let entityTypes: [EntityType] = [
@@ -22,10 +23,42 @@ struct ExampleEntityExtractorView: View {
         NavigationView {
             Form {
                 Section(header: Text("Input")) {
-                    TextField("Enter URL", text: $urlString)
+                    TextField("Enter URL", text: $urlInput)
                         .textFieldStyle(RoundedBorderTextFieldStyle())
                         .textContentType(.URL)
                         .disableAutocorrection(true)
+                    
+                    Button("Add URL") {
+                        if !urlInput.isEmpty {
+                            urls.append(urlInput)
+                            urlInput = ""
+                        }
+                    }
+                    .disabled(urlInput.isEmpty)
+                    
+                    if !urls.isEmpty {
+                        Section(header: Text("URLs to Process")) {
+                            ForEach(urls, id: \.self) { url in
+                                HStack {
+                                    Text(url)
+                                    Spacer()
+                                    Button(action: {
+                                        urls.removeAll { $0 == url }
+                                    }) {
+                                        Image(systemName: "trash")
+                                            .foregroundColor(.red)
+                                    }
+                                }
+                            }
+                            
+                            Button(action: {
+                                urls.removeAll()
+                            }) {
+                                Text("Clear All")
+                                    .foregroundColor(.red)
+                            }
+                        }
+                    }
                     
                     Picker("Entity Type", selection: $selectedEntityType) {
                         ForEach(entityTypes, id: \.self) { type in
@@ -42,7 +75,7 @@ struct ExampleEntityExtractorView: View {
                             Text("Extract Content")
                         }
                     }
-                    .disabled(urlString.isEmpty || isLoading)
+                    .disabled(urls.isEmpty || isLoading)
                 }
                 
                 if let error = errorMessage {
@@ -52,9 +85,20 @@ struct ExampleEntityExtractorView: View {
                     }
                 }
                 
-                if let content = extractedContent {
+                if !extractedContents.isEmpty {
                     Section(header: Text("Extracted Content")) {
-                        ExtractedContentView(content: content)
+                        ForEach(Array(extractedContents.enumerated()), id: \.offset) { index, content in
+                            VStack(alignment: .leading) {
+                                Text("Result \(index + 1)")
+                                    .font(.headline)
+                                ExtractedContentView(content: content)
+                            }
+                            .padding(.vertical, 5)
+                            
+                            if index < extractedContents.count - 1 {
+                                Divider()
+                            }
+                        }
                     }
                 }
             }
@@ -63,44 +107,49 @@ struct ExampleEntityExtractorView: View {
     }
     
     private func extractContent() {
-        guard let url = URL(string: urlString) else {
-            errorMessage = "Invalid URL"
+        let validUrls = urls.compactMap { URL(string: $0) }
+        guard !validUrls.isEmpty else {
+            errorMessage = "No valid URLs to process"
             return
         }
         
         isLoading = true
         errorMessage = nil
+        extractedContents = []
         
         Task {
             do {
                 let service = ContentExtractionService.shared
-                let content: Any
+                var contents: [Any] = []
                 
                 switch selectedEntityType {
                 case .article:
-                    let article = try await service.extractContent(from: url, as: Article.self)
-                    content = article
+                    let articles = try await service.extractContent(from: validUrls, as: Article.self)
+                    contents = articles
                 case .newsStory:
-                    let story = try await service.extractContent(from: url, as: NewsStory.self)
-                    content = story
+                    let stories = try await service.extractContent(from: validUrls, as: NewsStory.self)
+                    contents = stories
                 case .person:
-                    let person = try await service.extractContent(from: url, as: Person.self)
-                    content = person
+                    let people = try await service.extractContent(from: validUrls, as: Person.self)
+                    contents = people
                 case .organization:
-                    content = try await service.extractContent(from: url, as: Organization.self)
+                    let orgs = try await service.extractContent(from: validUrls, as: Organization.self)
+                    contents = orgs
                 case .alert:
-                    let alert = try await service.extractContent(from: url, as: NewsAlert.self)
-                    content = alert
+                    let alerts = try await service.extractContent(from: validUrls, as: NewsAlert.self)
+                    contents = alerts
                 case .poll:
-                    content = try await service.extractContent(from: url, as: Poll.self)
+                    let polls = try await service.extractContent(from: validUrls, as: Poll.self)
+                    contents = polls
                 case .jurisdiction:
-                    content = try await service.extractContent(from: url, as: Jurisdiction.self)
+                    let jurisdictions = try await service.extractContent(from: validUrls, as: Jurisdiction.self)
+                    contents = jurisdictions
                 default:
                     throw ParsingError.unsupportedEntityType
                 }
                 
                 await MainActor.run {
-                    self.extractedContent = content
+                    self.extractedContents = contents
                     self.isLoading = false
                 }
             } catch {

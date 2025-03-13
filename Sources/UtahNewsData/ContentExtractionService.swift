@@ -37,6 +37,8 @@ public class ContentExtractionService: @unchecked Sendable {
     public func extractContent<T: HTMLParsable & Sendable>(from url: URL, as type: T.Type) async throws -> T {
         let html = try await fetchHTML(from: url)
         
+        // Create document with baseUri set to the source URL
+        let document = try SwiftSoup.parse(html, url.absoluteString)
         let result = try await parser.parseWithFallback(html: html, from: url, as: type)
         
         switch result {

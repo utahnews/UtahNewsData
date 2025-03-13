@@ -101,8 +101,8 @@ public class AdaptiveParser: @unchecked Sendable {
     public func parseWithFallback<T: HTMLParsable>(html: String, from url: URL? = nil, as type: T.Type) async throws -> ParsingResult<T> {
         do {
             print("🔍 Starting HTML parsing for type: \(T.self)")
-            // First try HTML parsing
-            let document = try SwiftSoup.parse(html)
+            // First try HTML parsing with URL if available
+            let document = try url.map { try SwiftSoup.parse(html, $0.absoluteString) } ?? SwiftSoup.parse(html)
             let parsedContent = try T.parse(from: document)
             
             // Check for empty required properties
@@ -180,7 +180,7 @@ public class AdaptiveParser: @unchecked Sendable {
             print("❌ HTML parsing failed completely: \(error)")
             // If HTML parsing completely fails and LLM fallback is enabled, try LLM extraction
             if useLLMFallback {
-                print("�� Attempting full LLM extraction after HTML parsing failure")
+                print("🤖 Attempting full LLM extraction after HTML parsing failure")
                 do {
                     // Extract title and content using LLM
                     let title = try await llmManager.extractContent(from: html, contentType: "title")
