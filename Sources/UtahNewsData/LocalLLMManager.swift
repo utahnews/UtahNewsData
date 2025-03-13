@@ -1,4 +1,5 @@
 import Foundation
+import SwiftSoup
 
 /// A manager class for handling interactions with a local LLM
 @MainActor
@@ -46,6 +47,10 @@ public class LocalLLMManager: @unchecked Sendable {
     ///   - contentType: The type of content to extract
     /// - Returns: The extracted content
     public func extractContent(from html: String, contentType: String) async throws -> String {
+        // First clean and focus the HTML based on the content type
+        let processedHTML = try preprocessHTML(html, for: contentType)
+        print("🧹 Preprocessed HTML length: \(processedHTML.count) characters")
+        
         let config = try configManager.currentConfig()
         let model = try configManager.nextModel(isComplexTask: contentType.lowercased() == "main content")
         
@@ -96,7 +101,7 @@ public class LocalLLMManager: @unchecked Sendable {
         Extract the \(contentType) from the following HTML content.
         Return only the extracted value, without any labels or formatting:
         
-        \(html)
+        \(processedHTML)
         """
         
         var request = URLRequest(url: config.baseURL)
@@ -149,10 +154,190 @@ public class LocalLLMManager: @unchecked Sendable {
         
         return content.trimmingCharacters(in: .whitespacesAndNewlines)
     }
+    
+    // MARK: - Private HTML Preprocessing Methods
+    
+    /// Preprocess HTML content before sending to LLM
+    /// - Parameters:
+    ///   - html: Raw HTML content
+    ///   - contentType: Type of content to extract
+    /// - Returns: Cleaned and focused HTML
+    private func preprocessHTML(_ html: String, for contentType: String) throws -> String {
+        let document = try SwiftSoup.parse(html)
+        
+        // Remove unnecessary elements
+        try document.select("script, style, iframe, noscript, svg, form").remove()
+        
+        // Focus on relevant content based on type
+        switch contentType.lowercased() {
+        case "title":
+            return try extractTitleHTML(from: document)
+        case "main content":
+            return try extractMainContentHTML(from: document)
+        case "author":
+            return try extractAuthorHTML(from: document)
+        case "publication date":
+            return try extractDateHTML(from: document)
+        case "category":
+            return try extractCategoryHTML(from: document)
+        default:
+            return try document.html()
+        }
+    }
+    
+    private func extractTitleHTML(from document: Document) throws -> String {
+        var titleHTML = "<head>\n"
+        
+        // Get meta title tags
+        if let metaTitle = try document.select("meta[property='og:title'], meta[name='twitter:title']").first() {
+            titleHTML += try metaTitle.outerHtml() + "\n"
+        }
+        
+        titleHTML += "</head>\n<body>\n"
+        
+        // Get h1 tags within article or main content
+        let h1Elements = try document.select("article h1, main h1, .article-title, .story-title, h1")
+        if !h1Elements.isEmpty() {
+            titleHTML += try h1Elements.outerHtml()
+        } else if let title = try document.select("title").first() {
+            titleHTML += try title.outerHtml()
+        }
+        
+        titleHTML += "\n</body>"
+        return titleHTML
+    }
+    
+    private func extractMainContentHTML(from document: Document) throws -> String {
+        var contentHTML = "<body>\n"
+        
+        // Try to find main content container
+        let contentSelectors = [
+            "article",
+            "[itemprop='articleBody']",
+            ".article-content",
+            ".story-content",
+            "main",
+            ".post-content"
+        ]
+        
+        var foundContent = false
+        for selector in contentSelectors {
+            let elements = try document.select(selector)
+            if !elements.isEmpty() {
+                contentHTML += try elements.outerHtml() + "\n"
+                foundContent = true
+                break
+            }
+        }
+        
+        // If no main content found, collect all substantive paragraphs
+        if !foundContent {
+            let paragraphs = try document.select("p").filter { element in
+                let text = try? element.text()
+                return text?.count ?? 0 > 50
+            }
+            contentHTML += try paragraphs.outerHtml()
+        }
+        
+        contentHTML += "\n</body>"
+        return contentHTML
+    }
+    
+    private func extractAuthorHTML(from document: Document) throws -> String {
+        var authorHTML = "<body>\n"
+        
+        // Get author meta tags
+        let metaAuthors = try document.select("meta[name='author'], meta[property='article:author']")
+        if !metaAuthors.isEmpty() {
+            authorHTML += try metaAuthors.outerHtml() + "\n"
+        }
+        
+        // Get author elements
+        let authorSelectors = [
+            ".author",
+            ".byline",
+            "[itemprop='author']",
+            ".article-author",
+            ".story-author"
+        ]
+        
+        for selector in authorSelectors {
+            let elements = try document.select(selector)
+            if !elements.isEmpty() {
+                authorHTML += try elements.outerHtml() + "\n"
+            }
+        }
+        
+        authorHTML += "\n</body>"
+        return authorHTML
+    }
+    
+    private func extractDateHTML(from document: Document) throws -> String {
+        var dateHTML = "<head>\n"
+        
+        // Get date meta tags
+        let metaDates = try document.select("meta[property='article:published_time'], meta[name='publication-date']")
+        if !metaDates.isEmpty() {
+            dateHTML += try metaDates.outerHtml() + "\n"
+        }
+        
+        dateHTML += "</head>\n<body>\n"
+        
+        // Get date elements
+        let dateSelectors = [
+            "time",
+            "[itemprop='datePublished']",
+            ".published-date",
+            ".article-date",
+            ".story-date"
+        ]
+        
+        for selector in dateSelectors {
+            let elements = try document.select(selector)
+            if !elements.isEmpty() {
+                dateHTML += try elements.outerHtml() + "\n"
+            }
+        }
+        
+        dateHTML += "\n</body>"
+        return dateHTML
+    }
+    
+    private func extractCategoryHTML(from document: Document) throws -> String {
+        var categoryHTML = "<head>\n"
+        
+        // Get category meta tags
+        let metaCategories = try document.select("meta[property='article:section'], meta[name='category']")
+        if !metaCategories.isEmpty() {
+            categoryHTML += try metaCategories.outerHtml() + "\n"
+        }
+        
+        categoryHTML += "</head>\n<body>\n"
+        
+        // Get category elements
+        let categorySelectors = [
+            "[itemprop='articleSection']",
+            ".category",
+            ".article-category",
+            ".story-category",
+            ".section-name"
+        ]
+        
+        for selector in categorySelectors {
+            let elements = try document.select(selector)
+            if !elements.isEmpty() {
+                categoryHTML += try elements.outerHtml() + "\n"
+            }
+        }
+        
+        categoryHTML += "\n</body>"
+        return categoryHTML
+    }
 }
 
 /// Errors that can occur during LLM operations
 public enum LLMError: Error {
     case requestFailed
     case invalidResponse
+    case preprocessingFailed(String)
 } 

@@ -137,32 +137,72 @@ extension Article: HTMLParsable {
     private static func extractContent(from document: Document) throws -> String {
         // Try article content first with more comprehensive selectors
         let contentSelectors = [
+            // Standard article content selectors
             ".article-content",
             "[itemprop='articleBody']",
-            "main",
+            ".article-body",
+            ".story-body",
             ".entry-content",
+            ".post-content",
+            // Main content areas
+            "main article",
+            "main .content",
+            ".main-content",
+            // Article with nested paragraphs
+            "article p",
+            // Content wrapper selectors
+            ".content-wrapper",
+            ".story-content",
+            // Specific news site patterns
+            ".story__body",
+            ".article__body",
+            // Direct paragraph selectors within content areas
+            ".article-content > p",
+            ".story-content > p",
+            ".entry-content > p",
+            // Fallback selectors
             "article",
-            // Select paragraphs that are direct children of the article or main content area
-            "article > p",
-            ".post-content > p",
-            // Fallback to any paragraph with substantial content
-            "p"
+            "main",
+            // Last resort - any substantial paragraphs
+            "body > :not(header):not(footer):not(nav) p"
         ]
         
+        // First try to get content from specific selectors
         for selector in contentSelectors {
             let elements = try document.select(selector)
             if !elements.isEmpty() {
-                let content = try elements.text().trimmingCharacters(in: .whitespacesAndNewlines)
-                if !content.isEmpty {
+                // Get all text content and clean it
+                let content = try elements.text()
+                    .trimmingCharacters(in: .whitespacesAndNewlines)
+                    .replacingOccurrences(of: "\\s+", with: " ", options: .regularExpression)
+                
+                // Check if content is substantial (more than just a few words)
+                if content.count > 50 {
                     return content
                 }
             }
         }
         
-        // If we still haven't found content, try to get all paragraphs that aren't in the header or footer
-        let allParagraphs = try document.select("body > :not(header):not(footer) p")
-        if !allParagraphs.isEmpty() {
-            let content = try allParagraphs.text().trimmingCharacters(in: .whitespacesAndNewlines)
+        // If no content found through selectors, try to intelligently gather paragraphs
+        let allParagraphs = try document.select("p").filter { element in
+            do {
+                let text = try element.text().trimmingCharacters(in: .whitespacesAndNewlines)
+                // Filter out short paragraphs and common non-content elements
+                return text.count > 30 && 
+                       !text.contains("cookie") &&
+                       !text.contains("subscribe") &&
+                       !text.contains("sign up") &&
+                       !text.contains("advertisement")
+            } catch {
+                return false
+            }
+        }
+        
+        if !allParagraphs.isEmpty {
+            let content = try allParagraphs.map { try $0.text() }
+                .joined(separator: "\n\n")
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            
             if !content.isEmpty {
                 return content
             }
