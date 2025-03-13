@@ -74,7 +74,13 @@ public class AdaptiveParser: @unchecked Sendable {
     private var selectorCache: [String: SelectorSet] = [:]
 
     /// The LLM manager for fallback extraction
-    private let llmManager: LocalLLMManager
+    private let simpleLLMManager: LocalLLMManager
+
+    /// The LLM manager for handling large content
+    private let complexLLMManager: LocalLLMManager
+
+    /// Token threshold for using complex LLM (approximately 100K characters)
+    private let complexLLMThreshold = 100_000
 
     /// Whether to use LLM fallback when HTML parsing fails
     private let useLLMFallback: Bool
@@ -84,10 +90,42 @@ public class AdaptiveParser: @unchecked Sendable {
     /// Creates a new adaptive parser
     /// - Parameters:
     ///   - useLLMFallback: Whether to use LLM fallback when HTML parsing fails
-    ///   - llmManager: The LLM manager to use for fallback (defaults to a new instance)
-    public init(useLLMFallback: Bool = true, llmManager: LocalLLMManager? = nil) {
+    ///   - simpleLLMManager: The LLM manager to use for small content fallback
+    ///   - complexLLMManager: The LLM manager to use for large content fallback
+    public init(
+        useLLMFallback: Bool = true,
+        simpleLLMManager: LocalLLMManager? = nil,
+        complexLLMManager: LocalLLMManager? = nil
+    ) {
         self.useLLMFallback = useLLMFallback
-        self.llmManager = llmManager ?? LocalLLMManager()
+
+        // Initialize simple LLM manager with default configuration
+        if let manager = simpleLLMManager {
+            self.simpleLLMManager = manager
+        } else {
+            let simpleConfig = StandardLLMConfig(
+                baseURL: URL(string: "http://localhost:1234/v1/chat/completions")!,
+                simpleTaskModels: ["llama-3.2-3b-instruct"],
+                complexTaskModels: [],
+                headers: ["Content-Type": "application/json"]
+            )
+            LLMConfigurationManager.shared.configure(with: simpleConfig)
+            self.simpleLLMManager = LocalLLMManager()
+        }
+
+        // Initialize complex LLM manager with complex model configuration
+        if let manager = complexLLMManager {
+            self.complexLLMManager = manager
+        } else {
+            let complexConfig = StandardLLMConfig(
+                baseURL: URL(string: "http://localhost:1234/v1/chat/completions")!,
+                simpleTaskModels: [],
+                complexTaskModels: ["mistral-nemo-instruct-2407"],
+                headers: ["Content-Type": "application/json"]
+            )
+            LLMConfigurationManager.shared.configure(with: complexConfig)
+            self.complexLLMManager = LocalLLMManager()
+        }
     }
 
     // MARK: - Parsing Methods
@@ -117,7 +155,46 @@ public class AdaptiveParser: @unchecked Sendable {
 
             if parsedContent.isEmpty {
                 print("⚠️ No items found in HTML parsing, falling back to LLM")
-                return try await extractCollectionUsingLLM(from: html, as: type)
+                // Choose appropriate LLM based on content size
+                let llmManager =
+                    html.count > complexLLMThreshold ? complexLLMManager : simpleLLMManager
+                print(
+                    "🤖 Using \(html.count > complexLLMThreshold ? "complex" : "simple") LLM for extraction"
+                )
+
+                do {
+                    // First try to get the number of items
+                    let countPrompt =
+                        "How many distinct items are there in this content? Just return the number."
+                    let countStr = try await llmManager.extractContent(
+                        from: html, contentType: countPrompt)
+                    let count = Int(countStr) ?? 1
+
+                    var items: [T] = []
+
+                    // Extract each item
+                    for i in 0..<count {
+                        let itemPrompt =
+                            "Extract details for item #\(i + 1) in a structured format."
+                        let content = try await llmManager.extractContent(
+                            from: html, contentType: itemPrompt)
+                        if let item = try? createInstance(
+                            ofType: T.self, withTitle: "Item \(i + 1)", content: content)
+                        {
+                            items.append(item)
+                        }
+                    }
+
+                    if items.isEmpty {
+                        throw ParsingError.llmExtractionFailed
+                    }
+
+                    print("✅ Successfully extracted \(items.count) items using LLM")
+                    return .success(items, source: .llmExtraction)
+                } catch {
+                    print("❌ LLM extraction failed: \(error)")
+                    throw ParsingError.llmExtractionFailed
+                }
             }
 
             print("✅ Returning HTML parsed content")
@@ -126,48 +203,49 @@ public class AdaptiveParser: @unchecked Sendable {
         } catch {
             print("❌ HTML parsing failed completely: \(error)")
             if useLLMFallback {
-                return try await extractCollectionUsingLLM(from: html, as: type)
+                // Choose appropriate LLM based on content size
+                let llmManager =
+                    html.count > complexLLMThreshold ? complexLLMManager : simpleLLMManager
+                print(
+                    "🤖 Using \(html.count > complexLLMThreshold ? "complex" : "simple") LLM for extraction"
+                )
+
+                do {
+                    // First try to get the number of items
+                    let countPrompt =
+                        "How many distinct items are there in this content? Just return the number."
+                    let countStr = try await llmManager.extractContent(
+                        from: html, contentType: countPrompt)
+                    let count = Int(countStr) ?? 1
+
+                    var items: [T] = []
+
+                    // Extract each item
+                    for i in 0..<count {
+                        let itemPrompt =
+                            "Extract details for item #\(i + 1) in a structured format."
+                        let content = try await llmManager.extractContent(
+                            from: html, contentType: itemPrompt)
+                        if let item = try? createInstance(
+                            ofType: T.self, withTitle: "Item \(i + 1)", content: content)
+                        {
+                            items.append(item)
+                        }
+                    }
+
+                    if items.isEmpty {
+                        throw ParsingError.llmExtractionFailed
+                    }
+
+                    print("✅ Successfully extracted \(items.count) items using LLM")
+                    return .success(items, source: .llmExtraction)
+                } catch {
+                    print("❌ LLM extraction failed: \(error)")
+                    throw ParsingError.llmExtractionFailed
+                }
             } else {
                 throw ParsingError.invalidHTML
             }
-        }
-    }
-
-    /// Helper method to extract a collection using LLM
-    private func extractCollectionUsingLLM<T: HTMLCollectionParsable>(
-        from html: String, as type: T.Type
-    ) async throws -> ParsingResult<[T]> {
-        print("🤖 Attempting full LLM extraction for collection")
-        do {
-            // First try to get the number of items
-            let countPrompt =
-                "How many distinct items are there in this content? Just return the number."
-            let countStr = try await llmManager.extractContent(from: html, contentType: countPrompt)
-            let count = Int(countStr) ?? 1
-
-            var items: [T] = []
-
-            // Extract each item
-            for i in 0..<count {
-                let itemPrompt = "Extract details for item #\(i + 1) in a structured format."
-                let content = try await llmManager.extractContent(
-                    from: html, contentType: itemPrompt)
-                if let item = try? createInstance(
-                    ofType: T.self, withTitle: "Item \(i + 1)", content: content)
-                {
-                    items.append(item)
-                }
-            }
-
-            if items.isEmpty {
-                throw ParsingError.llmExtractionFailed
-            }
-
-            print("✅ Successfully extracted \(items.count) items using LLM")
-            return .success(items, source: .llmExtraction)
-        } catch {
-            print("❌ LLM extraction failed: \(error)")
-            throw ParsingError.llmExtractionFailed
         }
     }
 
@@ -180,8 +258,14 @@ public class AdaptiveParser: @unchecked Sendable {
     public func parseWithFallback<T: HTMLParsable>(
         html: String, from url: URL? = nil, as type: T.Type
     ) async throws -> ParsingResult<T> {
+        print("🔍 Starting HTML parsing")
+
+        // Choose appropriate LLM based on content size
+        let llmManager = html.count > complexLLMThreshold ? complexLLMManager : simpleLLMManager
+        print(
+            "🤖 Using \(html.count > complexLLMThreshold ? "complex" : "simple") LLM for extraction")
+
         do {
-            print("🔍 Starting HTML parsing for type: \(T.self)")
             // First try HTML parsing with URL if available
             let document =
                 try url.map { try SwiftSoup.parse(html, $0.absoluteString) }
