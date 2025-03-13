@@ -198,7 +198,7 @@ public class LocalLLMManager: @unchecked Sendable {
         // Get h1 tags within article or main content
         let h1Elements = try document.select("article h1, main h1, .article-title, .story-title, h1")
         if !h1Elements.isEmpty() {
-            titleHTML += try h1Elements.outerHtml()
+            titleHTML += try h1Elements.array().map { try $0.outerHtml() }.joined(separator: "\n")
         } else if let title = try document.select("title").first() {
             titleHTML += try title.outerHtml()
         }
@@ -224,7 +224,7 @@ public class LocalLLMManager: @unchecked Sendable {
         for selector in contentSelectors {
             let elements = try document.select(selector)
             if !elements.isEmpty() {
-                contentHTML += try elements.outerHtml() + "\n"
+                contentHTML += try elements.array().map { try $0.outerHtml() }.joined(separator: "\n") + "\n"
                 foundContent = true
                 break
             }
@@ -236,7 +236,7 @@ public class LocalLLMManager: @unchecked Sendable {
                 let text = try? element.text()
                 return text?.count ?? 0 > 50
             }
-            contentHTML += try paragraphs.outerHtml()
+            contentHTML += try paragraphs.map { try $0.outerHtml() }.joined(separator: "\n")
         }
         
         contentHTML += "\n</body>"
@@ -249,7 +249,7 @@ public class LocalLLMManager: @unchecked Sendable {
         // Get author meta tags
         let metaAuthors = try document.select("meta[name='author'], meta[property='article:author']")
         if !metaAuthors.isEmpty() {
-            authorHTML += try metaAuthors.outerHtml() + "\n"
+            authorHTML += try metaAuthors.array().map { try $0.outerHtml() }.joined(separator: "\n") + "\n"
         }
         
         // Get author elements
@@ -264,7 +264,7 @@ public class LocalLLMManager: @unchecked Sendable {
         for selector in authorSelectors {
             let elements = try document.select(selector)
             if !elements.isEmpty() {
-                authorHTML += try elements.outerHtml() + "\n"
+                authorHTML += try elements.array().map { try $0.outerHtml() }.joined(separator: "\n") + "\n"
             }
         }
         
@@ -278,7 +278,7 @@ public class LocalLLMManager: @unchecked Sendable {
         // Get date meta tags
         let metaDates = try document.select("meta[property='article:published_time'], meta[name='publication-date']")
         if !metaDates.isEmpty() {
-            dateHTML += try metaDates.outerHtml() + "\n"
+            dateHTML += try metaDates.array().map { try $0.outerHtml() }.joined(separator: "\n") + "\n"
         }
         
         dateHTML += "</head>\n<body>\n"
@@ -295,7 +295,7 @@ public class LocalLLMManager: @unchecked Sendable {
         for selector in dateSelectors {
             let elements = try document.select(selector)
             if !elements.isEmpty() {
-                dateHTML += try elements.outerHtml() + "\n"
+                dateHTML += try elements.array().map { try $0.outerHtml() }.joined(separator: "\n") + "\n"
             }
         }
         
@@ -309,7 +309,7 @@ public class LocalLLMManager: @unchecked Sendable {
         // Get category meta tags
         let metaCategories = try document.select("meta[property='article:section'], meta[name='category']")
         if !metaCategories.isEmpty() {
-            categoryHTML += try metaCategories.outerHtml() + "\n"
+            categoryHTML += try metaCategories.array().map { try $0.outerHtml() }.joined(separator: "\n") + "\n"
         }
         
         categoryHTML += "</head>\n<body>\n"
@@ -326,7 +326,7 @@ public class LocalLLMManager: @unchecked Sendable {
         for selector in categorySelectors {
             let elements = try document.select(selector)
             if !elements.isEmpty() {
-                categoryHTML += try elements.outerHtml() + "\n"
+                categoryHTML += try elements.array().map { try $0.outerHtml() }.joined(separator: "\n") + "\n"
             }
         }
         
