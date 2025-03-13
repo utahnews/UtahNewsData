@@ -321,23 +321,22 @@ public class AdaptiveParser: @unchecked Sendable {
     }
 
     // Helper method to create instances of different types
-    private func createInstance<T>(ofType type: T.Type, withTitle title: String, content: String)
-        throws -> T
-    {
-        if T.self == Article.self {
-            let article = Article(
-                title: title,
-                url: "",  // Empty since we don't have it
-                urlToImage: nil,
-                additionalImages: nil,
-                publishedAt: Date(),
-                textContent: content,
-                author: nil,
-                category: nil
-            )
-            return article as! T
-        }
-        // Add other type handling as needed
-        throw ParsingError.invalidType
+    private func createInstance<T: HTMLParsable>(
+        ofType type: T.Type, withTitle title: String, content: String
+    ) throws -> T {
+        // Create a minimal document with the extracted content
+        let html = """
+            <html>
+                <head>
+                    <title>\(title)</title>
+                </head>
+                <body>
+                    <div class="content">\(content)</div>
+                </body>
+            </html>
+            """
+
+        let document = try SwiftSoup.parse(html)
+        return try T.parse(from: document)
     }
 }
