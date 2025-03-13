@@ -20,7 +20,7 @@ extension Article: HTMLParsable {
         // Get the canonical URL if available, otherwise use the og:url or current URL
         let canonicalUrl = try document.select("link[rel=canonical]").first()?.attr("href")
         let ogUrl = try document.select("meta[property='og:url']").first()?.attr("content")
-        let documentUrl = document.baseUri()
+        let documentUrl = document.location()
         let url = canonicalUrl ?? ogUrl ?? documentUrl
         
         // Validate that we have a URL
