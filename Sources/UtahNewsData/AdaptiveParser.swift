@@ -324,17 +324,37 @@ public class AdaptiveParser: @unchecked Sendable {
     private func createInstance<T: HTMLParsable>(
         ofType type: T.Type, withTitle title: String, content: String
     ) throws -> T {
-        // Create a minimal document with the extracted content
-        let html = """
-            <html>
-                <head>
-                    <title>\(title)</title>
-                </head>
-                <body>
-                    <div class="content">\(content)</div>
-                </body>
-            </html>
-            """
+        // Create a structured document based on the type
+        let html: String
+        if T.self == Person.self {
+            html = """
+                <html>
+                    <head>
+                        <title>\(title)</title>
+                    </head>
+                    <body>
+                        <div class="person-section">
+                            <h1 class="person-name" itemprop="name">\(title)</h1>
+                            <div class="person-details" itemprop="description">
+                                \(content)
+                            </div>
+                        </div>
+                    </body>
+                </html>
+                """
+        } else {
+            // Default structure for other types
+            html = """
+                <html>
+                    <head>
+                        <title>\(title)</title>
+                    </head>
+                    <body>
+                        <div class="content">\(content)</div>
+                    </body>
+                </html>
+                """
+        }
 
         let document = try SwiftSoup.parse(html)
         return try T.parse(from: document)
