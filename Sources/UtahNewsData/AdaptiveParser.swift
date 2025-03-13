@@ -73,11 +73,8 @@ public class AdaptiveParser: @unchecked Sendable {
     /// Cache of successful selector sets for different domains
     private var selectorCache: [String: SelectorSet] = [:]
 
-    /// The LLM manager for fallback extraction
-    private let simpleLLMManager: LocalLLMManager
-
-    /// The LLM manager for handling large content
-    private let complexLLMManager: LocalLLMManager
+    /// The LLM manager for extraction
+    private let llmManager: LocalLLMManager
 
     /// Token threshold for using complex LLM (approximately 100K characters)
     private let complexLLMThreshold = 100_000
@@ -90,41 +87,23 @@ public class AdaptiveParser: @unchecked Sendable {
     /// Creates a new adaptive parser
     /// - Parameters:
     ///   - useLLMFallback: Whether to use LLM fallback when HTML parsing fails
-    ///   - simpleLLMManager: The LLM manager to use for small content fallback
-    ///   - complexLLMManager: The LLM manager to use for large content fallback
+    ///   - llmManager: The LLM manager to use for extraction
     public init(
         useLLMFallback: Bool = true,
-        simpleLLMManager: LocalLLMManager? = nil,
-        complexLLMManager: LocalLLMManager? = nil
+        llmManager: LocalLLMManager? = nil
     ) {
         self.useLLMFallback = useLLMFallback
+        self.llmManager = llmManager ?? LocalLLMManager()
+    }
 
-        // Initialize simple LLM manager with default configuration
-        if let manager = simpleLLMManager {
-            self.simpleLLMManager = manager
+    /// Configure the LLM manager for the appropriate content size
+    private func configureForContent(_ content: String) async throws {
+        if content.count > complexLLMThreshold {
+            print("🤖 Using complex model for large content")
+            try await LLMConfigurationManager.shared.nextModel(isComplexTask: true)
         } else {
-            let simpleConfig = StandardLLMConfig(
-                baseURL: URL(string: "http://localhost:1234/v1/chat/completions")!,
-                simpleTaskModels: ["llama-3.2-3b-instruct"],
-                complexTaskModels: [],
-                headers: ["Content-Type": "application/json"]
-            )
-            LLMConfigurationManager.shared.configure(with: simpleConfig)
-            self.simpleLLMManager = LocalLLMManager()
-        }
-
-        // Initialize complex LLM manager with complex model configuration
-        if let manager = complexLLMManager {
-            self.complexLLMManager = manager
-        } else {
-            let complexConfig = StandardLLMConfig(
-                baseURL: URL(string: "http://localhost:1234/v1/chat/completions")!,
-                simpleTaskModels: [],
-                complexTaskModels: ["mistral-nemo-instruct-2407"],
-                headers: ["Content-Type": "application/json"]
-            )
-            LLMConfigurationManager.shared.configure(with: complexConfig)
-            self.complexLLMManager = LocalLLMManager()
+            print("🤖 Using simple model for small content")
+            try await LLMConfigurationManager.shared.nextModel(isComplexTask: false)
         }
     }
 
@@ -155,9 +134,8 @@ public class AdaptiveParser: @unchecked Sendable {
 
             if parsedContent.isEmpty {
                 print("⚠️ No items found in HTML parsing, falling back to LLM")
-                // Choose appropriate LLM based on content size
-                let llmManager =
-                    html.count > complexLLMThreshold ? complexLLMManager : simpleLLMManager
+                // Configure LLM based on content size
+                try await configureForContent(html)
                 print(
                     "🤖 Using \(html.count > complexLLMThreshold ? "complex" : "simple") LLM for extraction"
                 )
@@ -203,9 +181,8 @@ public class AdaptiveParser: @unchecked Sendable {
         } catch {
             print("❌ HTML parsing failed completely: \(error)")
             if useLLMFallback {
-                // Choose appropriate LLM based on content size
-                let llmManager =
-                    html.count > complexLLMThreshold ? complexLLMManager : simpleLLMManager
+                // Configure LLM based on content size
+                try await configureForContent(html)
                 print(
                     "🤖 Using \(html.count > complexLLMThreshold ? "complex" : "simple") LLM for extraction"
                 )
@@ -260,8 +237,8 @@ public class AdaptiveParser: @unchecked Sendable {
     ) async throws -> ParsingResult<T> {
         print("🔍 Starting HTML parsing")
 
-        // Choose appropriate LLM based on content size
-        let llmManager = html.count > complexLLMThreshold ? complexLLMManager : simpleLLMManager
+        // Configure LLM based on content size
+        try await configureForContent(html)
         print(
             "🤖 Using \(html.count > complexLLMThreshold ? "complex" : "simple") LLM for extraction")
 
