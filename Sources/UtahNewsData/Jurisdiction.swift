@@ -115,6 +115,3 @@ public struct Jurisdiction: AssociatedData, Identifiable, Codable, JSONSchemaPro
     }
 }
 
-// MARK: - Sendable Implementation
-
-extension Jurisdiction: @unchecked Sendable {} // Complex type with thread-safe properties
