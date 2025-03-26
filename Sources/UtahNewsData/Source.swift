@@ -79,7 +79,7 @@ public struct Source: AssociatedData, Codable, Identifiable, Hashable, Equatable
     /// - 5: High credibility (highly reliable, fact-checked content)
     public var credibilityRating: Int?
     /// URL to the source's sitemap, used for content discovery
-//    public var siteMapURL: URL?
+    public var siteMapURL: URL?
     /// Primary category of the source
     public var category: String?
     /// Subcategory providing more specific classification
