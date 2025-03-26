@@ -5,14 +5,14 @@ extension Source: HTMLParsable {
     public static func parse(from document: Document) throws -> Source {
         let name = try extractName(from: document)
         let url = try extractURL(from: document)
-        let description = try extractDescription(from: document)
+        let sourceDescription = try extractDescription(from: document)
         let category = try extractCategory(from: document)
         let language = try extractLanguage(from: document)
         
         return Source(
             name: name,
             url: url,
-            description: description,
+            sourceDescription: sourceDescription,
             category: category,
             language: language
         )
