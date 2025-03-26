@@ -145,7 +145,7 @@ public struct Source: AssociatedData, Codable, Identifiable, Hashable, Equatable
         self.id = id
         self.name = name
         self.url = url
-        self.description = description
+        self.sourceDescription = description
         self.category = category
         self.language = language
         self.type = "news" // Default type
