@@ -85,7 +85,7 @@ public struct Source: AssociatedData, Codable, Identifiable, Hashable, Equatable
     /// Subcategory providing more specific classification
     public var subCategory: NewsSourceSubcategory?
     /// Detailed description of the source, its focus, and its background
-    public var description: String?
+    public var sourceDescription: String?
     /// JSON schema for parsing content from this source, if available
     public var JSONSchema: JSONSchema?
     /// Type of the source
