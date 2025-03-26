@@ -138,14 +138,14 @@ public struct Source: AssociatedData, Codable, Identifiable, Hashable, Equatable
         id: String = UUID().uuidString,
         name: String,
         url: String,
-        description: String? = nil,
+        sourceDescription: String? = nil,
         category: String? = nil,
         language: String? = nil
     ) {
         self.id = id
         self.name = name
         self.url = url
-        self.sourceDescription = description
+        self.sourceDescription = sourceDescription
         self.category = category
         self.language = language
         self.type = "news" // Default type
