@@ -1,0 +1,22 @@
+{
+        "configurations": [
+                {
+                        "type": "lldb",
+                        "request": "launch",
+                        "args": [],
+                        "cwd": "${workspaceFolder:UtahNewsData}",
+                        "name": "Debug ImportSources",
+                        "program": "${workspaceFolder:UtahNewsData}/.build/debug/ImportSources",
+                        "preLaunchTask": "swift: Build Debug ImportSources"
+                },
+                {
+                        "type": "lldb",
+                        "request": "launch",
+                        "args": [],
+                        "cwd": "${workspaceFolder:UtahNewsData}",
+                        "name": "Release ImportSources",
+                        "program": "${workspaceFolder:UtahNewsData}/.build/release/ImportSources",
+                        "preLaunchTask": "swift: Build Release ImportSources"
+                }
+        ]
+}

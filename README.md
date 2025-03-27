@@ -539,3 +539,53 @@ For a complete reference of all models, see the `ConsolidatedModels.swift` file 
 ## License
 
 This package is available under the MIT license.
+
+# Utah News Data - Source JSON Converter
+
+This project provides code to convert a JSON file of news sources (`sourcesUpdated.json`) into Swift `Source` objects that can be used within the UtahNewsData system.
+
+## Files
+
+- **SourcesJSONConverter.swift**: Contains the logic to convert JSON data to Source objects
+- **ImportSources.swift**: A sample application that demonstrates how to use the converter
+- **sourcesUpdated.json**: The source data file containing information about news sources
+
+## How to Use
+
+1. Make sure the `sourcesUpdated.json` file is in the same directory as the executable
+2. Run the `ImportSources` application to load and display the sources
+3. The converter can also be used in other applications by importing the `SourcesConverter` class
+
+### Example Usage
+
+```swift
+// Load sources from a specific file path
+let sources = SourcesConverter.loadSourcesFromFile(filePath: "/path/to/sourcesUpdated.json")
+
+// Or convert from existing JSON data
+let jsonData = try Data(contentsOf: jsonFileURL)
+let sources = try SourcesConverter.convertJSONToSources(jsonData: jsonData)
+
+// Use the sources in your application
+for source in sources {
+    print("Source: \(source.name)")
+    // ... work with the source
+}
+```
+
+## Structure Details
+
+The `sourcesUpdated.json` file has a specific structure that includes:
+
+- Basic source information (id, name, url, category)
+- Sitemap URL information for web scraping
+- Relationships with other entities
+- A `__collections__` field which is typically empty but is handled by the converter
+
+The converter creates proper `Source` objects that match the UtahNewsData model, including converting relationships to the correct format.
+
+## Requirements
+
+- Swift 5.0+
+- UtahNewsData package
+- Foundation framework

@@ -9,12 +9,15 @@ let package = Package(
         .iOS("17.0"),
         .macOS("14.0"),
         .tvOS("17.0"),
-        .watchOS("10.0")
+        .watchOS("10.0"),
     ],
     products: [
         .library(
             name: "UtahNewsData",
             targets: ["UtahNewsData"]),
+        .executable(
+            name: "ImportSources",
+            targets: ["ImportSources"]),
     ],
     dependencies: [
         .package(url: "https://github.com/scinfu/SwiftSoup.git", from: "2.7.0")
@@ -22,7 +25,17 @@ let package = Package(
     targets: [
         .target(
             name: "UtahNewsData",
-            dependencies: ["SwiftSoup"]),
+            dependencies: ["SwiftSoup"],
+            resources: [
+                .copy("Resources/sourcesUpdated.json")
+            ]),
+        .executableTarget(
+            name: "ImportSources",
+            dependencies: ["UtahNewsData"],
+            path: "Sources/ImportSources",
+            sources: [
+                "ImportSources.swift", "SourcesJSONConverter.swift", "DemoConvertedSources.swift",
+            ]),
         .testTarget(
             name: "UtahNewsDataTests",
             dependencies: ["UtahNewsData"]),
