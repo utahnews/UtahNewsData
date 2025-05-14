@@ -408,53 +408,6 @@ extension MediaItem {
         )
     }
 
-    /// Creates a MediaItem from a UserSubmission media type
-    ///
-    /// - Parameter imageMedia: The ImageMedia to convert
-    /// - Returns: A new MediaItem with properties from the ImageMedia
-    @available(*, deprecated, message: "Use MediaItem initializer with type .image instead")
-    public static func from(_ imageMedia: ImageMedia) -> MediaItem {
-        return MediaItem(
-            id: imageMedia.id,
-            title: imageMedia.caption ?? "Image",
-            type: .image,
-            url: imageMedia.url,
-            caption: imageMedia.caption
-        )
-    }
-
-    /// Creates a MediaItem from a UserSubmission media type
-    ///
-    /// - Parameter videoMedia: The VideoMedia to convert
-    /// - Returns: A new MediaItem with properties from the VideoMedia
-    @available(*, deprecated, message: "Use MediaItem initializer with type .video instead")
-    public static func from(_ videoMedia: VideoMedia) -> MediaItem {
-        return MediaItem(
-            id: videoMedia.id,
-            title: videoMedia.caption ?? "Video",
-            type: .video,
-            url: videoMedia.url,
-            caption: videoMedia.caption,
-            duration: videoMedia.duration
-        )
-    }
-
-    /// Creates a MediaItem from a UserSubmission media type
-    ///
-    /// - Parameter audioMedia: The AudioMedia to convert
-    /// - Returns: A new MediaItem with properties from the AudioMedia
-    @available(*, deprecated, message: "Use MediaItem initializer with type .audio instead")
-    public static func from(_ audioMedia: AudioMedia) -> MediaItem {
-        return MediaItem(
-            id: audioMedia.id,
-            title: audioMedia.caption ?? "Audio",
-            type: .audio,
-            url: audioMedia.url,
-            caption: audioMedia.caption,
-            duration: audioMedia.duration
-        )
-    }
-
     /// Creates a MediaItem from a legacy DocumentMedia
     ///
     /// - Parameter documentMedia: The DocumentMedia to convert
@@ -485,3 +438,6 @@ extension MediaItem {
         )
     }
 }
+
+#if false // Legacy conversion helpers using removed types (ImageMedia, etc.)
+#endif
