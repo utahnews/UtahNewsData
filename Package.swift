@@ -15,6 +15,9 @@ let package = Package(
         .library(
             name: "UtahNewsData",
             targets: ["UtahNewsData"]),
+        .library(
+            name: "UtahNewsDataModels",
+            targets: ["UtahNewsDataModels"]),
         .executable(
             name: "ImportSources",
             targets: ["ImportSources"]),
@@ -24,10 +27,24 @@ let package = Package(
     ],
     targets: [
         .target(
+            name: "UtahNewsDataModels",
+            dependencies: [],
+            path: "Sources/UtahNewsDataModels",
+            exclude: [],
+            resources: [
+                // No runtime resources – pure Swift structs.
+            ],
+            swiftSettings: [.enableUpcomingFeature("StrictConcurrency")]
+        ),
+        .target(
             name: "UtahNewsData",
-            dependencies: ["SwiftSoup"],
+            dependencies: ["UtahNewsDataModels", "SwiftSoup"],
+            path: "Sources/UtahNewsData",
             resources: [
                 .copy("Resources/sourcesUpdated.json")
+            ],
+            swiftSettings: [
+                .enableUpcomingFeature("StrictConcurrency")
             ]),
         .executableTarget(
             name: "ImportSources",

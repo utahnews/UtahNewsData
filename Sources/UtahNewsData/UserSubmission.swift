@@ -217,7 +217,7 @@ extension UserSubmission {
 // MARK: - Legacy Media Types (Deprecated)
 
 /// A text-based media item in a user submission
-@available(*, deprecated, message: "Use MediaItem with type .text instead")
+@available(*, unavailable, message: "Use MediaItem with type .text instead")
 public struct TextMedia: BaseEntity, Codable, Hashable, Sendable {
     /// Unique identifier for the text media
     public var id: String
@@ -238,7 +238,7 @@ public struct TextMedia: BaseEntity, Codable, Hashable, Sendable {
 }
 
 /// An image media item in a user submission
-@available(*, deprecated, message: "Use MediaItem with type .image instead")
+@available(*, unavailable, message: "Use MediaItem with type .image instead")
 public struct ImageMedia: BaseEntity, Codable, Hashable, Sendable {
     /// Unique identifier for the image media
     public var id: String
@@ -263,7 +263,7 @@ public struct ImageMedia: BaseEntity, Codable, Hashable, Sendable {
 }
 
 /// A video media item in a user submission
-@available(*, deprecated, message: "Use MediaItem with type .video instead")
+@available(*, unavailable, message: "Use MediaItem with type .video instead")
 public struct VideoMedia: BaseEntity, Codable, Hashable, Sendable {
     /// Unique identifier for the video media
     public var id: String
@@ -295,7 +295,7 @@ public struct VideoMedia: BaseEntity, Codable, Hashable, Sendable {
 }
 
 /// An audio media item in a user submission
-@available(*, deprecated, message: "Use MediaItem with type .audio instead")
+@available(*, unavailable, message: "Use MediaItem with type .audio instead")
 public struct AudioMedia: BaseEntity, Codable, Hashable, Sendable {
     /// Unique identifier for the audio media
     public var id: String
@@ -327,7 +327,7 @@ public struct AudioMedia: BaseEntity, Codable, Hashable, Sendable {
 }
 
 /// A document media item in a user submission
-@available(*, deprecated, message: "Use MediaItem with type .document instead")
+@available(*, unavailable, message: "Use MediaItem with type .document instead")
 public struct DocumentMedia: BaseEntity, Codable, Hashable, Sendable {
     /// Unique identifier for the document media
     public var id: String
