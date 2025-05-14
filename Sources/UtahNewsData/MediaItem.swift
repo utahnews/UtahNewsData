@@ -408,35 +408,9 @@ extension MediaItem {
         )
     }
 
-    /// Creates a MediaItem from a legacy DocumentMedia
-    ///
-    /// - Parameter documentMedia: The DocumentMedia to convert
-    /// - Returns: A new MediaItem with properties from the DocumentMedia
-    @available(*, deprecated, message: "Use MediaItem initializer with type .document instead")
-    public static func from(_ documentMedia: DocumentMedia) -> MediaItem {
-        return MediaItem(
-            id: documentMedia.id,
-            title: documentMedia.title ?? "Document",
-            type: .document,
-            url: documentMedia.url,
-            format: "application/pdf"  // Default format since DocumentMedia doesn't have a format property
-        )
-    }
-
-    /// Creates a MediaItem from a UserSubmission media type
-    ///
-    /// - Parameter textMedia: The TextMedia to convert
-    /// - Returns: A new MediaItem with properties from the TextMedia
-    @available(*, deprecated, message: "Use MediaItem initializer with type .text instead")
-    public static func from(_ textMedia: TextMedia) -> MediaItem {
-        return MediaItem(
-            id: textMedia.id,
-            title: "Text",
-            type: .text,
-            url: "",
-            textContent: textMedia.content
-        )
-    }
+    // NOTE: Legacy DocumentMedia and TextMedia converters have been removed.
+    // If you still need to migrate old data, perform the mapping inside your
+    // migration script and construct a MediaItem directly.
 }
 
 #if false // Legacy conversion helpers using removed types (ImageMedia, etc.)
