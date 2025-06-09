@@ -406,7 +406,13 @@ No description available.
 
 ### MediaItem
 
-2. Media type classification (image, video, audio, document)
+The unified media representation used throughout the package.
+
+• All legacy helpers (`ImageMedia`, `VideoMedia`, `AudioMedia`, `DocumentMedia`, `TextMedia`) were **removed in v1.2** – migrate to `MediaItem` directly.
+
+• Uses **String** for `id`.
+
+• Supports every media type via the `MediaType` enum (image, video, audio, document, text, other).
 
 ### NetworkClient
 
