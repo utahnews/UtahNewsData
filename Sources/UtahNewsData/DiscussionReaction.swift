@@ -198,7 +198,7 @@ public struct ForumBadge: BaseEntity, JSONSchemaProvider, Codable, Identifiable,
     }
     
     /// Badge tier levels
-    public enum BadgeTier: String, Codable, CaseIterable {
+    public enum BadgeTier: String, Codable, CaseIterable, Sendable {
         case bronze = "bronze"
         case silver = "silver"
         case gold = "gold"

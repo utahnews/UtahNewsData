@@ -82,7 +82,7 @@ public struct ModerationAction: BaseEntity, JSONSchemaProvider, Codable, Identif
     }
     
     /// Types of content that can be moderated
-    public enum ModerationType: String, Codable, CaseIterable {
+    public enum ModerationType: String, Codable, CaseIterable, Sendable {
         case thread = "thread"
         case post = "post"
         case user = "user"
@@ -90,7 +90,7 @@ public struct ModerationAction: BaseEntity, JSONSchemaProvider, Codable, Identif
     }
     
     /// Types of moderation actions
-    public enum ModerationActionType: String, Codable, CaseIterable {
+    public enum ModerationActionType: String, Codable, CaseIterable, Sendable {
         case remove = "remove"
         case hide = "hide"
         case lock = "lock"
@@ -132,7 +132,7 @@ public struct ModerationAction: BaseEntity, JSONSchemaProvider, Codable, Identif
     }
     
     /// Action severity levels
-    public enum ActionSeverity: String, Codable {
+    public enum ActionSeverity: String, Codable, Sendable {
         case info = "info"
         case low = "low"
         case medium = "medium"
@@ -263,7 +263,7 @@ public struct ContentReport: BaseEntity, JSONSchemaProvider, Codable, Identifiab
     }
     
     /// Reasons for reporting content
-    public enum ReportReason: String, Codable, CaseIterable {
+    public enum ReportReason: String, Codable, CaseIterable, Sendable {
         case spam = "spam"
         case harassment = "harassment"
         case hatespeech = "hatespeech"
@@ -309,7 +309,7 @@ public struct ContentReport: BaseEntity, JSONSchemaProvider, Codable, Identifiab
     }
     
     /// Status of a content report
-    public enum ReportStatus: String, Codable, CaseIterable {
+    public enum ReportStatus: String, Codable, CaseIterable, Sendable {
         case pending = "pending"
         case reviewing = "reviewing"
         case resolved = "resolved"
