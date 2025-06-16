@@ -176,6 +176,9 @@ public enum EntityType: String, Codable, Sendable {
     case alert = "alerts"
     case jurisdiction = "jurisdictions"
     case userSubmission = "userSubmissions"
+    case discussionCategory = "discussionCategories"
+    case discussionThread = "discussionThreads"
+    case discussionPost = "discussionPosts"
     // Add other types as needed
 
     /// Returns the singular name of this entity type
@@ -202,6 +205,9 @@ public enum EntityType: String, Codable, Sendable {
         case .alert: return "alert"
         case .jurisdiction: return "jurisdiction"
         case .userSubmission: return "user submission"
+        case .discussionCategory: return "discussion category"
+        case .discussionThread: return "discussion thread"
+        case .discussionPost: return "discussion post"
         }
     }
 }
