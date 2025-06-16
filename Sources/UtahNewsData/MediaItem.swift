@@ -354,12 +354,12 @@ extension MediaItem {
     }
 }
 
-// MARK: - Conversion from Legacy Types
+// MARK: - Conversion from Content Types
 
 extension MediaItem {
-    /// Creates a MediaItem from a legacy Article
+    /// Creates a MediaItem from an Article
     ///
-    /// - Parameter article: The legacy Article to convert
+    /// - Parameter article: The Article to convert
     /// - Returns: A new MediaItem with properties from the Article
     public static func from(_ article: Article) -> MediaItem {
         return MediaItem(
@@ -373,9 +373,9 @@ extension MediaItem {
         )
     }
 
-    /// Creates a MediaItem from a legacy Video
+    /// Creates a MediaItem from a Video
     ///
-    /// - Parameter video: The legacy Video to convert
+    /// - Parameter video: The Video to convert
     /// - Returns: A new MediaItem with properties from the Video
     public static func from(_ video: Video) -> MediaItem {
         return MediaItem(
@@ -391,9 +391,9 @@ extension MediaItem {
         )
     }
 
-    /// Creates a MediaItem from a legacy Audio
+    /// Creates a MediaItem from an Audio
     ///
-    /// - Parameter audio: The legacy Audio to convert
+    /// - Parameter audio: The Audio to convert
     /// - Returns: A new MediaItem with properties from the Audio
     public static func from(_ audio: Audio) -> MediaItem {
         return MediaItem(
@@ -408,9 +408,9 @@ extension MediaItem {
         )
     }
 
-    // NOTE: Legacy DocumentMedia and TextMedia converters have been removed.
-    // If you still need to migrate old data, perform the mapping inside your
-    // migration script and construct a MediaItem directly.
+    // NOTE: These converters provide convenience methods for creating MediaItem
+    // instances from specific content types (Article, Video, Audio) while maintaining
+    // backwards compatibility.
 }
 
 #if false // Legacy conversion helpers using removed types (ImageMedia, etc.)

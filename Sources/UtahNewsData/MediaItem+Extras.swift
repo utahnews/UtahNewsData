@@ -1,9 +1,8 @@
 import Foundation
-import UtahNewsDataModels
 
 public extension MediaItem {
-    public var urlValue: URL? { URL(string: url) }
-    public var fileType: String { (url as NSString).pathExtension }
-    public var documentURL: URL { URL(fileURLWithPath: url) }
-    public var credit: String? { metadata["credit"] }
+    var urlValue: URL? { URL(string: url) }
+    var fileType: String { (url as NSString).pathExtension }
+    var documentURL: URL { URL(fileURLWithPath: url) }
+    var credit: String? { metadata["credit"] }
 } 

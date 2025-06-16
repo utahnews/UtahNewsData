@@ -1,5 +1,14 @@
 #!/bin/bash
 
+# This script was previously used to generate ConsolidatedModels.swift
+# It is kept for reference but no longer generates output files
+# To see all models, refer to the README.md or browse Sources/UtahNewsData/
+
+echo "Note: ConsolidatedModels.swift generation has been deprecated."
+echo "Please refer to README.md for model documentation."
+exit 0
+
+# Original script content below (disabled)
 # Get the absolute path to the workspace root
 WORKSPACE_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
