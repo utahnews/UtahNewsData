@@ -23,6 +23,42 @@ dependencies: [
 ```
 
 ## Core Concepts
+
+## V2 Pipeline Architecture (NEW!)
+
+UtahNewsData now includes comprehensive models and utilities for the V2 hybrid pipeline architecture, featuring 98% cost reduction through intelligent OpenAI + Local LLM distribution.
+
+### Key V2 Features
+
+- **Hybrid Architecture**: 2% OpenAI orchestration + 98% Local LLM processing
+- **Agent Communication**: Full agent-to-agent handoff tracking and validation
+- **Real-time Monitoring**: Live pipeline metrics and performance tracking
+- **Cost Optimization**: Detailed token usage and cost analysis
+- **Cross-Platform Sync**: Swift models perfectly aligned with Python backend
+
+### V2 Model Overview
+
+**Pipeline Models** (`V2PipelineModels.swift`):
+- `Agent0Input` through `Agent9Output` - Complete pipeline stage models
+- `V2FinalDataPayload` - Enhanced final output with V2 metadata
+- `V2ContentType`, `V2ValidationDecision` - Pipeline-specific enumerations
+
+**Metrics Integration** (`V2MetricsIntegration.swift`):
+- `V2MetricsSummary` - Comprehensive performance overview
+- `V2TokenUsage` - Detailed token breakdown and distribution
+- `V2CostAnalysis` - Cost savings and projections
+- `RealtimeV2Metrics` - Live pipeline monitoring data
+
+**Agent Communication** (`AgentCommunicationProtocols.swift`):
+- `V2AgentInput`/`V2AgentOutput` - Base communication protocols
+- `V2AgentHandoffManager` - Handoff validation and tracking
+- `V2PipelineExecutionContext` - Shared pipeline state
+
+**Execution Metadata** (`V2AgentExecutionMetadata.swift`):
+- `V2PipelineExecutionMetadata` - Complete execution tracking
+- `V2AgentPerformanceRecord` - Agent performance metrics
+- `V2HandoffValidationRecord` - Data quality validation
+
 ## Platforms and Swift version
 
 - iOS 18+, macOS 15+, tvOS 18+, watchOS 11+
@@ -109,6 +145,223 @@ Utilities for exporting data to relational databases:
 - Table schema generation
 
 ## Usage Examples
+
+### V2 Pipeline Models Usage
+
+#### Working with V2 Enhanced Payloads
+
+```swift
+import UtahNewsData
+
+// Create a V2 final data payload with enhanced metadata
+let tokenUsage = V2TokenUsageMetadata(
+    openaiTokens: 200,
+    localLlmTokens: 9800,
+    totalTokens: 10000,
+    tokenReductionPercentage: 98.0
+)
+
+let costMetadata = V2CostMetadata(
+    openaiCostUsd: 0.02,
+    localLlmCostUsd: 0.001,
+    totalCostUsd: 0.021,
+    v1EstimatedCostUsd: 1.2,
+    costSavingsPercentage: 98.25
+)
+
+let v2Payload = V2FinalDataPayload(
+    url: "https://example.com/news",
+    processingTimestamp: "2024-08-11T10:00:00.000Z",
+    cleanedText: "Processed article content...",
+    summary: "Article summary",
+    topics: ["Politics", "Utah"],
+    sentimentLabel: "neutral",
+    isRelevantToUtah: true,
+    relevanceScore: 0.95,
+    pipelineId: "pipeline-123",
+    agentsCompleted: ["Agent1", "Agent2", "Agent3", "Agent5", "Agent7", "Agent9"],
+    tokenUsage: tokenUsage,
+    costMetadata: costMetadata,
+    dataQualityScore: 0.92
+)
+
+// Access V2-specific efficiency metrics
+if let efficiency = v2Payload.processingEfficiency {
+    print("Token reduction: \(efficiency.tokenReductionPercentage)%")
+    print("Cost savings: \(efficiency.costSavingsPercentage)%")
+    print("Hybrid ratio: \(efficiency.hybridRatio)")
+}
+
+// Convert between V1 and V2 formats for backward compatibility
+let v1Compatible = v2Payload.toV1()
+```
+
+#### Real-time Pipeline Monitoring
+
+```swift
+import UtahNewsData
+
+// Monitor active pipelines with real-time metrics
+let realtimeMetrics = RealtimeV2Metrics(
+    activePipelines: 5,
+    pipelines: [
+        ActivePipelineMetrics(
+            id: "pipeline-abc",
+            url: "https://news-source.com/article",
+            currentAgent: "Agent3",
+            startTime: "2024-08-11T10:00:00.000Z",
+            elapsedTimeMs: 15000,
+            openaiTokens: 150,
+            localLlmTokens: 7350,
+            currentCostUsd: 0.018,
+            status: "processing",
+            progress: 0.6
+        )
+    ],
+    realtimeStats: RealtimeStatistics(
+        pipelinesPerMinute: 2.5,
+        avgProcessingTimeMs: 4200.0,
+        avgCostPerPipeline: 0.022,
+        avgTokensPerPipeline: 7500.0,
+        successRate: 96.8,
+        queueDepth: 8
+    ),
+    systemHealth: V2SystemHealth(
+        openaiApiStatus: "healthy",
+        localLlmStatus: "healthy",
+        firestoreStatus: "healthy",
+        pipelineRunnerStatus: "running",
+        cpuUsagePercent: 45.2,
+        memoryUsagePercent: 62.8,
+        diskUsagePercent: 23.1,
+        networkLatencyMs: 125.5
+    )
+)
+
+// Display pipeline progress
+for pipeline in realtimeMetrics.pipelines {
+    print("Pipeline \(pipeline.id): \(Int(pipeline.progress * 100))% complete")
+    print("Hybrid token split: \(pipeline.openaiTokens) OpenAI + \(pipeline.localLlmTokens) Local")
+}
+```
+
+#### Agent Communication and Handoffs
+
+```swift
+import UtahNewsData
+
+// Create agent execution metadata for tracking
+var executionMetadata = V2PipelineExecutionMetadata(
+    pipelineId: "pipeline-xyz",
+    sourceUrl: "https://example.com",
+    currentAgent: "Agent1"
+)
+
+// Add execution checkpoints
+executionMetadata.addCheckpoint(
+    agentId: "agent-1",
+    agentName: "Source Validator", 
+    checkpoint: "validation_complete",
+    status: .completed,
+    metadata: ["decision": "SUITABLE", "category": "Politics"],
+    duration: 1.5
+)
+
+// Track agent handoffs
+let handoffRecord = V2AgentHandoffRecord(
+    pipelineId: executionMetadata.pipelineId,
+    fromAgent: "Agent1",
+    toAgent: "Agent2",
+    handoffType: .directPass,
+    dataSize: 1024,
+    validationResults: V2HandoffValidationRecord(
+        isValid: true,
+        validationScore: 0.98,
+        schemaCompliance: true,
+        warnings: [],
+        errors: []
+    ),
+    performance: V2HandoffPerformance(
+        serializationTimeMs: 5.2,
+        deserializationTimeMs: 3.8,
+        validationTimeMs: 2.1,
+        totalHandoffTimeMs: 11.1,
+        memoryUsageMb: 12.5
+    )
+)
+
+print("Handoff from \(handoffRecord.fromAgent) to \(handoffRecord.toAgent)")
+print("Validation score: \(handoffRecord.validationResults?.validationScore ?? 0)")
+```
+
+### Lightweight V2 Models (UtahNewsDataModels)
+
+```swift
+import UtahNewsDataModels
+
+// Use lightweight V2 models for app UI
+let metricsLite = V2MetricsSummaryLite(
+    successRate: 96.5,
+    tokenReductionVsV1: 98.2,
+    costSavingsVsV1: 97.8,
+    averageProcessingTimeMs: 4200.0,
+    hybridEfficiencyRatio: 0.98,
+    totalPipelinesProcessed: 1250
+)
+
+let pipelineStatus = V2PipelineStatusLite(
+    pipelineId: "ui-pipeline",
+    url: "https://ui-example.com",
+    status: .running,
+    currentAgent: "Agent5",
+    progress: 0.75,
+    startTime: "2024-08-11T10:00:00.000Z",
+    tokensUsed: 6800,
+    costUsd: 0.019
+)
+
+let agentInfo = V2AgentInfoLite(
+    id: "agent-7",
+    name: "Sentiment Analyzer",
+    description: "Analyzes sentiment and Utah relevance",
+    version: "v2.1.0",
+    status: .active,
+    capabilities: ["sentiment_analysis", "relevance_assessment", "local_llm_processing"],
+    averageTokenUsage: 950,
+    averageProcessingTimeMs: 750.5,
+    successRate: 97.8
+)
+
+// Perfect for SwiftUI views
+struct V2DashboardView: View {
+    let metrics: V2MetricsSummaryLite
+    
+    var body: some View {
+        VStack {
+            HStack {
+                Text("Success Rate")
+                Spacer()
+                Text("\(metrics.successRate, specifier: "%.1f")%")
+                    .foregroundColor(.green)
+            }
+            
+            HStack {
+                Text("Token Reduction")
+                Spacer()
+                Text("\(metrics.tokenReductionVsV1, specifier: "%.1f")%")
+                    .foregroundColor(.blue)
+            }
+            
+            HStack {
+                Text("Cost Savings") 
+                Spacer()
+                Text("\(metrics.costSavingsVsV1, specifier: "%.1f")%")
+                    .foregroundColor(.green)
+            }
+        }
+    }
+}
+```
 
 ### Creating Entities and Relationships
 

@@ -60,6 +60,7 @@ public struct FinalLocation: Codable, Sendable {
 
 /// Final output payload from Agent 9 in the pipeline
 /// Aligns with backend FinalDataPayload structure
+/// V1 compatible structure - for V2 enhancements see V2FinalDataPayload
 public struct FinalDataPayload: Codable, Sendable, JSONSchemaProvider {
     public var url: String
     public var processingTimestamp: String?
@@ -163,5 +164,106 @@ public struct FinalDataPayload: Codable, Sendable, JSONSchemaProvider {
                 "required": ["url"]
             }
             """
+    }
+}
+
+// MARK: - V2 Compatibility Extensions
+
+extension FinalDataPayload {
+    /// Convert V1 FinalDataPayload to V2 format with enhanced metadata
+    public func toV2(
+        pipelineId: String? = nil,
+        processingMethod: String = "v1",
+        agentsCompleted: [String] = [],
+        tokenUsage: V2TokenUsageMetadata? = nil,
+        costMetadata: V2CostMetadata? = nil,
+        dataQualityScore: Double? = nil
+    ) -> V2FinalDataPayload {
+        return V2FinalDataPayload(
+            url: self.url,
+            processingTimestamp: self.processingTimestamp ?? ISO8601DateFormatter().string(from: Date()),
+            cleanedText: self.cleanedText,
+            summary: self.summary,
+            topics: self.topics,
+            sentimentLabel: self.sentimentLabel,
+            sentimentScore: self.sentimentScore,
+            isRelevantToUtah: self.isRelevantToUtah,
+            relevanceScore: self.relevanceScore,
+            entitiesJson: self.entitiesJson,
+            relationships: self.relationships,
+            locations: self.locations,
+            pipelineVersion: "v1-compat",
+            pipelineId: pipelineId,
+            processingMethod: processingMethod,
+            agentsCompleted: agentsCompleted,
+            tokenUsage: tokenUsage,
+            costMetadata: costMetadata,
+            dataQualityScore: dataQualityScore
+        )
+    }
+}
+
+extension V2FinalDataPayload {
+    /// Convert V2 payload to V1 format for backward compatibility
+    public func toV1() -> FinalDataPayload {
+        return FinalDataPayload(
+            url: self.url,
+            processingTimestamp: self.processingTimestamp,
+            cleanedText: self.cleanedText,
+            summary: self.summary,
+            topics: self.topics,
+            sentimentLabel: self.sentimentLabel,
+            sentimentScore: self.sentimentScore,
+            isRelevantToUtah: self.isRelevantToUtah,
+            relevanceScore: self.relevanceScore,
+            entitiesJson: self.entitiesJson,
+            relationships: self.relationships,
+            locations: self.locations
+        )
+    }
+    
+    /// Get processing efficiency metrics
+    public var processingEfficiency: ProcessingEfficiency? {
+        guard let tokenUsage = self.tokenUsage,
+              let costMetadata = self.costMetadata else { return nil }
+        
+        return ProcessingEfficiency(
+            tokenReductionPercentage: tokenUsage.tokenReductionPercentage,
+            costSavingsPercentage: costMetadata.costSavingsPercentage,
+            processingTimeMs: self.totalProcessingTimeMs,
+            hybridRatio: Double(tokenUsage.localLlmTokens) / Double(tokenUsage.totalTokens)
+        )
+    }
+}
+
+/// Processing efficiency summary for V2 pipelines
+public struct ProcessingEfficiency: Codable, Sendable {
+    public let tokenReductionPercentage: Double
+    public let costSavingsPercentage: Double
+    public let processingTimeMs: Int?
+    public let hybridRatio: Double // Ratio of local LLM tokens to total tokens
+    
+    public init(tokenReductionPercentage: Double, costSavingsPercentage: Double, processingTimeMs: Int?, hybridRatio: Double) {
+        self.tokenReductionPercentage = tokenReductionPercentage
+        self.costSavingsPercentage = costSavingsPercentage
+        self.processingTimeMs = processingTimeMs
+        self.hybridRatio = hybridRatio
+    }
+    
+    private enum CodingKeys: String, CodingKey {
+        case tokenReductionPercentage = "token_reduction_percentage"
+        case costSavingsPercentage = "cost_savings_percentage"
+        case processingTimeMs = "processing_time_ms"
+        case hybridRatio = "hybrid_ratio"
+    }
+}
+
+// MARK: - Utility Extensions
+
+private extension Date {
+    func toISO8601String() -> String {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return formatter.string(from: self)
     }
 }
