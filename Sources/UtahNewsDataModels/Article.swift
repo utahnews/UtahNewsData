@@ -47,6 +47,21 @@ public struct Article: NewsContent, AssociatedData, JSONSchemaProvider, Sendable
 
     /// Geographic location associated with the article
     public var location: Location?
+    
+    /// Indicates if the article is relevant to Utah (used for filtering)
+    public var isRelevantToUtah: Bool
+    
+    /// Indicates if this content was AI-generated (vs ingested from source)
+    public var generated: Bool
+    
+    /// Type of content (e.g., "ingested", "generated", "curated")
+    public var contentType: String
+    
+    /// ISO timestamp when the article was processed by the pipeline
+    public var processingTimestamp: String?
+    
+    /// Array of related article IDs for cross-referencing
+    public var relatedArticleIds: [String]
 
     // MARK: - Initializers
 
@@ -63,7 +78,12 @@ public struct Article: NewsContent, AssociatedData, JSONSchemaProvider, Sendable
         category: String? = nil,
         videoURL: String? = nil,
         location: Location? = nil,
-        relationships: [Relationship] = []
+        relationships: [Relationship] = [],
+        isRelevantToUtah: Bool = true,
+        generated: Bool = false,
+        contentType: String = "ingested",
+        processingTimestamp: String? = nil,
+        relatedArticleIds: [String] = []
     ) {
         self.id = id
         self.title = title
@@ -77,6 +97,11 @@ public struct Article: NewsContent, AssociatedData, JSONSchemaProvider, Sendable
         self.videoURL = videoURL
         self.location = location
         self.relationships = relationships
+        self.isRelevantToUtah = isRelevantToUtah
+        self.generated = generated
+        self.contentType = contentType
+        self.processingTimestamp = processingTimestamp
+        self.relatedArticleIds = relatedArticleIds
     }
 
     // MARK: - Methods
