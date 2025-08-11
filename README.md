@@ -18,11 +18,37 @@ Add UtahNewsData to your Swift package dependencies:
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/yourusername/UtahNewsData.git", from: "1.0.0")
+    .package(url: "https://github.com/utahnews/UtahNewsData.git", branch: "feature/utahnewsdata-model-sync-2025-08-11")
 ]
 ```
 
 ## Core Concepts
+## Platforms and Swift version
+
+- iOS 18+, macOS 15+, tvOS 18+, watchOS 11+
+- Swift 6 with Strict Concurrency enabled
+
+## Modules and usage
+
+This package exposes two libraries:
+
+- `UtahNewsDataModels`: Lightweight, pure data models intended for broad reuse across apps. Prefer importing this in client apps and shared code.
+- `UtahNewsData`: Higher-level utilities (HTML parsing, RAG helpers, exporters). Import this only where those utilities are needed. Some entity types are also defined here for parsing workflows.
+
+To avoid ambiguous type names when both modules are imported, qualify with the module name. Recommended patterns:
+
+```swift
+import UtahNewsDataModels
+// Prefer using model types from UtahNewsDataModels in UI and storage layers
+let article: UtahNewsDataModels.Article = .init(title: "...", url: "...")
+
+// Import UtahNewsData only where needed for utilities
+import UtahNewsData
+let context = RAGUtilities.generateCombinedContext([article])
+```
+
+Note: If a file does not require utilities, import only `UtahNewsDataModels` to eliminate symbol ambiguity.
+
 
 ### Entity Models
 
