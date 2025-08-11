@@ -6,10 +6,10 @@ import PackageDescription
 let package = Package(
     name: "UtahNewsData",
     platforms: [
-        .iOS("17.0"),
-        .macOS("14.0"),
-        .tvOS("17.0"),
-        .watchOS("10.0"),
+        .iOS("18.0"),
+        .macOS("15.0"),
+        .tvOS("18.0"),
+        .watchOS("11.0"),
     ],
     products: [
         .library(
@@ -54,7 +54,16 @@ let package = Package(
                 "ImportSources.swift", "SourcesJSONConverter.swift", "DemoConvertedSources.swift",
             ]),
         .testTarget(
+            name: "UtahNewsDataModelsTests",
+            dependencies: ["UtahNewsDataModels"],
+            path: "Tests/UtahNewsDataModelsTests",
+            swiftSettings: [.enableUpcomingFeature("StrictConcurrency")]
+        ),
+        .testTarget(
             name: "UtahNewsDataTests",
-            dependencies: ["UtahNewsData"]),
+            dependencies: ["UtahNewsData", "UtahNewsDataModels"],
+            path: "Tests/UtahNewsDataTests",
+            swiftSettings: [.enableUpcomingFeature("StrictConcurrency")]
+        ),
     ]
 )

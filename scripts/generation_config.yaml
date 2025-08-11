@@ -1,0 +1,216 @@
+# Swift Model Generation Configuration
+# This file configures the behavior of the Pydantic to Swift model generation system
+
+# Source configuration
+source:
+  # Directory containing Python Pydantic models
+  python_models_directory: "../UtahNewsAgents_Server/app/models"
+  
+  # File patterns to include (glob patterns)
+  include_patterns:
+    - "*.py"
+  
+  # File patterns to exclude
+  exclude_patterns:
+    - "__*"
+    - "test_*"
+    - "*_test.py"
+
+# Output configuration  
+output:
+  # Directory for generated Swift models
+  swift_models_directory: "../Sources/UtahNewsDataGenerated"
+  
+  # File naming convention
+  file_naming:
+    suffix: ""  # e.g., "Generated" would create "ModelNameGenerated.swift"
+    case_style: "PascalCase"  # PascalCase, camelCase, snake_case
+  
+  # Module configuration
+  module_name: "UtahNewsDataGenerated"
+  import_foundation: true
+  
+# Type mapping configuration
+type_mapping:
+  # Custom Python to Swift type mappings
+  custom_mappings:
+    "uuid.UUID": "String"
+    "decimal.Decimal": "Double"
+    "pathlib.Path": "String"
+  
+  # Import requirements for specific Swift types
+  import_requirements:
+    "Date": "Foundation"
+    "Data": "Foundation" 
+    "UUID": "Foundation"
+    "URL": "Foundation"
+  
+  # Handle unknown types
+  unknown_type_strategy: "string"  # "string", "any", "error"
+
+# Protocol configuration
+protocols:
+  # Standard protocols applied to all generated models
+  standard_protocols:
+    - "Codable"
+    - "Identifiable" 
+    - "Hashable"
+    - "JSONSchemaProvider"
+    - "Sendable"
+  
+  # Conditional protocols based on model characteristics
+  conditional_protocols:
+    # Apply AssociatedData if model has 'relationships' field
+    - condition: "has_relationships_field"
+      protocol: "AssociatedData"
+    
+    # Apply Equatable for simple models (< 10 fields)
+    - condition: "simple_model"
+      protocol: "Equatable"
+      max_fields: 10
+
+# Code generation options
+generation:
+  # Include documentation from Python docstrings and Field descriptions
+  include_documentation: true
+  
+  # Generate initializers with default values
+  generate_initializers: true
+  
+  # Generate JSON schema implementations
+  generate_json_schemas: true
+  
+  # Generate computed properties for common operations
+  generate_computed_properties: false
+  
+  # Include validation methods
+  generate_validation: false
+  
+  # Code style options
+  code_style:
+    indent_size: 4
+    use_spaces: true
+    max_line_length: 120
+    include_mark_comments: true
+
+# Validation configuration
+validation:
+  # Validate generated Swift models compile
+  compile_validation: true
+  
+  # Run Swift tests after generation
+  run_tests: true
+  
+  # Validation timeout (seconds)
+  timeout: 60
+  
+  # Swift compiler flags
+  swift_flags:
+    - "-swift-version"
+    - "6"
+
+# Enum configuration
+enums:
+  # How to handle Python enum names in Swift
+  case_conversion: "camelCase"  # camelCase, snake_case, preserve
+  
+  # Default enum type for Literal types
+  literal_enum_type: "String"
+  
+  # Generate raw value mappings
+  generate_raw_value_mappings: true
+
+# Field configuration
+fields:
+  # Default values handling
+  default_values:
+    # Include Python default values in Swift
+    include_defaults: true
+    
+    # Convert Python defaults to Swift equivalents
+    convert_defaults: true
+    
+    # Default value for optional fields
+    optional_default: "nil"
+  
+  # Field naming conversion
+  naming:
+    # Convert snake_case to camelCase
+    convert_snake_case: true
+    
+    # Reserved Swift keywords to rename
+    reserved_keywords:
+      "class": "type"
+      "enum": "enumeration"
+      "struct": "structure"
+      "protocol": "protocolType"
+
+# Documentation configuration
+documentation:
+  # Generate comprehensive README for generated models
+  generate_readme: true
+  
+  # Include generation timestamp
+  include_timestamp: true
+  
+  # Include source file references
+  include_source_references: true
+  
+  # Documentation format
+  format: "markdown"  # markdown, swift_doc, none
+
+# Logging configuration
+logging:
+  # Log level
+  level: "INFO"  # DEBUG, INFO, WARNING, ERROR
+  
+  # Log to file
+  log_to_file: true
+  log_file: "sync_models.log"
+  
+  # Include timestamps in logs
+  include_timestamps: true
+  
+  # Verbose output
+  verbose: false
+
+# Performance configuration
+performance:
+  # Enable parallel processing
+  parallel_processing: true
+  
+  # Maximum concurrent workers
+  max_workers: 4
+  
+  # Enable caching of parsed schemas
+  enable_caching: true
+  cache_directory: ".model_generation_cache"
+  
+  # Cache expiration (hours)
+  cache_expiration: 24
+
+# Integration configuration
+integration:
+  # Git integration
+  git:
+    # Automatically stage generated files
+    auto_stage: true
+    
+    # Include generation in commit message
+    update_commit_message: false
+  
+  # IDE integration
+  ide:
+    # Generate Xcode project updates
+    update_xcode_project: false
+    
+    # Create Swift package manifest updates
+    update_package_swift: true
+  
+  # CI/CD integration
+  ci_cd:
+    # Exit code on validation failure
+    fail_on_validation_error: true
+    
+    # Generate artifacts for CI
+    generate_artifacts: false

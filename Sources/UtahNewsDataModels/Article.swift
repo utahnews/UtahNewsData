@@ -1,0 +1,129 @@
+//
+//  Article.swift
+//  UtahNewsDataModels
+//
+//  Created by Mark Evans on 01/29/25
+//
+//  Summary: Defines the Article model which represents a news article in the UtahNewsDataModels system.
+//           Lightweight version without HTML parsing capabilities.
+
+import Foundation
+
+/// A struct representing an article in the news app.
+/// Articles are a type of news content that can maintain relationships with other entities.
+public struct Article: NewsContent, AssociatedData, JSONSchemaProvider, Sendable {
+    /// Unique identifier for the article
+    public var id: String
+
+    /// Relationships to other entities in the system
+    public var relationships: [Relationship] = []
+
+    /// Title or headline of the article
+    public var title: String
+
+    /// URL where the article can be accessed
+    public var url: String
+
+    /// URL to a featured image for the article
+    public var urlToImage: String?
+
+    /// Additional images associated with the article
+    public var additionalImages: [String]?
+
+    /// When the article was published
+    public var publishedAt: Date
+
+    /// The main text content of the article
+    public var textContent: String?
+
+    /// Author or writer of the article
+    public var author: String?
+
+    /// Category or section the article belongs to
+    public var category: String?
+
+    /// URL to a video associated with the article
+    public var videoURL: String?
+
+    /// Geographic location associated with the article
+    public var location: Location?
+
+    // MARK: - Initializers
+
+    /// Creates a new article with the specified properties.
+    public init(
+        id: String = UUID().uuidString,
+        title: String,
+        url: String,
+        urlToImage: String? = nil,
+        additionalImages: [String]? = nil,
+        publishedAt: Date = Date(),
+        textContent: String? = nil,
+        author: String? = nil,
+        category: String? = nil,
+        videoURL: String? = nil,
+        location: Location? = nil,
+        relationships: [Relationship] = []
+    ) {
+        self.id = id
+        self.title = title
+        self.url = url
+        self.urlToImage = urlToImage
+        self.additionalImages = additionalImages
+        self.publishedAt = publishedAt
+        self.textContent = textContent
+        self.author = author
+        self.category = category
+        self.videoURL = videoURL
+        self.location = location
+        self.relationships = relationships
+    }
+
+    // MARK: - Methods
+
+    /// Determines the appropriate MediaType for this Article.
+    public func determineMediaType() -> MediaType {
+        return .text
+    }
+
+    // MARK: - JSON Schema Provider
+
+    /// Provides the JSON schema for Article.
+    public static var jsonSchema: String {
+        return """
+            {
+                "type": "object",
+                "properties": {
+                    "id": {"type": "string"},
+                    "title": {"type": "string"},
+                    "url": {"type": "string"},
+                    "urlToImage": {"type": ["string", "null"]},
+                    "additionalImages": {"type": ["array", "null"], "items": {"type": "string"}},
+                    "publishedAt": {"type": "string", "format": "date-time"},
+                    "textContent": {"type": ["string", "null"]},
+                    "author": {"type": ["string", "null"]},
+                    "category": {"type": ["string", "null"]},
+                    "videoURL": {"type": ["string", "null"]},
+                    "location": {"type": ["object", "null"]}
+                },
+                "required": ["id", "title", "url", "publishedAt"]
+            }
+            """
+    }
+}
+
+/// Extension providing an example Article for previews and testing.
+public extension Article {
+    /// An example instance of `Article` for previews and testing.
+    static let example = Article(
+        title: "Utah News App Launches Today: Get the Latest News, Sports, and Weather",
+        url: "https://www.utahnews.com",
+        urlToImage: "https://picsum.photos/800/1200",
+        textContent: """
+            Utah News is a news app for Utah. Get the latest news, sports, and weather from Utah News.
+            Stay informed about local events and stories that matter to you.
+            """,
+        author: "Mark Evans",
+        category: "News"
+    )
+}
