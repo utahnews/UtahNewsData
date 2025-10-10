@@ -77,7 +77,7 @@ public enum MediaType: String, Codable, Sendable {
 /// Represents a media item in the UtahNewsData system, such as images, videos,
 /// audio recordings, documents, and text. MediaItems can be associated with articles,
 /// events, and other entities.
-public struct MediaItem: AssociatedData, EntityDetailsProvider, JSONSchemaProvider {
+public struct MediaItem: AssociatedData, EntityDetailsProvider, JSONSchemaProvider, Codable {
     /// Unique identifier for the media item
     public var id: String = UUID().uuidString
 

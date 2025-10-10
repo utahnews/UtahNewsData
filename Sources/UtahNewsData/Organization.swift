@@ -123,6 +123,9 @@ public struct Organization: AssociatedData, Codable, Identifiable, Hashable, Equ
     /// Organization's type
     public var type: String?
 
+    /// Content URLs (feeds/pages) for the organization
+    public var contentUrls: [String]?
+
     /// Creates a new Organization instance with the specified properties.
     ///
     /// - Parameters:
@@ -134,6 +137,7 @@ public struct Organization: AssociatedData, Codable, Identifiable, Hashable, Equ
     ///   - logoURL: Organization's logo URL
     ///   - location: Organization's location
     ///   - type: Organization's type
+    ///   - contentUrls: Content URLs (feeds/pages) for the organization
     public init(
         id: String = UUID().uuidString,
         name: String,
@@ -142,7 +146,8 @@ public struct Organization: AssociatedData, Codable, Identifiable, Hashable, Equ
         website: String? = nil,
         logoURL: String? = nil,
         location: Location? = nil,
-        type: String? = nil
+        type: String? = nil,
+        contentUrls: [String]? = nil
     ) {
         self.id = id
         self.name = name
@@ -152,6 +157,7 @@ public struct Organization: AssociatedData, Codable, Identifiable, Hashable, Equ
         self.logoURL = logoURL
         self.location = location
         self.type = type
+        self.contentUrls = contentUrls
     }
 
     /// Creates an Organization instance by decoding from the given decoder.
@@ -176,6 +182,7 @@ public struct Organization: AssociatedData, Codable, Identifiable, Hashable, Equ
         self.logoURL = try? container.decode(String.self, forKey: .logoURL)
         self.location = try? container.decode(Location.self, forKey: .location)
         self.type = try? container.decode(String.self, forKey: .type)
+        self.contentUrls = try? container.decode([String].self, forKey: .contentUrls)
     }
 
     /// Encodes the Organization instance to the given encoder.
@@ -195,6 +202,7 @@ public struct Organization: AssociatedData, Codable, Identifiable, Hashable, Equ
         try container.encode(logoURL, forKey: .logoURL)
         try container.encode(location, forKey: .location)
         try container.encode(type, forKey: .type)
+        try container.encode(contentUrls, forKey: .contentUrls)
     }
 
     /// Keys used for encoding and decoding Organization instances
@@ -202,7 +210,7 @@ public struct Organization: AssociatedData, Codable, Identifiable, Hashable, Equ
         case id, relationships, name
         case orgDescription
         case oldDescription = "description"
-        case contactInfo, website, logoURL, location, type
+        case contactInfo, website, logoURL, location, type, contentUrls
     }
 
     // MARK: - JSONSchemaProvider Implementation
@@ -225,7 +233,11 @@ public struct Organization: AssociatedData, Codable, Identifiable, Hashable, Equ
                     "type": "object",
                     "additionalProperties": { "type": "string", "format": "uri" }
                 },
-                "contactInfo": { "$ref": "#/definitions/ContactInfo" }
+                "contactInfo": { "$ref": "#/definitions/ContactInfo" },
+                "contentUrls": {
+                    "type": "array",
+                    "items": { "type": "string", "format": "uri" }
+                }
             },
             "required": ["id", "name", "type"]
         }
