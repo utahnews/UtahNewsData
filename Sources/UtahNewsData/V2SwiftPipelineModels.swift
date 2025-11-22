@@ -1,0 +1,594 @@
+//
+//  V2SwiftPipelineModels.swift
+//  UtahNewsData
+//
+//  Swift-Native V2 Pipeline Data Models
+//  Used by V2PipelineTester, UtahNews, NewsCapture for processed_items_v2 collection
+//
+//  These models represent the Swift-native 3-agent pipeline (not the Python V2 agent pipeline)
+//  Collection: processed_items_v2
+//
+
+import Foundation
+@preconcurrency import FirebaseFirestore
+
+// MARK: - Type-Safe Enums
+
+/// Relevance detection method (replaces magic strings)
+/// LEGACY: rawValues use snake_case from retired Python pipeline - DO NOT CHANGE
+public enum RelevanceMethod: String, Codable, Sendable {
+    case citySourceMatch = "city_source_match"  // LEGACY snake_case
+    case govDomainMatch = "gov_domain_match"    // LEGACY snake_case
+    case keywordMatch = "keyword_match"         // LEGACY snake_case
+}
+
+/// Sentiment classification (replaces magic strings)
+public enum SentimentLabel: String, Codable, Sendable {
+    case positive
+    case negative
+    case neutral
+}
+
+/// Content type classification (replaces magic strings)
+public enum ContentType: String, Codable, Sendable {
+    case article
+    case video
+    case audio
+    case document
+    case webpage
+    case unknown
+
+    /// Custom decoder for case-insensitive decoding (handles "Article" or "article")
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        let rawValue = try container.decode(String.self)
+
+        // Try case-insensitive match
+        switch rawValue.lowercased() {
+        case "article": self = .article
+        case "video": self = .video
+        case "audio": self = .audio
+        case "document": self = .document
+        case "webpage": self = .webpage
+        default: self = .unknown
+        }
+    }
+}
+
+/// Processing status for services (replaces magic strings)
+public enum ProcessingStatus: String, Codable, Sendable {
+    case success
+    case error
+
+    public var isSuccess: Bool {
+        self == .success
+    }
+}
+
+// MARK: - Entity Models
+
+/// Entity extracted by Foundation Models
+/// Matches Python's IntelligenceEntity
+public struct IntelligenceEntity: Codable, Identifiable, Hashable, Sendable {
+    public let id = UUID()
+    public let text: String
+    public let type: String  // "person", "organization", "place"
+
+    public init(text: String, type: String) {
+        self.text = text
+        self.type = type
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case text, type
+    }
+}
+
+// MARK: - WebKit Models
+
+/// Image metadata extracted from web pages
+public struct ImageMetadata: Codable, Hashable, Sendable {
+    public let src: String
+    public let alt: String?
+    public let width: Int?
+    public let height: Int?
+
+    public init(src: String, alt: String? = nil, width: Int? = nil, height: Int? = nil) {
+        self.src = src
+        self.alt = alt
+        self.width = width
+        self.height = height
+    }
+}
+
+/// Contact information extracted from web pages
+/// Different from UtahNewsDataModels.ContactInfo - this is for raw page extraction
+public struct WebPageContactInfo: Codable, Hashable, Sendable {
+    public let phones: [String]?
+    public let emails: [String]?
+    public let addresses: [String]?
+
+    public init(phones: [String]? = nil, emails: [String]? = nil, addresses: [String]? = nil) {
+        self.phones = phones
+        self.emails = emails
+        self.addresses = addresses
+    }
+}
+
+/// Complete content and metadata extracted by WebKit
+/// Matches Python's WebKitEnrichedContent
+public struct WebKitEnrichedContent: Codable, Identifiable, Hashable, Sendable {
+    public let id = UUID()
+
+    /// WebKit extraction status
+    public let status: ProcessingStatus
+
+    /// Core Content
+    public let cleanText: String
+    public let fmExcerpt: String?  // Optimized excerpt for Foundation Models (<8k chars)
+
+    /// Rich Metadata
+    public let title: String?
+    public let description: String?  // This becomes our summary
+    public let keywords: [String]?
+
+    /// Content Metadata
+    public let language: String?
+    public let author: String?
+    public let publishDate: Date?
+
+    /// Source Tracking
+    public let sourceURL: String
+
+    /// Error Handling
+    public let errorMessage: String?
+
+    /// Structured Data (JSON-LD, OpenGraph, etc.)
+    nonisolated(unsafe) public let structuredData: [String: AnyCodable]?
+
+    /// Extracted Images
+    public let images: [ImageMetadata]?
+
+    /// Contact Information
+    public let contactInfo: WebPageContactInfo?
+
+    public init(
+        status: ProcessingStatus,
+        cleanText: String,
+        fmExcerpt: String? = nil,
+        title: String? = nil,
+        description: String? = nil,
+        keywords: [String]? = nil,
+        language: String? = nil,
+        author: String? = nil,
+        publishDate: Date? = nil,
+        sourceURL: String,
+        errorMessage: String? = nil,
+        structuredData: [String: AnyCodable]? = nil,
+        images: [ImageMetadata]? = nil,
+        contactInfo: WebPageContactInfo? = nil
+    ) {
+        self.status = status
+        self.cleanText = cleanText
+        self.fmExcerpt = fmExcerpt
+        self.title = title
+        self.description = description
+        self.keywords = keywords
+        self.language = language
+        self.author = author
+        self.publishDate = publishDate
+        self.sourceURL = sourceURL
+        self.errorMessage = errorMessage
+        self.structuredData = structuredData
+        self.images = images
+        self.contactInfo = contactInfo
+    }
+
+    // LEGACY: snake_case fields from retired Python pipeline - DO NOT CHANGE
+    // See FIRESTORE_SCHEMA.md for complete documentation
+    enum CodingKeys: String, CodingKey {
+        case status
+        case cleanText = "clean_text"           // LEGACY snake_case
+        case fmExcerpt = "fm_excerpt"           // LEGACY snake_case
+        case title
+        case description
+        case keywords
+        case language
+        case author
+        case publishDate = "publish_date"       // LEGACY snake_case
+        case sourceURL = "source_url"           // LEGACY snake_case
+        case errorMessage = "error_message"     // LEGACY snake_case
+        case structuredData = "structured_data" // LEGACY snake_case
+        case images
+        case contactInfo = "contact_info"       // LEGACY snake_case
+    }
+}
+
+// MARK: - Foundation Models
+
+/// Complete analysis from Apple Foundation Models
+/// Matches Python's FoundationModelsAnalysis
+public struct FoundationModelsAnalysis: Codable, Hashable, Sendable {
+    /// Analysis status
+    public let status: ProcessingStatus
+
+    /// Entity Extraction
+    public let entities: [IntelligenceEntity]?
+
+    /// Topic Classification
+    public let topics: [String]?
+
+    /// Sentiment Analysis
+    public let sentimentLabel: SentimentLabel?
+    public let sentimentScore: Double?  // -1.0 to +1.0
+
+    /// Language Detection
+    public let dominantLanguage: String?  // e.g., "en"
+
+    /// Quality Metrics
+    public let confidence: Double  // 0.0-1.0
+    public let processingTimeMs: Int?
+
+    /// Error Handling
+    public let errorCode: String?
+    public let errorMessage: String?
+
+    public init(
+        status: ProcessingStatus,
+        entities: [IntelligenceEntity]? = nil,
+        topics: [String]? = nil,
+        sentimentLabel: SentimentLabel? = nil,
+        sentimentScore: Double? = nil,
+        dominantLanguage: String? = nil,
+        confidence: Double,
+        processingTimeMs: Int? = nil,
+        errorCode: String? = nil,
+        errorMessage: String? = nil
+    ) {
+        self.status = status
+        self.entities = entities
+        self.topics = topics
+        self.sentimentLabel = sentimentLabel
+        self.sentimentScore = sentimentScore
+        self.dominantLanguage = dominantLanguage
+        self.confidence = confidence
+        self.processingTimeMs = processingTimeMs
+        self.errorCode = errorCode
+        self.errorMessage = errorMessage
+    }
+
+    // LEGACY: snake_case fields from retired Python pipeline - DO NOT CHANGE
+    // See FIRESTORE_SCHEMA.md for complete documentation
+    enum CodingKeys: String, CodingKey {
+        case status
+        case entities
+        case topics
+        case sentimentLabel = "sentiment_label"       // LEGACY snake_case
+        case sentimentScore = "sentiment_score"       // LEGACY snake_case
+        case dominantLanguage = "dominant_language"   // LEGACY snake_case
+        case confidence
+        case processingTimeMs = "processing_time_ms"  // LEGACY snake_case
+        case errorCode = "error_code"                 // LEGACY snake_case
+        case errorMessage = "error_message"           // LEGACY snake_case
+    }
+}
+
+// MARK: - Final Data Payload
+
+/// Final processed data payload for processed_items_v2 collection
+/// This is the complete output from the Swift V2 Pipeline
+public struct FinalDataPayloadV2: Codable, Identifiable, Hashable, Sendable {
+
+    // Document ID from Firestore
+    @DocumentID public var id: String?
+
+    // ===== Source Information =====
+    public let url: String
+    public let sourceTitle: String
+
+    // ===== Content (from WebKit) =====
+    public let cleanedText: String
+    public let summary: String
+    public let author: String?
+    public let publishDate: Date?
+
+    // ===== Analysis (from Foundation Models) =====
+    public let entitiesJson: String  // JSON-encoded list of entities
+    public let topics: [String]
+    public let sentimentLabel: SentimentLabel
+    public let sentimentScore: Double
+    public let language: String
+
+    // ===== Utah-Specific =====
+    public let isRelevantToUtah: Bool
+    public let relevanceScore: Double
+    public let utahLocations: [String]
+
+    // ===== Source Promotion Tracking =====
+    public let relevanceMethod: RelevanceMethod?
+    public let promotionCandidate: Bool  // Should be considered for promotion to permanent source
+    public let promotedToSource: Bool    // Has been promoted to cities/{city}/sources collection
+    public let sourceId: String?         // Reference to source document if promoted
+
+    // ===== Metadata =====
+    public let processingTimestamp: Date
+    public let identifiedContentType: ContentType
+    public let confidenceScores: [String: Double]
+
+    // Optional enrichment
+    nonisolated(unsafe) public let structuredData: [String: AnyCodable]?
+
+    // LEGACY: All snake_case fields below are from retired Python V2 pipeline
+    // DO NOT change to camelCase - breaks other dependent systems (web dashboards, analytics, backend services)
+    // See FIRESTORE_SCHEMA.md for complete legacy field reference
+    // Policy: All NEW fields added after 2025 MUST use camelCase (no CodingKeys mapping needed)
+    enum CodingKeys: String, CodingKey {
+        case id
+        case url
+        case sourceTitle = "source_title"                      // LEGACY snake_case
+        case cleanedText = "cleaned_text"                      // LEGACY snake_case
+        case summary
+        case author
+        case publishDate = "publish_date"                      // LEGACY snake_case
+        case entitiesJson = "entities_json"                    // LEGACY snake_case
+        case topics
+        case sentimentLabel = "sentiment_label"                // LEGACY snake_case
+        case sentimentScore = "sentiment_score"                // LEGACY snake_case
+        case language
+        case isRelevantToUtah = "is_relevant_to_utah"          // LEGACY snake_case
+        case relevanceScore = "relevance_score"                // LEGACY snake_case
+        case utahLocations = "utah_locations"                  // LEGACY snake_case
+        case relevanceMethod = "relevance_method"              // LEGACY snake_case
+        case promotionCandidate = "promotion_candidate"        // LEGACY snake_case
+        case promotedToSource = "promoted_to_source"           // LEGACY snake_case
+        case sourceId = "source_id"                            // LEGACY snake_case
+        case processingTimestamp = "processing_timestamp"      // LEGACY snake_case
+        case identifiedContentType = "identified_content_type" // LEGACY snake_case
+        case confidenceScores = "confidence_scores"            // LEGACY snake_case
+        case structuredData = "structured_data"                // LEGACY snake_case
+    }
+
+    // MARK: - Initializers
+
+    /// Explicit initializer for programmatic creation
+    public init(
+        id: String? = nil,
+        url: String,
+        sourceTitle: String,
+        cleanedText: String,
+        summary: String,
+        author: String?,
+        publishDate: Date?,
+        entitiesJson: String,
+        topics: [String],
+        sentimentLabel: SentimentLabel,
+        sentimentScore: Double,
+        language: String,
+        isRelevantToUtah: Bool,
+        relevanceScore: Double,
+        utahLocations: [String],
+        relevanceMethod: RelevanceMethod? = nil,
+        promotionCandidate: Bool = false,
+        promotedToSource: Bool = false,
+        sourceId: String? = nil,
+        processingTimestamp: Date,
+        identifiedContentType: ContentType,
+        confidenceScores: [String: Double],
+        structuredData: [String: AnyCodable]?
+    ) {
+        self._id = DocumentID(wrappedValue: id)
+        self.url = url
+        self.sourceTitle = sourceTitle
+        self.cleanedText = cleanedText
+        self.summary = summary
+        self.author = author
+        self.publishDate = publishDate
+        self.entitiesJson = entitiesJson
+        self.topics = topics
+        self.sentimentLabel = sentimentLabel
+        self.sentimentScore = sentimentScore
+        self.language = language
+        self.isRelevantToUtah = isRelevantToUtah
+        self.relevanceScore = relevanceScore
+        self.utahLocations = utahLocations
+        self.relevanceMethod = relevanceMethod
+        self.promotionCandidate = promotionCandidate
+        self.promotedToSource = promotedToSource
+        self.sourceId = sourceId
+        self.processingTimestamp = processingTimestamp
+        self.identifiedContentType = identifiedContentType
+        self.confidenceScores = confidenceScores
+        self.structuredData = structuredData
+    }
+
+    // Custom decoding to handle Firestore Timestamps
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+
+        // Decode @DocumentID
+        _id = try container.decodeIfPresent(DocumentID<String>.self, forKey: .id) ?? DocumentID(wrappedValue: nil)
+
+        // Required fields
+        url = try container.decode(String.self, forKey: .url)
+        sourceTitle = try container.decode(String.self, forKey: .sourceTitle)
+        cleanedText = try container.decode(String.self, forKey: .cleanedText)
+        summary = try container.decode(String.self, forKey: .summary)
+        author = try container.decodeIfPresent(String.self, forKey: .author)
+
+        // Decode dates (handle Firestore Timestamp format)
+        publishDate = try? Self.decodeFirestoreDate(from: container, forKey: .publishDate)
+        processingTimestamp = (try? Self.decodeFirestoreDate(from: container, forKey: .processingTimestamp)) ?? Date()
+
+        // Analysis fields
+        entitiesJson = try container.decode(String.self, forKey: .entitiesJson)
+        topics = try container.decode([String].self, forKey: .topics)
+        sentimentLabel = try container.decode(SentimentLabel.self, forKey: .sentimentLabel)
+        sentimentScore = try container.decode(Double.self, forKey: .sentimentScore)
+        language = try container.decode(String.self, forKey: .language)
+
+        // Utah-specific
+        isRelevantToUtah = try container.decode(Bool.self, forKey: .isRelevantToUtah)
+        relevanceScore = try container.decode(Double.self, forKey: .relevanceScore)
+        utahLocations = try container.decode([String].self, forKey: .utahLocations)
+
+        // Source promotion tracking (new fields, provide defaults for backward compatibility)
+        relevanceMethod = try container.decodeIfPresent(RelevanceMethod.self, forKey: .relevanceMethod)
+        promotionCandidate = (try? container.decode(Bool.self, forKey: .promotionCandidate)) ?? false
+        promotedToSource = (try? container.decode(Bool.self, forKey: .promotedToSource)) ?? false
+        sourceId = try container.decodeIfPresent(String.self, forKey: .sourceId)
+
+        // Metadata
+        identifiedContentType = try container.decode(ContentType.self, forKey: .identifiedContentType)
+        confidenceScores = try container.decode([String: Double].self, forKey: .confidenceScores)
+        structuredData = try container.decodeIfPresent([String: AnyCodable].self, forKey: .structuredData)
+    }
+
+    // Helper to decode Firestore Timestamp or Date
+    private static func decodeFirestoreDate(from container: KeyedDecodingContainer<CodingKeys>, forKey key: CodingKeys) throws -> Date? {
+        // Try to decode as Date directly (works if Firebase SDK auto-converts)
+        if let date = try? container.decode(Date.self, forKey: key) {
+            return date
+        }
+
+        // Try to decode as Firestore Timestamp dictionary
+        if let timestamp = try? container.decode(Timestamp.self, forKey: key) {
+            return timestamp.dateValue()
+        }
+
+        return nil
+    }
+
+    // MARK: - Computed Properties
+
+    /// Parse entities from JSON string
+    public var entities: [IntelligenceEntity] {
+        guard let data = entitiesJson.data(using: .utf8) else { return [] }
+
+        // Try to decode as array of entity dictionaries
+        if let entityDicts = try? JSONDecoder().decode([[String: AnyCodable]].self, from: data) {
+            return entityDicts.compactMap { dict in
+                guard let typeValue = dict["type"]?.value as? String,
+                      let dataDict = dict["data"]?.value as? [String: Any],
+                      let name = dataDict["name"] as? String else {
+                    return nil
+                }
+                return IntelligenceEntity(text: name, type: typeValue)
+            }
+        }
+
+        // Fallback: try direct IntelligenceEntity array
+        if let entities = try? JSONDecoder().decode([IntelligenceEntity].self, from: data) {
+            return entities
+        }
+
+        return []
+    }
+
+    /// Group entities by type
+    public var entitiesByType: [String: [IntelligenceEntity]] {
+        Dictionary(grouping: entities, by: { $0.type })
+    }
+
+    /// Sentiment display string
+    public var sentimentDisplay: String {
+        let emoji: String
+        switch sentimentLabel {
+        case .positive: emoji = "😊"
+        case .negative: emoji = "😔"
+        case .neutral: emoji = "😐"
+        }
+        return "\(emoji) \(sentimentLabel.rawValue.capitalized) (\(String(format: "%.2f", sentimentScore)))"
+    }
+
+    // MARK: - Hashable
+
+    public func hash(into hasher: inout Hasher) {
+        // Use URL as primary identifier since ID might be nil
+        hasher.combine(url)
+        hasher.combine(processingTimestamp)
+    }
+
+    public static func == (lhs: FinalDataPayloadV2, rhs: FinalDataPayloadV2) -> Bool {
+        // Compare by URL and timestamp to handle nil IDs
+        lhs.url == rhs.url && lhs.processingTimestamp == rhs.processingTimestamp
+    }
+}
+
+// MARK: - Helper for Any Codable
+
+/// Helper for encoding/decoding heterogeneous JSON
+/// Note: Not Sendable due to 'Any' type - use with caution in concurrent contexts
+public struct AnyCodable: Codable, Hashable {
+    public let value: Any
+
+    public init(_ value: Any) {
+        self.value = value
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+
+        if let bool = try? container.decode(Bool.self) {
+            value = bool
+        } else if let int = try? container.decode(Int.self) {
+            value = int
+        } else if let double = try? container.decode(Double.self) {
+            value = double
+        } else if let string = try? container.decode(String.self) {
+            value = string
+        } else if let array = try? container.decode([AnyCodable].self) {
+            value = array.map { $0.value }
+        } else if let dict = try? container.decode([String: AnyCodable].self) {
+            value = dict.mapValues { $0.value }
+        } else {
+            value = NSNull()
+        }
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+
+        switch value {
+        case let bool as Bool:
+            try container.encode(bool)
+        case let int as Int:
+            try container.encode(int)
+        case let double as Double:
+            try container.encode(double)
+        case let string as String:
+            try container.encode(string)
+        case let array as [Any]:
+            try container.encode(array.map { AnyCodable($0) })
+        case let dict as [String: Any]:
+            try container.encode(dict.mapValues { AnyCodable($0) })
+        default:
+            try container.encodeNil()
+        }
+    }
+
+    // MARK: - Hashable
+
+    public static func == (lhs: AnyCodable, rhs: AnyCodable) -> Bool {
+        switch (lhs.value, rhs.value) {
+        case let (l as Bool, r as Bool): return l == r
+        case let (l as Int, r as Int): return l == r
+        case let (l as Double, r as Double): return l == r
+        case let (l as String, r as String): return l == r
+        case let (l as [Any], r as [Any]): return l.count == r.count
+        case let (l as [String: Any], r as [String: Any]): return l.count == r.count
+        default: return false
+        }
+    }
+
+    public func hash(into hasher: inout Hasher) {
+        switch value {
+        case let bool as Bool: hasher.combine(bool)
+        case let int as Int: hasher.combine(int)
+        case let double as Double: hasher.combine(double)
+        case let string as String: hasher.combine(string)
+        case let array as [Any]: hasher.combine(array.count)
+        case let dict as [String: Any]: hasher.combine(dict.count)
+        default: hasher.combine(0)
+        }
+    }
+}

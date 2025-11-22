@@ -23,7 +23,8 @@ let package = Package(
             targets: ["ImportSources"]),
     ],
     dependencies: [
-        .package(url: "https://github.com/scinfu/SwiftSoup.git", from: "2.7.0")
+        .package(url: "https://github.com/scinfu/SwiftSoup.git", from: "2.7.0"),
+        .package(url: "https://github.com/firebase/firebase-ios-sdk", from: "12.6.0")
     ],
     targets: [
         .target(
@@ -38,7 +39,11 @@ let package = Package(
         ),
         .target(
             name: "UtahNewsData",
-            dependencies: ["UtahNewsDataModels", "SwiftSoup"],
+            dependencies: [
+                "UtahNewsDataModels",
+                "SwiftSoup",
+                .product(name: "FirebaseFirestore", package: "firebase-ios-sdk")
+            ],
             path: "Sources/UtahNewsData",
             resources: [
                 .copy("Resources/sourcesUpdated.json")

@@ -10,6 +10,40 @@
 import Foundation
 import SwiftUI
 
+// MARK: - Supporting Types for V2 Pipeline Data
+
+/// Represents a location extracted and geocoded by the pipeline
+public struct ExtractedLocation: Codable, Sendable, Hashable, Equatable {
+    public var query: String
+    public var latitude: Double?
+    public var longitude: Double?
+    public var address: String?
+    public var confidence: Double?
+    
+    public init(query: String, latitude: Double? = nil, longitude: Double? = nil, address: String? = nil, confidence: Double? = nil) {
+        self.query = query
+        self.latitude = latitude
+        self.longitude = longitude
+        self.address = address
+        self.confidence = confidence
+    }
+}
+
+/// Represents an entity relationship extracted by the pipeline
+public struct ExtractedRelationship: Codable, Sendable, Hashable, Equatable {
+    public var subject: String
+    public var predicate: String
+    public var object: String
+    public var confidence: Double?
+    
+    public init(subject: String, predicate: String, object: String, confidence: Double? = nil) {
+        self.subject = subject
+        self.predicate = predicate
+        self.object = object
+        self.confidence = confidence
+    }
+}
+
 /// A struct representing an article in the news app.
 /// Articles are a type of news content that can maintain relationships with other entities.
 public struct Article: NewsContent, AssociatedData, JSONSchemaProvider, Sendable {
@@ -63,6 +97,29 @@ public struct Article: NewsContent, AssociatedData, JSONSchemaProvider, Sendable
     
     /// Array of related article IDs for cross-referencing
     public var relatedArticleIds: [String]
+    
+    // MARK: - V2 Pipeline Analysis Fields
+    
+    /// JSON string of extracted entities from the article (people, organizations, locations)
+    public var entitiesJson: String?
+    
+    /// Sentiment analysis label (positive, negative, neutral)
+    public var sentimentLabel: String?
+    
+    /// Sentiment confidence score (0.0 to 1.0)
+    public var sentimentScore: Double?
+    
+    /// Utah relevance confidence score (0.0 to 1.0)
+    public var relevanceScore: Double?
+    
+    /// Array of identified topics/categories from content analysis
+    public var topics: [String]
+    
+    /// Array of geocoded locations mentioned in the article
+    public var extractedLocations: [ExtractedLocation]
+    
+    /// Array of entity relationships extracted from the content
+    public var extractedRelationships: [ExtractedRelationship]
 
     // MARK: - Initializers
 
@@ -84,7 +141,14 @@ public struct Article: NewsContent, AssociatedData, JSONSchemaProvider, Sendable
         generated: Bool = false,
         contentType: String = "ingested",
         processingTimestamp: String? = nil,
-        relatedArticleIds: [String] = []
+        relatedArticleIds: [String] = [],
+        entitiesJson: String? = nil,
+        sentimentLabel: String? = nil,
+        sentimentScore: Double? = nil,
+        relevanceScore: Double? = nil,
+        topics: [String] = [],
+        extractedLocations: [ExtractedLocation] = [],
+        extractedRelationships: [ExtractedRelationship] = []
     ) {
         self.id = id
         self.title = title
@@ -103,6 +167,13 @@ public struct Article: NewsContent, AssociatedData, JSONSchemaProvider, Sendable
         self.contentType = contentType
         self.processingTimestamp = processingTimestamp
         self.relatedArticleIds = relatedArticleIds
+        self.entitiesJson = entitiesJson
+        self.sentimentLabel = sentimentLabel
+        self.sentimentScore = sentimentScore
+        self.relevanceScore = relevanceScore
+        self.topics = topics
+        self.extractedLocations = extractedLocations
+        self.extractedRelationships = extractedRelationships
     }
 
     // MARK: - Methods
