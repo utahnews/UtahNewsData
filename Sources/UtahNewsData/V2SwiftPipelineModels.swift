@@ -592,3 +592,197 @@ public struct AnyCodable: Codable, Hashable {
         }
     }
 }
+
+// MARK: - Fresh Content Stream Models
+
+/// Content status for fresh_content collection
+public enum ContentStatus: String, Codable, Sendable {
+    /// Brand new URL, never processed before
+    case new = "new"
+    /// Existing source with content changes detected
+    case updated = "updated"
+}
+
+/// Fresh content item for the `fresh_content` collection
+/// Only NEW or UPDATED content is written here (not stale/unchanged)
+/// Used for real-time content feeds and efficient consumption by client apps
+public struct FreshContentItem: Codable, Identifiable, Sendable {
+    /// Document ID (SHA-1 hash of URL)
+    public var id: String { url.sha1Hash() }
+
+    /// Source URL
+    public let url: String
+
+    /// Article/page title
+    public let sourceTitle: String
+
+    /// Cleaned text content (truncated to 10k chars for consumption)
+    public let cleanedText: String
+
+    /// Summary/description
+    public let summary: String?
+
+    /// Author if extracted
+    public let author: String?
+
+    /// Publish date if extracted
+    public let publishDate: Date?
+
+    /// Extracted entities (parsed array, not JSON string)
+    public let entities: [IntelligenceEntity]
+
+    /// Classification topics
+    public let topics: [String]
+
+    /// Sentiment label (positive, negative, neutral)
+    public let sentimentLabel: String?
+
+    /// Sentiment score (-1.0 to 1.0)
+    public let sentimentScore: Double?
+
+    /// Utah locations mentioned
+    public let utahLocations: [String]
+
+    /// Utah relevance score (0.0 to 1.0)
+    public let relevanceScore: Double
+
+    /// When this content was processed
+    public let processingTimestamp: Date
+
+    /// Content status: new or updated
+    public let contentStatus: ContentStatus
+
+    /// SHA-256 hash of cleanedText for change detection
+    public let contentHash: String
+
+    /// Reference to the full processed_items_v2 document
+    public let sourceDocumentId: String
+
+    /// Processing mode that created this item
+    public let processingMode: String
+
+    /// Expiration timestamp for TTL cleanup (7 days from processing)
+    public let expiresAt: Date
+
+    // MARK: - Entity Linking (Phase 2)
+
+    /// IDs of matched Person documents from `people` collection
+    public let linkedPeopleIds: [String]
+
+    /// IDs of matched Organization documents from `organizations` collection
+    public let linkedOrganizationIds: [String]
+
+    /// IDs of matched Location documents (if available)
+    public let linkedLocationIds: [String]
+
+    /// Average confidence score across all entity matches (0.0 - 1.0)
+    public let entityMatchConfidence: Double
+
+    /// Creates a FreshContentItem from a FinalDataPayloadV2
+    /// - Parameters:
+    ///   - payload: The processed pipeline payload
+    ///   - sourceDocumentId: Reference to processed_items_v2 document
+    ///   - contentHash: SHA-256 hash for change detection
+    ///   - contentStatus: Whether content is new or updated
+    ///   - processingMode: Processing mode that created this item
+    ///   - linkedPeopleIds: IDs of matched people (from entity matching)
+    ///   - linkedOrganizationIds: IDs of matched organizations (from entity matching)
+    ///   - linkedLocationIds: IDs of matched locations (from entity matching)
+    ///   - entityMatchConfidence: Average entity match confidence
+    public init(
+        from payload: FinalDataPayloadV2,
+        sourceDocumentId: String,
+        contentHash: String,
+        contentStatus: ContentStatus,
+        processingMode: String,
+        linkedPeopleIds: [String] = [],
+        linkedOrganizationIds: [String] = [],
+        linkedLocationIds: [String] = [],
+        entityMatchConfidence: Double = 0.0
+    ) {
+        self.url = payload.url
+        self.sourceTitle = payload.sourceTitle
+        // Truncate cleanedText to 10k chars for efficient consumption
+        self.cleanedText = String(payload.cleanedText.prefix(10_000))
+        self.summary = payload.summary
+        self.author = payload.author
+        self.publishDate = payload.publishDate
+
+        // Parse entities from JSON string
+        if let jsonData = payload.entitiesJson.data(using: .utf8),
+           let decoded = try? JSONDecoder().decode([IntelligenceEntity].self, from: jsonData) {
+            self.entities = decoded
+        } else {
+            self.entities = []
+        }
+
+        self.topics = payload.topics
+        self.sentimentLabel = payload.sentimentLabel.rawValue
+        self.sentimentScore = payload.sentimentScore
+        self.utahLocations = payload.utahLocations
+        self.relevanceScore = payload.relevanceScore
+        self.processingTimestamp = payload.processingTimestamp
+        self.contentStatus = contentStatus
+        self.contentHash = contentHash
+        self.sourceDocumentId = sourceDocumentId
+        self.processingMode = processingMode
+
+        // Set expiration to 7 days from now
+        self.expiresAt = Date().addingTimeInterval(7 * 24 * 60 * 60)
+
+        // Entity linking
+        self.linkedPeopleIds = linkedPeopleIds
+        self.linkedOrganizationIds = linkedOrganizationIds
+        self.linkedLocationIds = linkedLocationIds
+        self.entityMatchConfidence = entityMatchConfidence
+    }
+
+    /// Direct initializer for all fields
+    public init(
+        url: String,
+        sourceTitle: String,
+        cleanedText: String,
+        summary: String?,
+        author: String?,
+        publishDate: Date?,
+        entities: [IntelligenceEntity],
+        topics: [String],
+        sentimentLabel: String?,
+        sentimentScore: Double?,
+        utahLocations: [String],
+        relevanceScore: Double,
+        processingTimestamp: Date,
+        contentStatus: ContentStatus,
+        contentHash: String,
+        sourceDocumentId: String,
+        processingMode: String,
+        expiresAt: Date,
+        linkedPeopleIds: [String] = [],
+        linkedOrganizationIds: [String] = [],
+        linkedLocationIds: [String] = [],
+        entityMatchConfidence: Double = 0.0
+    ) {
+        self.url = url
+        self.sourceTitle = sourceTitle
+        self.cleanedText = cleanedText
+        self.summary = summary
+        self.author = author
+        self.publishDate = publishDate
+        self.entities = entities
+        self.topics = topics
+        self.sentimentLabel = sentimentLabel
+        self.sentimentScore = sentimentScore
+        self.utahLocations = utahLocations
+        self.relevanceScore = relevanceScore
+        self.processingTimestamp = processingTimestamp
+        self.contentStatus = contentStatus
+        self.contentHash = contentHash
+        self.sourceDocumentId = sourceDocumentId
+        self.processingMode = processingMode
+        self.expiresAt = expiresAt
+        self.linkedPeopleIds = linkedPeopleIds
+        self.linkedOrganizationIds = linkedOrganizationIds
+        self.linkedLocationIds = linkedLocationIds
+        self.entityMatchConfidence = entityMatchConfidence
+    }
+}
