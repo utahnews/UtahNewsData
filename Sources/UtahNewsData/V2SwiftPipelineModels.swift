@@ -318,6 +318,12 @@ public struct FinalDataPayloadV2: Codable, Identifiable, Hashable, Sendable {
     // Optional enrichment
     nonisolated(unsafe) public let structuredData: [String: AnyCodable]?
 
+    // ===== Raw Data Preservation (NEW 2025 - camelCase per policy) =====
+    /// The excerpt that was analyzed by FoundationModels (for debugging/inspection)
+    public let fmExcerpt: String?
+    /// Meta keywords extracted from the page
+    public let keywords: [String]?
+
     // LEGACY: All snake_case fields below are from retired Python V2 pipeline
     // DO NOT change to camelCase - breaks other dependent systems (web dashboards, analytics, backend services)
     // See FIRESTORE_SCHEMA.md for complete legacy field reference
@@ -346,6 +352,9 @@ public struct FinalDataPayloadV2: Codable, Identifiable, Hashable, Sendable {
         case identifiedContentType = "identified_content_type" // LEGACY snake_case
         case confidenceScores = "confidence_scores"            // LEGACY snake_case
         case structuredData = "structured_data"                // LEGACY snake_case
+        // NEW 2025 fields - camelCase per policy (no custom rawValue needed)
+        case fmExcerpt
+        case keywords
     }
 
     // MARK: - Initializers
@@ -374,7 +383,9 @@ public struct FinalDataPayloadV2: Codable, Identifiable, Hashable, Sendable {
         processingTimestamp: Date,
         identifiedContentType: ContentType,
         confidenceScores: [String: Double],
-        structuredData: [String: AnyCodable]?
+        structuredData: [String: AnyCodable]?,
+        fmExcerpt: String? = nil,
+        keywords: [String]? = nil
     ) {
         self._id = DocumentID(wrappedValue: id)
         self.url = url
@@ -399,6 +410,8 @@ public struct FinalDataPayloadV2: Codable, Identifiable, Hashable, Sendable {
         self.identifiedContentType = identifiedContentType
         self.confidenceScores = confidenceScores
         self.structuredData = structuredData
+        self.fmExcerpt = fmExcerpt
+        self.keywords = keywords
     }
 
     // Custom decoding to handle Firestore Timestamps
@@ -441,6 +454,10 @@ public struct FinalDataPayloadV2: Codable, Identifiable, Hashable, Sendable {
         identifiedContentType = try container.decode(ContentType.self, forKey: .identifiedContentType)
         confidenceScores = try container.decode([String: Double].self, forKey: .confidenceScores)
         structuredData = try container.decodeIfPresent([String: AnyCodable].self, forKey: .structuredData)
+
+        // NEW 2025 fields - optional for backward compatibility with existing documents
+        fmExcerpt = try container.decodeIfPresent(String.self, forKey: .fmExcerpt)
+        keywords = try container.decodeIfPresent([String].self, forKey: .keywords)
     }
 
     // Helper to decode Firestore Timestamp or Date
