@@ -6,10 +6,10 @@ import PackageDescription
 let package = Package(
     name: "UtahNewsData",
     platforms: [
-        .iOS("18.0"),
-        .macOS("15.0"),
-        .tvOS("18.0"),
-        .watchOS("11.0"),
+        .iOS("26.0"),
+        .macOS("26.0"),
+        .tvOS("26.0"),
+        .watchOS("26.0"),
     ],
     products: [
         .library(
