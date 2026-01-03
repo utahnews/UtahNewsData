@@ -3,10 +3,10 @@
 //  UtahNewsData
 //
 //  Fetches download URLs from CloudKit Web Services API for true HTTPS streaming.
+//  Uses HTTP-based Web Services API exclusively (no native CKContainer SDK).
 //
 
 import Foundation
-import CloudKit
 import os
 
 private let logger = Logger(subsystem: "com.utahnews.data", category: "CloudKitWebService")
@@ -55,6 +55,7 @@ public struct CKWSAssetValue: Decodable, Sendable {
 // MARK: - CloudKitWebService
 
 /// Service for fetching download URLs from CloudKit Web Services API
+/// Uses HTTP-based Web Services API exclusively (no native CKContainer SDK)
 public actor CloudKitWebService {
     // CloudKit Web Services endpoints
     private let baseURL = "https://api.apple-cloudkit.com/database/1"
@@ -64,14 +65,8 @@ public actor CloudKitWebService {
     // API token for client access (configured in CloudKit Dashboard)
     private var apiToken: String?
 
-    // Native CloudKit for fallback and token retrieval
-    private let container: CKContainer
-    private let publicDB: CKDatabase
-
     public init(containerID: String = CloudKitStreamingConfig.containerID) {
         self.containerID = containerID
-        self.container = CKContainer(identifier: containerID)
-        self.publicDB = container.publicCloudDatabase
 
         // Use production environment for release, development for debug
         #if DEBUG
@@ -94,8 +89,7 @@ public actor CloudKitWebService {
     /// - Returns: Dictionary mapping record names to download URLs
     public func fetchDownloadURLs(recordNames: [String]) async throws -> [String: URL] {
         guard let apiToken = apiToken else {
-            logger.warning("API token not configured, falling back to native SDK")
-            return try await fetchDownloadURLsViaNativeSDK(recordNames: recordNames)
+            throw CloudKitWebServiceError.networkError("API token not configured")
         }
 
         // Build the API URL
@@ -161,171 +155,17 @@ public actor CloudKitWebService {
         return urlMap
     }
 
-    /// Fetch download URLs for all segments of a video
+    /// Fetch download URLs for all segments of a video using Web Services API
     /// - Parameters:
     ///   - videoSlug: The video's slug identifier
     ///   - segmentPaths: Optional specific paths to fetch (fetches all if nil)
     /// - Returns: Dictionary mapping relative paths to download URLs
     ///
-    /// Note: Uses cursor-based pagination to fetch ALL segments (CloudKit limits to ~100 per query)
+    /// Note: Uses Web Services /query endpoint with cursor-based pagination
     public func fetchDownloadURLsForVideo(
         videoSlug: String,
         segmentPaths: [String]? = nil
     ) async throws -> [String: URL] {
-        // First, query for segment record IDs with pagination
-        let predicate: NSPredicate
-        if let paths = segmentPaths, !paths.isEmpty {
-            predicate = NSPredicate(
-                format: "videoSlug == %@ AND relativePath IN %@",
-                videoSlug, paths
-            )
-        } else {
-            predicate = NSPredicate(format: "videoSlug == %@", videoSlug)
-        }
-
-        let query = CKQuery(recordType: "VideoSegment", predicate: predicate)
-
-        logger.info("Querying VideoSegment records for video: \(videoSlug) (with pagination)")
-
-        // Use pagination to fetch ALL segment records
-        var allRecordToPath: [String: String] = [:]
-
-        // First query with cursor support
-        let (firstMatchResults, firstCursor) = try await publicDB.records(
-            matching: query,
-            desiredKeys: ["relativePath"],
-            resultsLimit: CKQueryOperation.maximumResults
-        )
-
-        // Process first batch
-        for (recordID, result) in firstMatchResults {
-            if case .success(let record) = result,
-               let relativePath = record["relativePath"] as? String {
-                allRecordToPath[recordID.recordName] = relativePath
-            }
-        }
-
-        logger.debug("First batch: \(firstMatchResults.count) records")
-
-        // Continue with cursor until no more results
-        var cursor = firstCursor
-        var batchNumber = 1
-
-        while let currentCursor = cursor {
-            batchNumber += 1
-            let (moreMatchResults, nextCursor) = try await publicDB.records(
-                continuingMatchFrom: currentCursor,
-                desiredKeys: ["relativePath"],
-                resultsLimit: CKQueryOperation.maximumResults
-            )
-
-            for (recordID, result) in moreMatchResults {
-                if case .success(let record) = result,
-                   let relativePath = record["relativePath"] as? String {
-                    allRecordToPath[recordID.recordName] = relativePath
-                }
-            }
-
-            logger.debug("Batch \(batchNumber): \(moreMatchResults.count) records")
-            cursor = nextCursor
-        }
-
-        logger.info("Found \(allRecordToPath.count) total segment records (pagination complete)")
-
-        guard !allRecordToPath.isEmpty else {
-            return [:]
-        }
-
-        // Fetch download URLs for all records
-        let recordNames = Array(allRecordToPath.keys)
-        let recordURLs = try await fetchDownloadURLs(recordNames: recordNames)
-
-        // Map back to relative paths
-        var pathURLs: [String: URL] = [:]
-        for (recordName, url) in recordURLs {
-            if let relativePath = allRecordToPath[recordName] {
-                pathURLs[relativePath] = url
-            }
-        }
-
-        return pathURLs
-    }
-
-    // MARK: - Native SDK Fallback
-
-    /// Fallback method using native CloudKit SDK
-    /// Note: This downloads the assets to get URLs, which is less efficient
-    private func fetchDownloadURLsViaNativeSDK(recordNames: [String]) async throws -> [String: URL] {
-        logger.debug("Using native SDK fallback for \(recordNames.count) records")
-
-        var urlMap: [String: URL] = [:]
-
-        for recordName in recordNames {
-            let recordID = CKRecord.ID(recordName: recordName)
-
-            do {
-                let record = try await publicDB.record(for: recordID)
-
-                // CKAsset only provides local fileURL, not streaming URL
-                // This triggers a download, which defeats the purpose of streaming
-                if let asset = record["segmentFile"] as? CKAsset,
-                   let fileURL = asset.fileURL {
-                    urlMap[recordName] = fileURL
-                }
-            } catch {
-                logger.warning("Failed to fetch record \(recordName): \(error.localizedDescription)")
-            }
-        }
-
-        return urlMap
-    }
-}
-
-// MARK: - VideoAsset Query (Master Manifest)
-
-extension CloudKitWebService {
-    /// Response type for CloudKit query endpoint
-    private struct CKWSQueryResponse: Decodable {
-        let records: [CKWSQueryRecord]?
-    }
-
-    private struct CKWSQueryRecord: Decodable {
-        let recordName: String?
-        let fields: [String: CKWSQueryField]?
-    }
-
-    private struct CKWSQueryField: Decodable {
-        let value: CKWSQueryFieldValue?
-        let type: String?
-
-        private enum CodingKeys: String, CodingKey {
-            case value
-            case type
-        }
-
-        init(from decoder: Decoder) throws {
-            let container = try decoder.container(keyedBy: CodingKeys.self)
-            type = try container.decodeIfPresent(String.self, forKey: .type)
-
-            // Try to decode as asset value first, then as string
-            if let assetValue = try? container.decode(CKWSQueryFieldValue.self, forKey: .value) {
-                value = assetValue
-            } else {
-                value = nil
-            }
-        }
-    }
-
-    private struct CKWSQueryFieldValue: Decodable {
-        let downloadURL: String?
-        let fileChecksum: String?
-        let size: Int?
-    }
-
-    /// Fetch the master manifest content for a video using Web Services API
-    /// - Parameter videoSlug: The video's slug identifier
-    /// - Returns: The master manifest content as a string
-    public func fetchMasterManifest(for videoSlug: String) async throws -> String {
         guard let apiToken = apiToken else {
             throw CloudKitWebServiceError.networkError("API token not configured")
         }
@@ -337,77 +177,134 @@ extension CloudKitWebService {
             throw CloudKitWebServiceError.invalidResponse
         }
 
-        // Build query request body
-        let requestBody: [String: Any] = [
-            "query": [
-                "recordType": "VideoAsset",
-                "filterBy": [[
-                    "fieldName": "slug",
-                    "comparator": "EQUALS",
-                    "fieldValue": ["value": videoSlug]
-                ]]
-            ],
-            "desiredKeys": ["manifest", "slug", "title"]
+        logger.info("Querying VideoSegment records via Web Services for video: \(videoSlug)")
+
+        // Build query filter
+        var filters: [[String: Any]] = [
+            [
+                "fieldName": "videoSlug",
+                "comparator": "EQUALS",
+                "fieldValue": ["value": videoSlug]
+            ]
         ]
 
-        guard let bodyData = try? JSONSerialization.data(withJSONObject: requestBody) else {
-            throw CloudKitWebServiceError.decodingError("Failed to encode query request")
+        // Add path filter if specific paths requested
+        if let paths = segmentPaths, !paths.isEmpty {
+            filters.append([
+                "fieldName": "relativePath",
+                "comparator": "IN",
+                "fieldValue": ["value": paths]
+            ])
         }
 
-        // Build request
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.setValue(apiToken, forHTTPHeaderField: "X-Apple-CloudKit-Request-APIToken")
-        request.httpBody = bodyData
+        var allRecordToPath: [String: String] = [:]
+        var continuationMarker: String? = nil
 
-        logger.info("Querying VideoAsset for slug: \(videoSlug)")
+        // Paginate through all results
+        repeat {
+            var requestBody: [String: Any] = [
+                "query": [
+                    "recordType": "VideoSegment",
+                    "filterBy": filters
+                ],
+                "desiredKeys": ["relativePath", "segmentFile"],
+                "resultsLimit": 200
+            ]
 
-        // Execute request
-        let (data, response) = try await URLSession.shared.data(for: request)
+            if let marker = continuationMarker {
+                requestBody["continuationMarker"] = marker
+            }
 
-        guard let httpResponse = response as? HTTPURLResponse else {
-            throw CloudKitWebServiceError.invalidResponse
+            guard let bodyData = try? JSONSerialization.data(withJSONObject: requestBody) else {
+                throw CloudKitWebServiceError.decodingError("Failed to encode query request")
+            }
+
+            var request = URLRequest(url: url)
+            request.httpMethod = "POST"
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            request.setValue(apiToken, forHTTPHeaderField: "X-Apple-CloudKit-Request-APIToken")
+            request.httpBody = bodyData
+
+            let (data, response) = try await URLSession.shared.data(for: request)
+
+            guard let httpResponse = response as? HTTPURLResponse else {
+                throw CloudKitWebServiceError.invalidResponse
+            }
+
+            guard httpResponse.statusCode == 200 else {
+                let errorBody = String(data: data, encoding: .utf8) ?? "Unknown error"
+                logger.error("CloudKit query error: \(httpResponse.statusCode) - \(errorBody)")
+                throw CloudKitWebServiceError.networkError("HTTP \(httpResponse.statusCode): \(errorBody)")
+            }
+
+            // Parse response
+            let json = try JSONSerialization.jsonObject(with: data) as? [String: Any]
+            let records = json?["records"] as? [[String: Any]] ?? []
+
+            for record in records {
+                guard let recordName = record["recordName"] as? String,
+                      let fields = record["fields"] as? [String: Any],
+                      let relativePathField = fields["relativePath"] as? [String: Any],
+                      let relativePath = relativePathField["value"] as? String else {
+                    continue
+                }
+
+                // Extract download URL directly from segmentFile field
+                if let segmentFileField = fields["segmentFile"] as? [String: Any],
+                   let assetValue = segmentFileField["value"] as? [String: Any],
+                   let downloadURLString = assetValue["downloadURL"] as? String,
+                   let downloadURL = URL(string: downloadURLString) {
+                    // Store directly with path -> URL mapping
+                    allRecordToPath[relativePath] = downloadURLString
+                } else {
+                    // Store recordName for later lookup if no download URL in response
+                    allRecordToPath[recordName] = relativePath
+                }
+            }
+
+            continuationMarker = json?["continuationMarker"] as? String
+            logger.debug("Fetched batch: \(records.count) records, continuation: \(continuationMarker != nil)")
+
+        } while continuationMarker != nil
+
+        logger.info("Found \(allRecordToPath.count) total segment records via Web Services")
+
+        guard !allRecordToPath.isEmpty else {
+            return [:]
         }
 
-        guard httpResponse.statusCode == 200 else {
-            let errorBody = String(data: data, encoding: .utf8) ?? "Unknown error"
-            logger.error("CloudKit query error: \(httpResponse.statusCode) - \(errorBody)")
-            throw CloudKitWebServiceError.networkError("HTTP \(httpResponse.statusCode): \(errorBody)")
+        // Check if we already have download URLs (from query response)
+        var pathURLs: [String: URL] = [:]
+        var recordNamesToLookup: [String: String] = [:] // recordName -> relativePath
+
+        for (key, value) in allRecordToPath {
+            if key.hasPrefix("http") || key.contains("://") {
+                // key is relativePath, value is URL string (unlikely based on our storage)
+                continue
+            } else if value.hasPrefix("http") || value.contains("://") {
+                // key is relativePath, value is download URL
+                if let url = URL(string: value) {
+                    pathURLs[key] = url
+                }
+            } else {
+                // key is recordName, value is relativePath - need lookup
+                recordNamesToLookup[key] = value
+            }
         }
 
-        // Parse response
-        let decoder = JSONDecoder()
-        let queryResponse = try decoder.decode(CKWSQueryResponse.self, from: data)
+        // If we need to look up download URLs separately
+        if !recordNamesToLookup.isEmpty {
+            let recordNames = Array(recordNamesToLookup.keys)
+            let recordURLs = try await fetchDownloadURLs(recordNames: recordNames)
 
-        guard let records = queryResponse.records, let firstRecord = records.first else {
-            throw CloudKitWebServiceError.recordNotFound("VideoAsset not found for slug: \(videoSlug)")
+            for (recordName, url) in recordURLs {
+                if let relativePath = recordNamesToLookup[recordName] {
+                    pathURLs[relativePath] = url
+                }
+            }
         }
 
-        guard let fields = firstRecord.fields,
-              let manifestField = fields["manifest"],
-              let manifestValue = manifestField.value,
-              let downloadURLString = manifestValue.downloadURL,
-              let downloadURL = URL(string: downloadURLString) else {
-            throw CloudKitWebServiceError.decodingError("Manifest field not found or invalid")
-        }
-
-        logger.info("Got manifest download URL for: \(videoSlug)")
-
-        // Download the manifest content
-        let (manifestData, manifestResponse) = try await URLSession.shared.data(from: downloadURL)
-
-        guard let manifestHttpResponse = manifestResponse as? HTTPURLResponse,
-              manifestHttpResponse.statusCode == 200 else {
-            throw CloudKitWebServiceError.networkError("Failed to download manifest content")
-        }
-
-        guard let manifestContent = String(data: manifestData, encoding: .utf8) else {
-            throw CloudKitWebServiceError.decodingError("Failed to decode manifest as UTF-8")
-        }
-
-        logger.info("Downloaded master manifest (\(manifestContent.count) chars) for: \(videoSlug)")
-        return manifestContent
+        return pathURLs
     }
 }
 

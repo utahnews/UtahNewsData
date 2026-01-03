@@ -3,26 +3,23 @@
 //  UtahNewsData
 //
 //  Custom AVAssetResourceLoaderDelegate for handling cloudkit:// URLs in HLS manifests.
-//  Intercepts AVPlayer requests and fetches segments from CloudKit Public Database.
+//  Intercepts AVPlayer requests and fetches segments via CloudKit Web Services API.
 //
-//  Supports two modes:
-//  1. **HTTPS Streaming** (preferred): Uses CloudKit Web Services to get direct HTTPS URLs
-//  2. **Native SDK Fallback**: Downloads segments via CKAsset when Web Services not configured
+//  Usage:
+//  1. Inject master manifest from Firestore via injectMasterManifest(content:for:)
+//  2. Enable HTTPS streaming via enableHTTPSStreaming()
+//  3. Create AVURLAsset with cloudkit:// URL and set this as resource loader delegate
 //
 
 import Foundation
 import AVFoundation
-import CloudKit
 import os
 
 private let resourceLogger = Logger(subsystem: "com.utahnews.data", category: "HLSResourceLoader")
 
 /// Custom resource loader for handling cloudkit:// URLs in HLS manifests
-/// Intercepts AVPlayer requests and fetches segments from CloudKit Public Database
+/// Intercepts AVPlayer requests and fetches segments via CloudKit Web Services API
 public final class CloudKitHLSResourceLoader: NSObject, AVAssetResourceLoaderDelegate, Sendable {
-    private let container: CKContainer
-    private let publicDB: CKDatabase
-
     // Cache for master manifests - accessed only from resource loader queue
     nonisolated(unsafe) private var masterManifests: [String: String] = [:]
 
@@ -40,18 +37,7 @@ public final class CloudKitHLSResourceLoader: NSObject, AVAssetResourceLoaderDel
     /// Whether HTTPS streaming is enabled (API token configured)
     nonisolated(unsafe) private var httpsStreamingEnabled = false
 
-    // Cache directory for downloaded segments (fallback mode)
-    private let cacheDirectory: URL = {
-        let tempDir = FileManager.default.temporaryDirectory
-        let cacheDir = tempDir.appendingPathComponent("CloudKitHLSCache", isDirectory: true)
-        try? FileManager.default.createDirectory(at: cacheDir, withIntermediateDirectories: true)
-        return cacheDir
-    }()
-
     public override init() {
-        container = CKContainer(identifier: CloudKitStreamingConfig.containerID)
-        publicDB = container.publicCloudDatabase
-
         // Initialize streaming components - share single webService instance
         let sharedWebService = CloudKitWebService()
         self.webService = sharedWebService
@@ -65,8 +51,6 @@ public final class CloudKitHLSResourceLoader: NSObject, AVAssetResourceLoaderDel
 
     /// Initialize with custom components (for testing or shared instances)
     public init(webService: CloudKitWebService, urlCache: PlaybackURLCache, manifestGenerator: DynamicManifestGenerator) {
-        container = CKContainer(identifier: CloudKitStreamingConfig.containerID)
-        publicDB = container.publicCloudDatabase
 
         self.webService = webService
         self.urlCache = urlCache
@@ -102,36 +86,11 @@ public final class CloudKitHLSResourceLoader: NSObject, AVAssetResourceLoaderDel
         urlCache
     }
 
-    /// Inject master manifest content to be served when requested
+    /// Inject master manifest content to be served when requested.
+    /// Call this before playback with manifest content from Firestore.
     public func injectMasterManifest(content: String, for videoSlug: String) {
         resourceLogger.debug("Injecting master manifest for slug: \(videoSlug)")
         masterManifests[videoSlug] = content
-    }
-
-    /// Fetch master manifest from CloudKit VideoAsset record via Web Services API
-    /// Call this before playback if manifest content is not available locally
-    public func fetchMasterManifest(for videoSlug: String) async throws -> String {
-        resourceLogger.info("Fetching master manifest from CloudKit Web Services for: \(videoSlug)")
-
-        // Use Web Services API to fetch manifest (HTTP-based, no CKContainer entitlement issues)
-        let manifestContent = try await webService.fetchMasterManifest(for: videoSlug)
-
-        resourceLogger.info("Fetched master manifest (\(manifestContent.count) chars) for: \(videoSlug)")
-
-        // Cache it for future requests
-        masterManifests[videoSlug] = manifestContent
-
-        return manifestContent
-    }
-
-    /// Ensure master manifest is available (fetch from CloudKit if needed)
-    public func ensureMasterManifest(for videoSlug: String) async throws {
-        if masterManifests[videoSlug] != nil {
-            resourceLogger.debug("Master manifest already cached for: \(videoSlug)")
-            return
-        }
-
-        _ = try await fetchMasterManifest(for: videoSlug)
     }
 
     /// Clear cached manifest for a video
@@ -162,13 +121,10 @@ public final class CloudKitHLSResourceLoader: NSObject, AVAssetResourceLoaderDel
         // Handle request asynchronously
         Task {
             do {
-                if httpsStreamingEnabled {
-                    // Use HTTPS streaming
-                    try await handleStreamingRequest(loadingRequest, for: url, requestID: String(requestID))
-                } else {
-                    // Legacy: Download via native SDK
-                    try await handleLoadingRequest(loadingRequest, for: url, requestID: String(requestID))
+                guard httpsStreamingEnabled else {
+                    throw CloudKitHLSError.downloadFailed("HTTPS streaming not enabled. Call enableHTTPSStreaming() first.")
                 }
+                try await handleStreamingRequest(loadingRequest, for: url, requestID: String(requestID))
             } catch {
                 resourceLogger.error("[\(requestID)] Error handling request: \(error.localizedDescription)")
                 loadingRequest.finishLoading(with: error)
@@ -254,9 +210,9 @@ public final class CloudKitHLSResourceLoader: NSObject, AVAssetResourceLoaderDel
             resourceLogger.debug("[\(requestID)] Refreshed URL, redirecting to HTTPS")
             redirectToURL(loadingRequest, url: freshURL)
         } catch {
-            // Fall back to native SDK
-            resourceLogger.warning("[\(requestID)] HTTPS URL not available, falling back to native SDK")
-            try await handleLoadingRequest(loadingRequest, for: url, requestID: requestID)
+            // Web Services failed - cannot fall back to native SDK (doesn't work in UtahNews)
+            resourceLogger.error("[\(requestID)] Failed to get HTTPS URL for segment: \(error.localizedDescription)")
+            throw CloudKitHLSError.downloadFailed("Failed to get streaming URL: \(error.localizedDescription)")
         }
     }
 
@@ -300,135 +256,41 @@ public final class CloudKitHLSResourceLoader: NSObject, AVAssetResourceLoaderDel
         }
     }
 
-    // MARK: - Native SDK Fallback Mode
-
-    private func handleLoadingRequest(
-        _ loadingRequest: AVAssetResourceLoadingRequest,
-        for url: URL,
-        requestID: String
-    ) async throws {
-        guard let (videoSlug, relativePath) = parseCloudKitURL(url) else {
-            throw CloudKitHLSError.invalidURL(url.absoluteString)
-        }
-
-        guard let decodedPath = relativePath.removingPercentEncoding else {
-            throw CloudKitHLSError.invalidURL(url.absoluteString)
-        }
-
-        resourceLogger.debug("[\(requestID)] Native SDK mode - videoSlug: '\(videoSlug)', relativePath: '\(decodedPath)'")
-
-        // Check if this is a master manifest request
-        if decodedPath == "master.m3u8" {
-            resourceLogger.debug("[\(requestID)] Master manifest requested")
-            guard let manifestContent = masterManifests[videoSlug] else {
-                throw CloudKitHLSError.segmentNotFound(decodedPath)
-            }
-
-            let data = Data(manifestContent.utf8)
-            resourceLogger.debug("[\(requestID)] Returning cached master manifest (\(data.count) bytes)")
-
-            fillContentInfo(loadingRequest, contentType: "application/vnd.apple.mpegurl", length: data.count)
-            fillDataRequest(loadingRequest, data: data)
-            loadingRequest.finishLoading()
-            return
-        }
-
-        // Query CloudKit for this segment
-        let predicate: NSPredicate
-        if decodedPath.hasSuffix(".m3u8") {
-            predicate = NSPredicate(
-                format: "videoSlug == %@ AND relativePath == %@ AND segmentType == %@",
-                videoSlug,
-                decodedPath,
-                "variant"
-            )
-        } else {
-            predicate = NSPredicate(
-                format: "videoSlug == %@ AND relativePath == %@ AND segmentType != %@",
-                videoSlug,
-                decodedPath,
-                "variant"
-            )
-        }
-
-        let query = CKQuery(recordType: "VideoSegment", predicate: predicate)
-        let results = try await publicDB.records(matching: query)
-
-        guard let firstResult = results.matchResults.first else {
-            throw CloudKitHLSError.segmentNotFound(decodedPath)
-        }
-
-        let (recordID, result) = firstResult
-        let record = try result.get()
-
-        resourceLogger.debug("[\(requestID)] Found CloudKit record: \(recordID.recordName)")
-
-        guard let asset = record["segmentFile"] as? CKAsset,
-              let assetFileURL = asset.fileURL else {
-            throw CloudKitHLSError.assetNotFound
-        }
-
-        let data = try Data(contentsOf: assetFileURL)
-        resourceLogger.debug("[\(requestID)] Loaded \(data.count) bytes")
-
-        // For video segments, cache to local file and provide redirect
-        if !decodedPath.hasSuffix(".m3u8") {
-            let cacheFileName = "\(videoSlug)_\(decodedPath.replacingOccurrences(of: "/", with: "_"))"
-            let cacheFileURL = cacheDirectory.appendingPathComponent(cacheFileName)
-
-            if !FileManager.default.fileExists(atPath: cacheFileURL.path) {
-                try data.write(to: cacheFileURL)
-                resourceLogger.debug("[\(requestID)] Cached to: \(cacheFileURL.path)")
-            }
-
-            redirectToURL(loadingRequest, url: cacheFileURL)
-            return
-        }
-
-        // For manifests, serve directly
-        let contentType = decodedPath.hasSuffix(".m3u8") ? "application/vnd.apple.mpegurl" : "video/mp4"
-        fillContentInfo(loadingRequest, contentType: contentType, length: data.count)
-        fillDataRequest(loadingRequest, data: data)
-        loadingRequest.finishLoading()
-    }
-
-    /// Fetch segment data from CloudKit (for streaming mode manifest fetching)
+    /// Fetch segment data via Web Services API (for variant manifests)
     private func fetchSegmentData(videoSlug: String, relativePath: String, requestID: String) async throws -> Data {
-        resourceLogger.debug("[\(requestID)] Fetching segment data: \(relativePath)")
+        resourceLogger.debug("[\(requestID)] Fetching segment data via Web Services: \(relativePath)")
 
-        let predicate: NSPredicate
-        if relativePath.hasSuffix(".m3u8") {
-            predicate = NSPredicate(
-                format: "videoSlug == %@ AND relativePath == %@ AND segmentType == %@",
-                videoSlug,
-                relativePath,
-                "variant"
-            )
-        } else {
-            predicate = NSPredicate(
-                format: "videoSlug == %@ AND relativePath == %@ AND segmentType != %@",
-                videoSlug,
-                relativePath,
-                "variant"
-            )
+        // Use URL cache to get the download URL, then fetch content
+        // First try to get from cache
+        if let cachedURL = await urlCache.getURL(for: relativePath, videoSlug: videoSlug) {
+            resourceLogger.debug("[\(requestID)] Got cached URL for segment, downloading content")
+            let (data, response) = try await URLSession.shared.data(from: cachedURL)
+
+            guard let httpResponse = response as? HTTPURLResponse,
+                  httpResponse.statusCode == 200 else {
+                throw CloudKitHLSError.downloadFailed("HTTP error downloading segment")
+            }
+
+            return data
         }
 
-        let query = CKQuery(recordType: "VideoSegment", predicate: predicate)
-        let results = try await publicDB.records(matching: query)
+        // Try to refresh/fetch the URL
+        do {
+            let freshURL = try await urlCache.refreshURL(for: relativePath, videoSlug: videoSlug)
+            resourceLogger.debug("[\(requestID)] Got fresh URL for segment, downloading content")
 
-        guard let firstResult = results.matchResults.first else {
+            let (data, response) = try await URLSession.shared.data(from: freshURL)
+
+            guard let httpResponse = response as? HTTPURLResponse,
+                  httpResponse.statusCode == 200 else {
+                throw CloudKitHLSError.downloadFailed("HTTP error downloading segment")
+            }
+
+            return data
+        } catch {
+            resourceLogger.error("[\(requestID)] Failed to fetch segment via Web Services: \(error.localizedDescription)")
             throw CloudKitHLSError.segmentNotFound(relativePath)
         }
-
-        let (_, result) = firstResult
-        let record = try result.get()
-
-        guard let asset = record["segmentFile"] as? CKAsset,
-              let assetFileURL = asset.fileURL else {
-            throw CloudKitHLSError.assetNotFound
-        }
-
-        return try Data(contentsOf: assetFileURL)
     }
 
     // MARK: - URL Parsing
