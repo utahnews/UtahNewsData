@@ -108,6 +108,49 @@ public final class CloudKitHLSResourceLoader: NSObject, AVAssetResourceLoaderDel
         masterManifests[videoSlug] = content
     }
 
+    /// Fetch master manifest from CloudKit VideoAsset record
+    /// Call this before playback if manifest content is not available locally
+    public func fetchMasterManifest(for videoSlug: String) async throws -> String {
+        resourceLogger.info("Fetching master manifest from CloudKit for: \(videoSlug)")
+
+        // Query VideoAsset by slug
+        let predicate = NSPredicate(format: "slug == %@", videoSlug)
+        let query = CKQuery(recordType: "VideoAsset", predicate: predicate)
+        let results = try await publicDB.records(matching: query)
+
+        guard let firstResult = results.matchResults.first else {
+            throw CloudKitHLSError.segmentNotFound("VideoAsset not found for slug: \(videoSlug)")
+        }
+
+        let (_, result) = firstResult
+        let record = try result.get()
+
+        // Get the manifest CKAsset
+        guard let manifestAsset = record["manifest"] as? CKAsset,
+              let manifestFileURL = manifestAsset.fileURL else {
+            throw CloudKitHLSError.assetNotFound
+        }
+
+        // Read the manifest content
+        let manifestContent = try String(contentsOf: manifestFileURL, encoding: .utf8)
+        resourceLogger.info("Fetched master manifest (\(manifestContent.count) chars) for: \(videoSlug)")
+
+        // Cache it for future requests
+        masterManifests[videoSlug] = manifestContent
+
+        return manifestContent
+    }
+
+    /// Ensure master manifest is available (fetch from CloudKit if needed)
+    public func ensureMasterManifest(for videoSlug: String) async throws {
+        if masterManifests[videoSlug] != nil {
+            resourceLogger.debug("Master manifest already cached for: \(videoSlug)")
+            return
+        }
+
+        _ = try await fetchMasterManifest(for: videoSlug)
+    }
+
     /// Clear cached manifest for a video
     public func clearManifest(for videoSlug: String) {
         masterManifests.removeValue(forKey: videoSlug)
