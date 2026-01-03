@@ -109,11 +109,13 @@ public actor CloudKitWebService {
             throw CloudKitWebServiceError.decodingError("Failed to encode request")
         }
 
-        // Build request
-        var request = URLRequest(url: url)
+        // Build request with API token as query parameter (per Apple CloudKit Web Services docs)
+        var components = URLComponents(url: url, resolvingAgainstBaseURL: false)!
+        components.queryItems = [URLQueryItem(name: "ckAPIToken", value: apiToken)]
+
+        var request = URLRequest(url: components.url!)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.setValue(apiToken, forHTTPHeaderField: "X-Apple-CloudKit-Request-APIToken")
         request.httpBody = bodyData
 
         logger.debug("Fetching download URLs for \(recordNames.count) records")
@@ -219,10 +221,13 @@ public actor CloudKitWebService {
                 throw CloudKitWebServiceError.decodingError("Failed to encode query request")
             }
 
-            var request = URLRequest(url: url)
+            // Build request with API token as query parameter (per Apple CloudKit Web Services docs)
+            var components = URLComponents(url: url, resolvingAgainstBaseURL: false)!
+            components.queryItems = [URLQueryItem(name: "ckAPIToken", value: apiToken)]
+
+            var request = URLRequest(url: components.url!)
             request.httpMethod = "POST"
             request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-            request.setValue(apiToken, forHTTPHeaderField: "X-Apple-CloudKit-Request-APIToken")
             request.httpBody = bodyData
 
             let (data, response) = try await URLSession.shared.data(for: request)
