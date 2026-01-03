@@ -281,6 +281,136 @@ public actor CloudKitWebService {
     }
 }
 
+// MARK: - VideoAsset Query (Master Manifest)
+
+extension CloudKitWebService {
+    /// Response type for CloudKit query endpoint
+    private struct CKWSQueryResponse: Decodable {
+        let records: [CKWSQueryRecord]?
+    }
+
+    private struct CKWSQueryRecord: Decodable {
+        let recordName: String?
+        let fields: [String: CKWSQueryField]?
+    }
+
+    private struct CKWSQueryField: Decodable {
+        let value: CKWSQueryFieldValue?
+        let type: String?
+
+        private enum CodingKeys: String, CodingKey {
+            case value
+            case type
+        }
+
+        init(from decoder: Decoder) throws {
+            let container = try decoder.container(keyedBy: CodingKeys.self)
+            type = try container.decodeIfPresent(String.self, forKey: .type)
+
+            // Try to decode as asset value first, then as string
+            if let assetValue = try? container.decode(CKWSQueryFieldValue.self, forKey: .value) {
+                value = assetValue
+            } else {
+                value = nil
+            }
+        }
+    }
+
+    private struct CKWSQueryFieldValue: Decodable {
+        let downloadURL: String?
+        let fileChecksum: String?
+        let size: Int?
+    }
+
+    /// Fetch the master manifest content for a video using Web Services API
+    /// - Parameter videoSlug: The video's slug identifier
+    /// - Returns: The master manifest content as a string
+    public func fetchMasterManifest(for videoSlug: String) async throws -> String {
+        guard let apiToken = apiToken else {
+            throw CloudKitWebServiceError.networkError("API token not configured")
+        }
+
+        // Build the query URL
+        let endpoint = "\(baseURL)/\(containerID)/\(environment)/public/records/query"
+
+        guard let url = URL(string: endpoint) else {
+            throw CloudKitWebServiceError.invalidResponse
+        }
+
+        // Build query request body
+        let requestBody: [String: Any] = [
+            "query": [
+                "recordType": "VideoAsset",
+                "filterBy": [[
+                    "fieldName": "slug",
+                    "comparator": "EQUALS",
+                    "fieldValue": ["value": videoSlug]
+                ]]
+            ],
+            "desiredKeys": ["manifest", "slug", "title"]
+        ]
+
+        guard let bodyData = try? JSONSerialization.data(withJSONObject: requestBody) else {
+            throw CloudKitWebServiceError.decodingError("Failed to encode query request")
+        }
+
+        // Build request
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue(apiToken, forHTTPHeaderField: "X-Apple-CloudKit-Request-APIToken")
+        request.httpBody = bodyData
+
+        logger.info("Querying VideoAsset for slug: \(videoSlug)")
+
+        // Execute request
+        let (data, response) = try await URLSession.shared.data(for: request)
+
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw CloudKitWebServiceError.invalidResponse
+        }
+
+        guard httpResponse.statusCode == 200 else {
+            let errorBody = String(data: data, encoding: .utf8) ?? "Unknown error"
+            logger.error("CloudKit query error: \(httpResponse.statusCode) - \(errorBody)")
+            throw CloudKitWebServiceError.networkError("HTTP \(httpResponse.statusCode): \(errorBody)")
+        }
+
+        // Parse response
+        let decoder = JSONDecoder()
+        let queryResponse = try decoder.decode(CKWSQueryResponse.self, from: data)
+
+        guard let records = queryResponse.records, let firstRecord = records.first else {
+            throw CloudKitWebServiceError.recordNotFound("VideoAsset not found for slug: \(videoSlug)")
+        }
+
+        guard let fields = firstRecord.fields,
+              let manifestField = fields["manifest"],
+              let manifestValue = manifestField.value,
+              let downloadURLString = manifestValue.downloadURL,
+              let downloadURL = URL(string: downloadURLString) else {
+            throw CloudKitWebServiceError.decodingError("Manifest field not found or invalid")
+        }
+
+        logger.info("Got manifest download URL for: \(videoSlug)")
+
+        // Download the manifest content
+        let (manifestData, manifestResponse) = try await URLSession.shared.data(from: downloadURL)
+
+        guard let manifestHttpResponse = manifestResponse as? HTTPURLResponse,
+              manifestHttpResponse.statusCode == 200 else {
+            throw CloudKitWebServiceError.networkError("Failed to download manifest content")
+        }
+
+        guard let manifestContent = String(data: manifestData, encoding: .utf8) else {
+            throw CloudKitWebServiceError.decodingError("Failed to decode manifest as UTF-8")
+        }
+
+        logger.info("Downloaded master manifest (\(manifestContent.count) chars) for: \(videoSlug)")
+        return manifestContent
+    }
+}
+
 // MARK: - API Token Configuration
 
 extension CloudKitWebService {

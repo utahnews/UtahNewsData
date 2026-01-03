@@ -108,31 +108,14 @@ public final class CloudKitHLSResourceLoader: NSObject, AVAssetResourceLoaderDel
         masterManifests[videoSlug] = content
     }
 
-    /// Fetch master manifest from CloudKit VideoAsset record
+    /// Fetch master manifest from CloudKit VideoAsset record via Web Services API
     /// Call this before playback if manifest content is not available locally
     public func fetchMasterManifest(for videoSlug: String) async throws -> String {
-        resourceLogger.info("Fetching master manifest from CloudKit for: \(videoSlug)")
+        resourceLogger.info("Fetching master manifest from CloudKit Web Services for: \(videoSlug)")
 
-        // Query VideoAsset by slug
-        let predicate = NSPredicate(format: "slug == %@", videoSlug)
-        let query = CKQuery(recordType: "VideoAsset", predicate: predicate)
-        let results = try await publicDB.records(matching: query)
+        // Use Web Services API to fetch manifest (HTTP-based, no CKContainer entitlement issues)
+        let manifestContent = try await webService.fetchMasterManifest(for: videoSlug)
 
-        guard let firstResult = results.matchResults.first else {
-            throw CloudKitHLSError.segmentNotFound("VideoAsset not found for slug: \(videoSlug)")
-        }
-
-        let (_, result) = firstResult
-        let record = try result.get()
-
-        // Get the manifest CKAsset
-        guard let manifestAsset = record["manifest"] as? CKAsset,
-              let manifestFileURL = manifestAsset.fileURL else {
-            throw CloudKitHLSError.assetNotFound
-        }
-
-        // Read the manifest content
-        let manifestContent = try String(contentsOf: manifestFileURL, encoding: .utf8)
         resourceLogger.info("Fetched master manifest (\(manifestContent.count) chars) for: \(videoSlug)")
 
         // Cache it for future requests
