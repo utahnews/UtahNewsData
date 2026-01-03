@@ -120,6 +120,89 @@ These patterns are **BANNED** per global CLAUDE.md standards:
 | Non-Sendable types | Make all types `Sendable` |
 | Mutable shared state | Use value types or actors |
 
+## CloudKitStreaming Library
+
+The `CloudKitStreaming` module provides HLS video streaming from CloudKit without native SDK dependencies. Located in `Sources/UtahNewsDataModels/CloudKitStreaming/`.
+
+### Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    CloudKitHLSResourceLoader                     │
+│  AVAssetResourceLoaderDelegate for cloudkit:// URL scheme       │
+├─────────────────────────────────────────────────────────────────┤
+│  ┌─────────────────┐  ┌──────────────────┐  ┌────────────────┐ │
+│  │ CloudKitWeb     │  │ PlaybackURLCache │  │ DynamicManifest│ │
+│  │ Service         │  │                  │  │ Generator      │ │
+│  │                 │  │ Caches segment   │  │                │ │
+│  │ HTTP API calls  │  │ download URLs    │  │ Rewrites m3u8  │ │
+│  │ to CloudKit     │  │ with expiry      │  │ with HTTPS URLs│ │
+│  └─────────────────┘  └──────────────────┘  └────────────────┘ │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Key Files
+
+| File | Purpose |
+|------|---------|
+| `CloudKitHLSResourceLoader.swift` | AVAssetResourceLoaderDelegate for `cloudkit://` URLs |
+| `CloudKitWebService.swift` | HTTP client for CloudKit Web Services API |
+| `PlaybackURLCache.swift` | Caches segment download URLs with expiry tracking |
+| `DynamicManifestGenerator.swift` | Rewrites HLS manifests with current HTTPS URLs |
+| `CloudKitStreamingConfig.swift` | Container ID, API token, URL scheme constants |
+| `CloudKitStreamingError.swift` | Error types for streaming operations |
+
+### CloudKit Web Services Authentication
+
+**CRITICAL:** CloudKit Web Services uses **query parameters** for authentication, NOT HTTP headers.
+
+```swift
+// ✅ CORRECT - API token as query parameter
+var components = URLComponents(url: url, resolvingAgainstBaseURL: false)!
+components.queryItems = [URLQueryItem(name: "ckAPIToken", value: apiToken)]
+var request = URLRequest(url: components.url!)
+
+// ❌ WRONG - This header does NOT exist in CloudKit Web Services
+request.setValue(apiToken, forHTTPHeaderField: "X-Apple-CloudKit-Request-APIToken")
+```
+
+**Apple's CloudKit Web Services authentication methods:**
+- `ckAPIToken` - Query parameter for API token (public database read access)
+- `ckWebAuthToken` - Query parameter for user auth (private database, optional for public)
+- Server-to-Server keys use signature headers (different from API token)
+
+### Usage Pattern
+
+```swift
+// 1. Create resource loader
+let loader = CloudKitHLSResourceLoader()
+
+// 2. Enable HTTPS streaming (configures API token)
+await loader.enableHTTPSStreaming()
+
+// 3. Inject master manifest (from Firestore)
+loader.injectMasterManifest(content: manifestContent, for: videoSlug)
+
+// 4. Prefetch segment URLs (optional, improves startup)
+try await loader.prefetchURLs(for: videoSlug)
+
+// 5. Create AVURLAsset with cloudkit:// URL
+let asset = AVURLAsset(url: URL(string: "cloudkit://\(slug)/master.m3u8")!)
+asset.resourceLoader.setDelegate(loader, queue: loaderQueue)
+
+// 6. Create player
+let player = AVPlayer(playerItem: AVPlayerItem(asset: asset))
+```
+
+### Why No Native CKContainer SDK
+
+The native `CKContainer` SDK requires entitlements matching the CloudKit container's bundle ID. Consumer apps (like UtahNews) may not have these entitlements, causing "Invalid bundle ID for container" errors.
+
+**Solution:** Use CloudKit Web Services HTTP API exclusively:
+- Works with any app that has the API token
+- No entitlements required
+- Full public database read access
+
 ## Dependencies
 
 | Dependency | Purpose | Product |
