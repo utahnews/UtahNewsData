@@ -30,7 +30,9 @@ public enum SentimentLabel: String, Codable, Sendable {
 }
 
 /// Content type classification (replaces magic strings)
-public enum ContentType: String, Codable, Sendable {
+/// Expanded for data intelligence pipeline to handle government/civic page types
+public enum ContentType: String, Codable, Sendable, CaseIterable {
+    // Original types
     case article
     case video
     case audio
@@ -38,19 +40,82 @@ public enum ContentType: String, Codable, Sendable {
     case webpage
     case unknown
 
+    // Government/Civic page types (Phase 1 expansion)
+    case meetingAgenda = "meeting_agenda"
+    case meetingMinutes = "meeting_minutes"
+    case eventCalendar = "event_calendar"
+    case eventListing = "event_listing"
+    case contactDirectory = "contact_directory"
+    case jobPosting = "job_posting"
+    case publicNotice = "public_notice"
+    case pressRelease = "press_release"
+    case organizationPage = "organization_page"
+    case personnelRoster = "personnel_roster"
+
     /// Custom decoder for case-insensitive decoding (handles "Article" or "article")
     public init(from decoder: Decoder) throws {
         let container = try decoder.singleValueContainer()
         let rawValue = try container.decode(String.self)
 
         // Try case-insensitive match
-        switch rawValue.lowercased() {
+        switch rawValue.lowercased().replacingOccurrences(of: "_", with: "") {
         case "article": self = .article
         case "video": self = .video
         case "audio": self = .audio
         case "document": self = .document
         case "webpage": self = .webpage
+        case "meetingagenda": self = .meetingAgenda
+        case "meetingminutes": self = .meetingMinutes
+        case "eventcalendar": self = .eventCalendar
+        case "eventlisting": self = .eventListing
+        case "contactdirectory": self = .contactDirectory
+        case "jobposting": self = .jobPosting
+        case "publicnotice": self = .publicNotice
+        case "pressrelease": self = .pressRelease
+        case "organizationpage": self = .organizationPage
+        case "personnelroster": self = .personnelRoster
         default: self = .unknown
+        }
+    }
+
+    /// Human-readable display name
+    public var displayName: String {
+        switch self {
+        case .article: return "Article"
+        case .video: return "Video"
+        case .audio: return "Audio"
+        case .document: return "Document"
+        case .webpage: return "Web Page"
+        case .unknown: return "Unknown"
+        case .meetingAgenda: return "Meeting Agenda"
+        case .meetingMinutes: return "Meeting Minutes"
+        case .eventCalendar: return "Event Calendar"
+        case .eventListing: return "Event Listing"
+        case .contactDirectory: return "Contact Directory"
+        case .jobPosting: return "Job Posting"
+        case .publicNotice: return "Public Notice"
+        case .pressRelease: return "Press Release"
+        case .organizationPage: return "Organization Page"
+        case .personnelRoster: return "Personnel Roster"
+        }
+    }
+
+    /// Whether this content type typically contains news/articles
+    public var isNewsContent: Bool {
+        switch self {
+        case .article, .pressRelease: return true
+        default: return false
+        }
+    }
+
+    /// Whether this content type is a structured data source (calendars, directories)
+    public var isStructuredData: Bool {
+        switch self {
+        case .meetingAgenda, .meetingMinutes, .eventCalendar, .eventListing,
+             .contactDirectory, .jobPosting, .personnelRoster:
+            return true
+        default:
+            return false
         }
     }
 }
