@@ -393,8 +393,9 @@ public struct FinalDataPayloadV2: Codable, Identifiable, Hashable, Sendable {
     // DO NOT change to camelCase - breaks other dependent systems (web dashboards, analytics, backend services)
     // See FIRESTORE_SCHEMA.md for complete legacy field reference
     // Policy: All NEW fields added after 2025 MUST use camelCase (no CodingKeys mapping needed)
+    // NOTE: 'id' is NOT included here - @DocumentID is populated automatically by Firebase SDK
     enum CodingKeys: String, CodingKey {
-        case id
+        // id is intentionally omitted - @DocumentID is set by Firebase from document reference
         case url
         case sourceTitle = "source_title"                      // LEGACY snake_case
         case cleanedText = "cleaned_text"                      // LEGACY snake_case
@@ -483,8 +484,9 @@ public struct FinalDataPayloadV2: Codable, Identifiable, Hashable, Sendable {
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
 
-        // Decode @DocumentID
-        _id = try container.decodeIfPresent(DocumentID<String>.self, forKey: .id) ?? DocumentID(wrappedValue: nil)
+        // @DocumentID is NOT decoded from data - Firebase SDK populates it from document reference
+        // Initialize with nil; Firebase's doc.data(as:) and @FirestoreQuery will set it automatically
+        _id = DocumentID(wrappedValue: nil)
 
         // Required fields
         url = try container.decode(String.self, forKey: .url)
