@@ -389,6 +389,18 @@ public struct FinalDataPayloadV2: Codable, Identifiable, Hashable, Sendable {
     /// Meta keywords extracted from the page
     public let keywords: [String]?
 
+    // ===== Page Role Classification (NEW 2025 - camelCase per policy) =====
+    /// Classified page role (discovery_page, article_page, sitemap, etc.)
+    public let pageRole: String?
+    /// Discovery scope for list pages (utah_wide, city_specific, regional)
+    public let discoveryScope: String?
+    /// Classification confidence (0.0 - 1.0)
+    public let classificationConfidence: Double?
+    /// Assigned scan frequency based on role (hourly, daily, weekly, monthly, manual)
+    public let assignedScanFrequency: String?
+    /// Number of URLs extracted (for discovery pages)
+    public let extractedURLCount: Int?
+
     // LEGACY: All snake_case fields below are from retired Python V2 pipeline
     // DO NOT change to camelCase - breaks other dependent systems (web dashboards, analytics, backend services)
     // See FIRESTORE_SCHEMA.md for complete legacy field reference
@@ -421,6 +433,11 @@ public struct FinalDataPayloadV2: Codable, Identifiable, Hashable, Sendable {
         // NEW 2025 fields - camelCase per policy (no custom rawValue needed)
         case fmExcerpt
         case keywords
+        case pageRole
+        case discoveryScope
+        case classificationConfidence
+        case assignedScanFrequency
+        case extractedURLCount
     }
 
     // MARK: - Initializers
@@ -451,7 +468,13 @@ public struct FinalDataPayloadV2: Codable, Identifiable, Hashable, Sendable {
         confidenceScores: [String: Double],
         structuredData: [String: AnyCodable]?,
         fmExcerpt: String? = nil,
-        keywords: [String]? = nil
+        keywords: [String]? = nil,
+        // Page Role Classification
+        pageRole: String? = nil,
+        discoveryScope: String? = nil,
+        classificationConfidence: Double? = nil,
+        assignedScanFrequency: String? = nil,
+        extractedURLCount: Int? = nil
     ) {
         self._id = DocumentID(wrappedValue: id)
         self.url = url
@@ -478,6 +501,11 @@ public struct FinalDataPayloadV2: Codable, Identifiable, Hashable, Sendable {
         self.structuredData = structuredData
         self.fmExcerpt = fmExcerpt
         self.keywords = keywords
+        self.pageRole = pageRole
+        self.discoveryScope = discoveryScope
+        self.classificationConfidence = classificationConfidence
+        self.assignedScanFrequency = assignedScanFrequency
+        self.extractedURLCount = extractedURLCount
     }
 
     // Custom decoding to handle Firestore Timestamps
@@ -525,6 +553,13 @@ public struct FinalDataPayloadV2: Codable, Identifiable, Hashable, Sendable {
         // NEW 2025 fields - optional for backward compatibility with existing documents
         fmExcerpt = try container.decodeIfPresent(String.self, forKey: .fmExcerpt)
         keywords = try container.decodeIfPresent([String].self, forKey: .keywords)
+
+        // Page Role Classification fields - optional for backward compatibility
+        pageRole = try container.decodeIfPresent(String.self, forKey: .pageRole)
+        discoveryScope = try container.decodeIfPresent(String.self, forKey: .discoveryScope)
+        classificationConfidence = try container.decodeIfPresent(Double.self, forKey: .classificationConfidence)
+        assignedScanFrequency = try container.decodeIfPresent(String.self, forKey: .assignedScanFrequency)
+        extractedURLCount = try container.decodeIfPresent(Int.self, forKey: .extractedURLCount)
     }
 
     // Helper to decode Firestore Timestamp or Date
