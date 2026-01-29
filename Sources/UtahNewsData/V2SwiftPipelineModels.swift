@@ -338,6 +338,52 @@ public struct FoundationModelsAnalysis: Codable, Hashable, Sendable {
     }
 }
 
+// MARK: - Editorial Signals
+
+/// Editorial signals computed during processing for NewsCapture to consume.
+/// V2PipelineTester outputs these signals; NewsCapture makes editorial decisions.
+/// This separates "extraction/enrichment" (V2) from "editorial workflow" (NewsCapture).
+public struct EditorialSignals: Codable, Hashable, Sendable {
+    /// Content type meets article criteria (article, pressRelease = true)
+    public let meetsArticleCriteria: Bool
+
+    /// High-profile entity detection (Governor, Senator, Mayor, etc.)
+    public let hasHighProfileEntities: Bool
+    public let highProfileEntityNames: [String]?
+
+    /// Breaking/urgent keyword detection
+    public let hasBreakingKeywords: Bool
+    public let breakingKeywords: [String]?
+
+    /// Quality signal count for ranking (higher = more newsworthy signals)
+    public let qualitySignalCount: Int
+    public let qualitySignals: [String]
+
+    /// Suggested priority (NewsCapture can override)
+    /// Values: "low", "normal", "high", "breaking"
+    public let suggestedPriority: String
+
+    public init(
+        meetsArticleCriteria: Bool,
+        hasHighProfileEntities: Bool,
+        highProfileEntityNames: [String]? = nil,
+        hasBreakingKeywords: Bool,
+        breakingKeywords: [String]? = nil,
+        qualitySignalCount: Int,
+        qualitySignals: [String],
+        suggestedPriority: String
+    ) {
+        self.meetsArticleCriteria = meetsArticleCriteria
+        self.hasHighProfileEntities = hasHighProfileEntities
+        self.highProfileEntityNames = highProfileEntityNames
+        self.hasBreakingKeywords = hasBreakingKeywords
+        self.breakingKeywords = breakingKeywords
+        self.qualitySignalCount = qualitySignalCount
+        self.qualitySignals = qualitySignals
+        self.suggestedPriority = suggestedPriority
+    }
+}
+
 // MARK: - Final Data Payload
 
 /// Final processed data payload for processed_items_v2 collection
@@ -401,6 +447,11 @@ public struct FinalDataPayloadV2: Codable, Identifiable, Hashable, Sendable {
     /// Number of URLs extracted (for discovery pages)
     public let extractedURLCount: Int?
 
+    // ===== Editorial Signals (NEW 2026 - camelCase per policy) =====
+    /// Signals computed during processing for NewsCapture's editorial workflow.
+    /// V2 outputs signals; NewsCapture makes editorial decisions.
+    public let editorialSignals: EditorialSignals?
+
     // LEGACY: All snake_case fields below are from retired Python V2 pipeline
     // DO NOT change to camelCase - breaks other dependent systems (web dashboards, analytics, backend services)
     // See FIRESTORE_SCHEMA.md for complete legacy field reference
@@ -438,6 +489,8 @@ public struct FinalDataPayloadV2: Codable, Identifiable, Hashable, Sendable {
         case classificationConfidence
         case assignedScanFrequency
         case extractedURLCount
+        // NEW 2026 field - editorial signals for NewsCapture
+        case editorialSignals
     }
 
     // MARK: - Initializers
@@ -474,7 +527,9 @@ public struct FinalDataPayloadV2: Codable, Identifiable, Hashable, Sendable {
         discoveryScope: String? = nil,
         classificationConfidence: Double? = nil,
         assignedScanFrequency: String? = nil,
-        extractedURLCount: Int? = nil
+        extractedURLCount: Int? = nil,
+        // Editorial Signals
+        editorialSignals: EditorialSignals? = nil
     ) {
         self._id = DocumentID(wrappedValue: id)
         self.url = url
@@ -506,6 +561,7 @@ public struct FinalDataPayloadV2: Codable, Identifiable, Hashable, Sendable {
         self.classificationConfidence = classificationConfidence
         self.assignedScanFrequency = assignedScanFrequency
         self.extractedURLCount = extractedURLCount
+        self.editorialSignals = editorialSignals
     }
 
     // Custom decoding to handle Firestore Timestamps
@@ -560,6 +616,9 @@ public struct FinalDataPayloadV2: Codable, Identifiable, Hashable, Sendable {
         classificationConfidence = try container.decodeIfPresent(Double.self, forKey: .classificationConfidence)
         assignedScanFrequency = try container.decodeIfPresent(String.self, forKey: .assignedScanFrequency)
         extractedURLCount = try container.decodeIfPresent(Int.self, forKey: .extractedURLCount)
+
+        // NEW 2026 field - Editorial Signals for NewsCapture
+        editorialSignals = try container.decodeIfPresent(EditorialSignals.self, forKey: .editorialSignals)
     }
 
     // Helper to decode Firestore Timestamp or Date
