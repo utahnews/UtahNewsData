@@ -23,8 +23,8 @@ let package = Package(
             targets: ["ImportSources"]),
     ],
     dependencies: [
-        .package(url: "https://github.com/scinfu/SwiftSoup.git", from: "2.7.0"),
-        .package(url: "https://github.com/firebase/firebase-ios-sdk", from: "12.6.0")
+        .package(url: "https://github.com/scinfu/SwiftSoup.git", from: "2.8.7"),
+        .package(url: "https://github.com/firebase/firebase-ios-sdk", from: "12.7.0")
     ],
     targets: [
         .target(
