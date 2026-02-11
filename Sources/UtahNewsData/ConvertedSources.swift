@@ -1,7 +1,9 @@
 import Foundation
+import os
 
 /// Provides centralized access to the source data converted from sourcesUpdated.json
 public enum ConvertedSources {
+        private static let logger = Logger(subsystem: "com.utahnews.data", category: "ConvertedSources")
         /// The static array of all sources from the sourcesUpdated.json file
         public static let allSources: [Source] = {
                 // Get the path to the JSON file
@@ -9,7 +11,7 @@ public enum ConvertedSources {
                         let fileURL = Bundle.module.url(
                                 forResource: "sourcesUpdated", withExtension: "json")
                 else {
-                        print("Error: sourcesUpdated.json file not found in bundle")
+                        logger.error("sourcesUpdated.json file not found in bundle")
                         return []
                 }
 
@@ -79,7 +81,7 @@ public enum ConvertedSources {
 
                         return sources
                 } catch {
-                        print("Error loading sources from JSON: \(error)")
+                        logger.error("Failed to load sources from JSON: \(error.localizedDescription)")
                         return []
                 }
         }()

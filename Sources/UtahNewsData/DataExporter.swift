@@ -56,7 +56,9 @@ public class DataExporter {
         let table = tableName ?? String(describing: type(of: entity)).lowercased()
 
         // Convert entity to dictionary, excluding relationships
-        var dict = try! entity.asDictionary()
+        guard var dict = try? entity.asDictionary() else {
+            return "-- Failed to convert \(table) entity to dictionary for SQL export"
+        }
         dict.removeValue(forKey: "relationships")
 
         // Generate column names and values

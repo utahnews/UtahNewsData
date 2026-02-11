@@ -234,7 +234,7 @@ public enum SelectorDiscovery {
         }
         
         if let className = try? element.className(), !className.isEmpty {
-            parts.append(".\(className.components(separatedBy: .whitespaces).first!)")
+            parts.append(".\(className.components(separatedBy: .whitespaces).first ?? "")")
         }
         
         parts.insert(element.tagName(), at: 0)

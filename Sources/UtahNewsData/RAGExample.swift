@@ -1,4 +1,5 @@
 import Foundation
+import os
 
 /*
  # RAG Example
@@ -32,6 +33,7 @@ import Foundation
 /// This file contains example code demonstrating how to use the RAG utilities.
 /// It is not meant to be used in production, but rather as a reference.
 public struct RAGExample {
+    private static let logger = Logger(subsystem: "com.utahnews.data", category: "RAGExample")
     
     /// Example function showing how to prepare entities for RAG.
     /// This function demonstrates the complete workflow for working with
@@ -101,14 +103,14 @@ public struct RAGExample {
         let personContext = RAGUtilities.generateCombinedContext([updatedPerson])
         let orgContext = RAGUtilities.generateCombinedContext([updatedOrg])
         let combinedContext = personContext + "\n\n" + orgContext
-        print("Combined Context:\n\(combinedContext)\n")
+        logger.info("Combined Context:\n\(combinedContext)")
         
         // Generate vector records for entities
         // These records can be sent to an embedding service and stored in a vector database
         let personVectorRecords = RAGUtilities.prepareEntitiesForEmbedding([updatedPerson])
         let orgVectorRecords = RAGUtilities.prepareEntitiesForEmbedding([updatedOrg])
         let vectorRecords = personVectorRecords + orgVectorRecords
-        print("Generated \(vectorRecords.count) vector records")
+        logger.info("Generated \(vectorRecords.count) vector records")
         
         // Create a knowledge graph from entities
         // This builds a graph representation with nodes (entities) and edges (relationships)
@@ -119,17 +121,16 @@ public struct RAGExample {
         graph.nodes = personGraph.nodes + orgGraph.nodes
         graph.edges = personGraph.edges + orgGraph.edges
         
-        print("Knowledge Graph: \(graph.nodes.count) nodes, \(graph.edges.count) edges")
+        logger.info("Knowledge Graph: \(graph.nodes.count) nodes, \(graph.edges.count) edges")
         
         // Export the graph to JSON
         // This can be used for visualization or import into a graph database
         do {
             let graphJSON = try graph.toJSON()
-            print("Knowledge Graph JSON (excerpt):")
             let excerpt = String(graphJSON.prefix(200))
-            print("\(excerpt)...")
+            logger.info("Knowledge Graph JSON (excerpt):\n\(excerpt)...")
         } catch {
-            print("Error generating graph JSON: \(error)")
+            logger.error("Failed to generate graph JSON: \(error.localizedDescription)")
         }
         
         // MARK: - Export to Relational Database
@@ -137,11 +138,11 @@ public struct RAGExample {
         // Generate SQL for entities
         // This creates SQL insert statements for storing entities in a relational database
         let personSQL = DataExporter.exportEntityToSQL(updatedPerson, tableName: "persons")
-        print("Person SQL: \(personSQL)")
+        logger.info("Person SQL: \(personSQL)")
         
         // Generate SQL for relationships
         // This creates SQL insert statements for storing relationships in a relational database
         let relationshipSQL = DataExporter.exportRelationshipsToSQL(updatedPerson)
-        print("Relationship SQL (first statement): \(relationshipSQL.first ?? "")")
+        logger.info("Relationship SQL (first statement): \(relationshipSQL.first ?? "")")
     }
 } 
