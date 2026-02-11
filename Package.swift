@@ -24,7 +24,8 @@ let package = Package(
     ],
     dependencies: [
         .package(url: "https://github.com/scinfu/SwiftSoup.git", from: "2.8.7"),
-        .package(url: "https://github.com/firebase/firebase-ios-sdk", from: "12.7.0")
+        .package(url: "https://github.com/firebase/firebase-ios-sdk", from: "12.7.0"),
+        .package(url: "https://github.com/supabase/supabase-swift.git", from: "2.0.0"),
     ],
     targets: [
         .target(
@@ -42,7 +43,8 @@ let package = Package(
             dependencies: [
                 "UtahNewsDataModels",
                 "SwiftSoup",
-                .product(name: "FirebaseFirestore", package: "firebase-ios-sdk")
+                .product(name: "FirebaseFirestore", package: "firebase-ios-sdk"),
+                .product(name: "Supabase", package: "supabase-swift"),
             ],
             path: "Sources/UtahNewsData",
             resources: [
