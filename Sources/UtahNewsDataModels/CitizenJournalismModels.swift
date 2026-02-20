@@ -462,7 +462,7 @@ public struct UserContribution: Codable, Sendable, Identifiable, Hashable {
 
 /// An immutable snapshot of a story at a particular point in time.
 public struct StoryVersion: Codable, Sendable, Identifiable, Hashable {
-    public let id: UUID
+    public let id: String
     public let articleId: String
     public let versionNumber: Int
     public let title: String
@@ -486,7 +486,7 @@ public struct StoryVersion: Codable, Sendable, Identifiable, Hashable {
     }
 
     public init(
-        id: UUID = UUID(),
+        id: String = UUID().uuidString,
         articleId: String,
         versionNumber: Int,
         title: String,
