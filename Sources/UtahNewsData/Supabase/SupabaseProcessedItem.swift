@@ -127,6 +127,17 @@ public struct SupabaseProcessedItem: Codable, Sendable, Identifiable {
     /// Source domain extracted from URL
     public let sourceDomain: String?
 
+    // MARK: - Enrichment Pipeline
+
+    /// Current processing stage: scraped, enriching, enriched, generated
+    public let processingStage: String?
+
+    /// Which V2 instance enriched this item
+    public let enrichedBy: String?
+
+    /// When enrichment completed (ISO 8601 string)
+    public let enrichedAt: String?
+
     // MARK: - Editorial & Structured Data (JSONB)
 
     /// Editorial signals for NewsCapture consumption
@@ -163,6 +174,9 @@ public struct SupabaseProcessedItem: Codable, Sendable, Identifiable {
         case processingTimestamp = "processing_timestamp"
         case cityName = "city_name"
         case sourceDomain = "source_domain"
+        case processingStage = "processing_stage"
+        case enrichedBy = "enriched_by"
+        case enrichedAt = "enriched_at"
         case editorialSignals = "editorial_signals"
         case structuredData = "structured_data"
     }
