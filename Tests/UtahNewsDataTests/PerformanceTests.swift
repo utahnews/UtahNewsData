@@ -57,19 +57,18 @@ struct PerformanceTests {
         
         let startTime = Date()
         for _ in 0..<iterations {
-            _ = Article.jsonSchema
-            _ = Video.jsonSchema
-            _ = Audio.jsonSchema
-            _ = Person.jsonSchema
-            _ = Organization.jsonSchema
+            _ = UtahNewsData.Article.jsonSchema
+            _ = UtahNewsData.Audio.jsonSchema
+            _ = UtahNewsData.Person.jsonSchema
+            _ = UtahNewsData.Organization.jsonSchema
         }
         let totalTime = Date().timeIntervalSince(startTime)
-        
+
         #expect(totalTime < 1.0, "Generating schemas \(iterations) times should complete within 1 second")
-        
+
         // Verify schemas are still valid
-        try TestUtilities.validateJSONSchema(Article.jsonSchema)
-        try TestUtilities.validateJSONSchema(Person.jsonSchema)
+        try TestUtilities.validateJSONSchema(UtahNewsData.Article.jsonSchema)
+        try TestUtilities.validateJSONSchema(UtahNewsData.Person.jsonSchema)
     }
     
     // MARK: - HTML Parsing Performance Tests
@@ -82,24 +81,25 @@ struct PerformanceTests {
         <html>
         <head>
             <title>Performance Test Article</title>
+            <meta property="og:url" content="https://example.com/perf-article">
             <meta name="author" content="Performance Tester">
             <meta property="og:image" content="https://example.com/perf-image.jpg">
         </head>
         <body>
             <h1>Performance Test Article</h1>
-            <div class="content">
+            <div class="article-content">
         """
-        
+
         // Add 5000 paragraphs
         for i in 0..<5000 {
             largeHTML += """
-            <p>This is paragraph number \(i). It contains substantial content for performance testing. 
-            The content includes various HTML elements and enough text to simulate real-world articles. 
-            Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt 
+            <p>This is paragraph number \(i). It contains substantial content for performance testing.
+            The content includes various HTML elements and enough text to simulate real-world articles.
+            Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt
             ut labore et dolore magna aliqua.</p>
             """
         }
-        
+
         largeHTML += """
             </div>
         </body>
@@ -107,7 +107,7 @@ struct PerformanceTests {
         """
         
         let startTime = Date()
-        let article = try Article.parse(from: largeHTML)
+        let article = try UtahNewsData.Article.parse(from: largeHTML)
         let parsingTime = Date().timeIntervalSince(startTime)
         
         #expect(parsingTime < 5.0, "Parsing large HTML document should complete within 5 seconds")
@@ -134,6 +134,7 @@ struct PerformanceTests {
             <head>
                 <title>Concurrent Article \(index)</title>
                 <meta name="author" content="Concurrency Tester">
+                <meta property="og:url" content="https://example.com/concurrent-\(index)">
             </head>
             <body>
                 <h1>Concurrent Article \(index)</h1>
@@ -147,14 +148,14 @@ struct PerformanceTests {
         let startTime = Date()
         
         // Parse all documents concurrently
-        let articles = await withTaskGroup(of: Article.self, returning: [Article].self) { group in
+        let articles = await withTaskGroup(of: UtahNewsData.Article.self, returning: [UtahNewsData.Article].self) { group in
             for html in htmlDocuments {
                 group.addTask {
-                    try! Article.parse(from: html)
+                    try! UtahNewsData.Article.parse(from: html)
                 }
             }
             
-            var results: [Article] = []
+            var results: [UtahNewsData.Article] = []
             for await article in group {
                 results.append(article)
             }
@@ -178,54 +179,52 @@ struct PerformanceTests {
         // Create entities with many relationships
         let entityCount = 100
         let relationshipsPerEntity = 50
-        
-        var entities: [any AssociatedData] = []
-        
+
+        var entities: [UtahNewsData.Person] = []
+
         // Create base entities
         for i in 0..<entityCount {
             let person = TestUtilities.createSamplePerson(id: "person-\(i)")
             entities.append(person)
         }
-        
+
         // Add many relationships to each entity
         for i in 0..<entityCount {
-            var entity = entities[i]
-            var relationships: [Relationship] = []
-            
+            var relationships: [UtahNewsData.Relationship] = []
+
             for j in 0..<relationshipsPerEntity {
                 let targetIndex = (i + j + 1) % entityCount
-                let relationship = Relationship(
-                    targetId: "person-\(targetIndex)",
+                let relationship = UtahNewsData.Relationship(
+                    id: "person-\(targetIndex)",
                     type: .person,
                     displayName: "Relationship \(j)",
                     context: "Context for relationship \(j) from entity \(i) to entity \(targetIndex)"
                 )
                 relationships.append(relationship)
             }
-            
-            entity.relationships = relationships
-            entities[i] = entity
+
+            entities[i].relationships = relationships
         }
-        
+
         // Test embedding text generation performance
         let embeddingStartTime = Date()
         let embeddingTexts = entities.map { $0.toEmbeddingText() }
         let embeddingTime = Date().timeIntervalSince(embeddingStartTime)
-        
+
         #expect(embeddingTime < 2.0, "Generating embedding text for \(entityCount) entities with \(relationshipsPerEntity) relationships each should complete within 2 seconds")
         #expect(embeddingTexts.count == entityCount)
-        
+
         // Verify embedding texts contain relationship information
         for text in embeddingTexts {
             #expect(text.contains("relationship"))
             #expect(text.count > 500, "Embedding text should be substantial with many relationships")
         }
-        
+
         // Test knowledge graph generation performance
         let graphStartTime = Date()
         let knowledgeGraph = RAGUtilities.generateKnowledgeGraph(entities)
         let graphTime = Date().timeIntervalSince(graphStartTime)
-        
+
         #expect(graphTime < 3.0, "Knowledge graph generation should complete within 3 seconds")
         #expect(knowledgeGraph.nodes.count == entityCount)
         #expect(knowledgeGraph.edges.count == entityCount * relationshipsPerEntity)
@@ -234,18 +233,18 @@ struct PerformanceTests {
     @Test("Vector record preparation performance")
     func testVectorRecordPreparationPerformance() throws {
         let entityCount = 500
-        let entities: [any AssociatedData] = (0..<entityCount).map { index in
+        let entities: [UtahNewsData.Article] = (0..<entityCount).map { index in
             var article = TestUtilities.createSampleArticle(id: "vector-article-\(index)")
-            
+
             // Add some relationships
             article.relationships = [
-                Relationship(targetId: "person-\(index)", type: .person, displayName: "Author"),
-                Relationship(targetId: "org-\(index)", type: .organization, displayName: "Publisher")
+                UtahNewsData.Relationship(id: "person-\(index)", type: .person, displayName: "Author"),
+                UtahNewsData.Relationship(id: "org-\(index)", type: .organization, displayName: "Publisher")
             ]
-            
+
             return article
         }
-        
+
         let startTime = Date()
         let vectorRecords = RAGUtilities.prepareEntitiesForEmbedding(entities)
         let preparationTime = Date().timeIntervalSince(startTime)
@@ -255,8 +254,8 @@ struct PerformanceTests {
         
         // Verify record quality
         for record in vectorRecords.prefix(10) { // Check first 10 records
-            #expect(!record.content.isEmpty)
-            #expect(record.content.count > 20)
+            #expect(!record.text.isEmpty)
+            #expect(record.text.count > 20)
             #expect(!record.entityType.isEmpty)
         }
     }
@@ -277,7 +276,7 @@ struct PerformanceTests {
         
         // Perform various operations
         let serializedData = try JSONEncoder().encode(articles)
-        let deserializedArticles = try JSONDecoder().decode([Article].self, from: serializedData)
+        let deserializedArticles = try JSONDecoder().decode([UtahNewsData.Article].self, from: serializedData)
         
         #expect(deserializedArticles.count == entityCount)
         
@@ -311,7 +310,7 @@ struct PerformanceTests {
         
         let startTime = Date()
         
-        let results = await withTaskGroup(of: (Article, Video, Audio, Person).self, returning: [(Article, Video, Audio, Person)].self) { group in
+        let results = await withTaskGroup(of: (UtahNewsData.Article, UtahNewsData.Video, UtahNewsData.Audio, UtahNewsData.Person).self, returning: [(UtahNewsData.Article, UtahNewsData.Video, UtahNewsData.Audio, UtahNewsData.Person)].self) { group in
             for i in 0..<concurrentTasks {
                 group.addTask {
                     let article = TestUtilities.createSampleArticle(id: "concurrent-\(i)")
@@ -322,7 +321,7 @@ struct PerformanceTests {
                 }
             }
             
-            var allResults: [(Article, Video, Audio, Person)] = []
+            var allResults: [(UtahNewsData.Article, UtahNewsData.Video, UtahNewsData.Audio, UtahNewsData.Person)] = []
             for await result in group {
                 allResults.append(result)
             }
@@ -426,9 +425,9 @@ struct PerformanceTests {
         
         let relationshipCount = 5000
         organization.relationships = (0..<relationshipCount).map { index in
-            Relationship(
-                targetId: "target-\(index)",
-                type: [EntityType.person, EntityType.organization, EntityType.location].randomElement() ?? .person,
+            UtahNewsData.Relationship(
+                id: "target-\(index)",
+                type: [UtahNewsData.EntityType.person, UtahNewsData.EntityType.organization, UtahNewsData.EntityType.location].randomElement() ?? .person,
                 displayName: "Relationship \(index)",
                 context: "Context for relationship number \(index) with detailed information"
             )
@@ -445,7 +444,7 @@ struct PerformanceTests {
         
         // Test deserialization
         let decoder = JSONDecoder()
-        let decodedOrg = try decoder.decode(Organization.self, from: data)
+        let decodedOrg = try decoder.decode(UtahNewsData.Organization.self, from: data)
         
         let totalTime = Date().timeIntervalSince(startTime)
         

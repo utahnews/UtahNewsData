@@ -48,7 +48,7 @@ struct RelationshipSystemTests {
         )
         
         #expect(relationship.displayName == nil)
-        #expect(relationship.name == "Relationship to organization test-target-456")
+        #expect(relationship.name == "Relationship to organizations test-target-456")
         
         try TestUtilities.validateCodableConformance(relationship)
     }
@@ -333,8 +333,8 @@ struct RelationshipSystemTests {
     func testEmptyRelationshipArrays() throws {
         let entitiesWithEmptyRelationships: [any AssociatedData] = [
             Article(title: "Test", url: "https://example.com", relationships: []),
-            Person(name: "Test Person", relationships: []),
-            Organization(name: "Test Org", relationships: [])
+            Person(name: "Test Person", details: "Test details"),
+            Organization(name: "Test Org")
         ]
         
         for entity in entitiesWithEmptyRelationships {

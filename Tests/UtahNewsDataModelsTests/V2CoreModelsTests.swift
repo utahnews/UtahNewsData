@@ -36,13 +36,13 @@ final class V2CoreModelsTests: XCTestCase {
         XCTAssertEqual(payload.summary, "Article summary here.")
         XCTAssertEqual(payload.topics, ["Politics", "Utah", "Education"])
         XCTAssertEqual(payload.sentimentLabel, "positive")
-        XCTAssertEqual(payload.sentimentScore, 0.75, accuracy: 0.001)
+        XCTAssertEqual(payload.sentimentScore ?? 0, 0.75, accuracy: 0.001)
         XCTAssertTrue(payload.isRelevantToUtah ?? false)
-        XCTAssertEqual(payload.relevanceScore, 0.9, accuracy: 0.001)
+        XCTAssertEqual(payload.relevanceScore ?? 0, 0.9, accuracy: 0.001)
         XCTAssertEqual(payload.pipelineId, "pipeline-abc123")
         XCTAssertEqual(payload.totalProcessingTimeMs, 5000)
-        XCTAssertEqual(payload.tokenReductionPercentage, 98.5, accuracy: 0.1)
-        XCTAssertEqual(payload.costSavingsPercentage, 97.2, accuracy: 0.1)
+        XCTAssertEqual(payload.tokenReductionPercentage ?? 0, 98.5, accuracy: 0.1)
+        XCTAssertEqual(payload.costSavingsPercentage ?? 0, 97.2, accuracy: 0.1)
     }
     
     func testV2FinalDataPayloadLiteMinimalInitialization() {
@@ -116,7 +116,7 @@ final class V2CoreModelsTests: XCTestCase {
         XCTAssertEqual(status.startTime, "2024-08-11T10:00:00.000Z")
         XCTAssertEqual(status.estimatedCompletionTime, "2024-08-11T10:05:00.000Z")
         XCTAssertEqual(status.tokensUsed, 5000)
-        XCTAssertEqual(status.costUsd, 0.025, accuracy: 0.001)
+        XCTAssertEqual(status.costUsd ?? 0, 0.025, accuracy: 0.001)
     }
     
     func testV2PipelineStatusLiteMinimalInitialization() {
@@ -291,8 +291,8 @@ final class V2CoreModelsTests: XCTestCase {
         XCTAssertEqual(agentInfo.capabilities.count, 3)
         XCTAssertTrue(agentInfo.capabilities.contains("source_validation"))
         XCTAssertEqual(agentInfo.averageTokenUsage, 1200)
-        XCTAssertEqual(agentInfo.averageProcessingTimeMs, 850.5, accuracy: 0.1)
-        XCTAssertEqual(agentInfo.successRate, 96.7, accuracy: 0.1)
+        XCTAssertEqual(agentInfo.averageProcessingTimeMs ?? 0, 850.5, accuracy: 0.1)
+        XCTAssertEqual(agentInfo.successRate ?? 0, 96.7, accuracy: 0.1)
     }
     
     func testV2AgentInfoLiteMinimalInitialization() {
@@ -444,10 +444,10 @@ final class V2CoreModelsTests: XCTestCase {
         let jsonData = try JSONEncoder().encode(payload)
         let decodedPayload = try JSONDecoder().decode(V2FinalDataPayloadLite.self, from: jsonData)
         
-        XCTAssertEqual(decodedPayload.sentimentScore, 1.0, accuracy: 0.001)
-        XCTAssertEqual(decodedPayload.relevanceScore, 0.0, accuracy: 0.001)
+        XCTAssertEqual(decodedPayload.sentimentScore ?? 0, 1.0, accuracy: 0.001)
+        XCTAssertEqual(decodedPayload.relevanceScore ?? 0, 0.0, accuracy: 0.001)
         XCTAssertEqual(decodedPayload.totalProcessingTimeMs, Int.max)
-        XCTAssertEqual(decodedPayload.tokenReductionPercentage, 100.0, accuracy: 0.1)
-        XCTAssertEqual(decodedPayload.costSavingsPercentage, 100.0, accuracy: 0.1)
+        XCTAssertEqual(decodedPayload.tokenReductionPercentage ?? 0, 100.0, accuracy: 0.1)
+        XCTAssertEqual(decodedPayload.costSavingsPercentage ?? 0, 100.0, accuracy: 0.1)
     }
 }

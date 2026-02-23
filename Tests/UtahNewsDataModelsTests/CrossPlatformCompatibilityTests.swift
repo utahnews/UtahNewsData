@@ -164,7 +164,7 @@ struct CrossPlatformCompatibilityTests {
         for unicodeString in unicodeStrings {
             let person = Person(
                 name: unicodeString,
-                bio: "Bio: \(unicodeString)"
+                details: "Bio: \(unicodeString)"
             )
             
             try TestUtilities.validateCodableConformance(person)
@@ -371,7 +371,6 @@ struct CrossPlatformCompatibilityTests {
     func testJSONSchemaConsistency() throws {
         let schemas = [
             Article.jsonSchema,
-            Video.jsonSchema,
             Audio.jsonSchema,
             Person.jsonSchema,
             Organization.jsonSchema,

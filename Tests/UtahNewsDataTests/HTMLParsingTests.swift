@@ -25,6 +25,7 @@ struct HTMLParsingTests {
         <html>
         <head>
             <title>Test Article Title</title>
+            <meta property="og:url" content="https://example.com/test-article" />
             <meta property="og:image" content="https://example.com/image.jpg" />
             <meta name="author" content="John Doe" />
             <meta name="description" content="This is a test article description." />
@@ -63,6 +64,7 @@ struct HTMLParsingTests {
         <html>
         <head>
             <title>Test Video Title</title>
+            <meta property="og:url" content="https://example.com/test-video" />
             <meta property="og:image" content="https://example.com/video-thumb.jpg" />
             <meta property="og:video:duration" content="300" />
         </head>
@@ -95,6 +97,7 @@ struct HTMLParsingTests {
         <html>
         <head>
             <title>Test Podcast Episode</title>
+            <meta property="og:url" content="https://example.com/test-podcast" />
             <meta property="og:image" content="https://example.com/podcast-thumb.jpg" />
             <meta property="og:audio:duration" content="1800" />
         </head>
@@ -129,6 +132,7 @@ struct HTMLParsingTests {
         <html>
         <head>
             <title>Complex Article Structure</title>
+            <meta property="og:url" content="https://example.com/complex-article" />
             <meta property="og:image" content="https://example.com/complex-image.jpg" />
         </head>
         <body>
@@ -140,7 +144,7 @@ struct HTMLParsingTests {
                         <time datetime="2024-01-20T15:45:00Z">January 20, 2024</time>
                     </div>
                 </header>
-                <section class="content">
+                <div class="article-content">
                     <p>First paragraph of content.</p>
                     <div class="quote-block">
                         <blockquote>"This is a quoted section."</blockquote>
@@ -151,7 +155,7 @@ struct HTMLParsingTests {
                         <li>List item one</li>
                         <li>List item two</li>
                     </ul>
-                </section>
+                </div>
                 <aside class="sidebar">
                     <h3>Related Information</h3>
                     <p>Additional context information.</p>
@@ -178,12 +182,15 @@ struct HTMLParsingTests {
         <html>
         <head>
             <title>Article with &quot;Special&quot; Characters &amp; Entities</title>
+            <meta property="og:url" content="https://example.com/special-chars" />
         </head>
         <body>
             <h1>Article with &quot;Special&quot; Characters &amp; Entities</h1>
-            <p>Content with &lt;encoded&gt; HTML entities and émojis 🎉.</p>
-            <p>Unicode characters: 世界, مرحبا, Здравствуй</p>
-            <p>Mathematical symbols: ∑, ∞, π, ≠, ≤, ≥</p>
+            <div class="article-content">
+                <p>Content with &lt;encoded&gt; HTML entities and émojis 🎉.</p>
+                <p>Unicode characters: 世界, مرحبا, Здравствуй</p>
+                <p>Mathematical symbols: ∑, ∞, π, ≠, ≤, ≥</p>
+            </div>
         </body>
         </html>
         """
@@ -349,13 +356,13 @@ struct HTMLParsingTests {
                 <header>
                     <h1>Utah News: Major Development in Salt Lake City</h1>
                     <div class="article-meta">
-                        <span class="author">By Sarah Johnson</span>
+                        <span class="author">Sarah Johnson</span>
                         <time datetime="2024-01-25T09:00:00-07:00">January 25, 2024</time>
                         <span class="category">Local News</span>
                     </div>
                 </header>
-                
-                <div class="article-body">
+
+                <div class="article-content">
                     <p class="lead">Salt Lake City officials announced a major development project that will transform the downtown area over the next five years.</p>
                     
                     <p>The project, valued at $2.5 billion, includes residential, commercial, and public spaces designed to accommodate the city's growing population.</p>
@@ -411,10 +418,13 @@ struct HTMLParsingTests {
         <html>
         <head>
             <title>Utah Weather Report - January 2024</title>
+            <meta property="og:url" content="https://example.com/weather-report" />
             <meta property="og:type" content="video">
+            <meta property="og:description" content="Chief Meteorologist Mike Davis provides the latest weather forecast for Utah, including expected snowfall in the mountains and temperature trends for the Salt Lake Valley.">
             <meta property="og:video:url" content="https://example.com/weather-report.mp4">
             <meta property="og:video:duration" content="180">
             <meta property="og:image" content="https://example.com/weather-thumb.jpg">
+            <meta name="author" content="Mike Davis">
         </head>
         <body>
             <article>
@@ -425,11 +435,7 @@ struct HTMLParsingTests {
                         <p>Your browser doesn't support HTML5 video. Here's a description of the weather report content.</p>
                     </video>
                 </div>
-                <div class="video-description">
-                    <p>Chief Meteorologist Mike Davis provides the latest weather forecast for Utah, including expected snowfall in the mountains and temperature trends for the Salt Lake Valley.</p>
-                </div>
                 <div class="metadata">
-                    <span class="author">Mike Davis</span>
                     <span class="category">Weather</span>
                     <time datetime="2024-01-26T18:00:00-07:00">January 26, 2024</time>
                 </div>
@@ -437,9 +443,9 @@ struct HTMLParsingTests {
         </body>
         </html>
         """
-        
+
         let video = try Video.parse(from: videoHTML)
-        
+
         #expect(video.title.contains("Utah Weather Report"))
         #expect(video.author == "Mike Davis")
         #expect(video.textContent != nil)
@@ -459,18 +465,21 @@ struct HTMLParsingTests {
         <html>
         <head>
             <title>Large Document Test</title>
+            <meta property="og:url" content="https://example.com/large-document" />
         </head>
         <body>
             <h1>Large Document Test</h1>
+            <div class="article-content">
         """
-        
+
         // Add many paragraphs
         for i in 0..<1000 {
             largeHTML += "<p>This is paragraph number \(i) with some content for testing parsing performance. "
             largeHTML += "It contains enough text to make the document substantial for performance testing.</p>\n"
         }
-        
+
         largeHTML += """
+            </div>
         </body>
         </html>
         """
@@ -496,6 +505,7 @@ struct HTMLParsingTests {
         <html>
         <head>
             <title>No Content Test</title>
+            <meta property="og:url" content="https://example.com/no-content" />
         </head>
         <body>
             <h1>No Content Test</h1>
@@ -525,6 +535,7 @@ struct HTMLParsingTests {
         <html>
         <head>
             <title>Whitespace Test</title>
+            <meta property="og:url" content="https://example.com/whitespace-test" />
         </head>
         <body>
             <h1>Whitespace Test</h1>

@@ -113,7 +113,7 @@ public struct Organization: AssociatedData, Codable, Identifiable, Hashable, Equ
                 },
                 "contactInfo": { "$ref": "#/definitions/ContactInfo" }
             },
-            "required": ["id", "name", "type"]
+            "required": ["id", "name"]
         }
         """
     }

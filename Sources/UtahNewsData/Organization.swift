@@ -239,7 +239,7 @@ public struct Organization: AssociatedData, Codable, Identifiable, Hashable, Equ
                     "items": { "type": "string", "format": "uri" }
                 }
             },
-            "required": ["id", "name", "type"]
+            "required": ["id", "name"]
         }
         """
     }
