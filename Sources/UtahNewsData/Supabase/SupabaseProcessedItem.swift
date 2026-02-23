@@ -146,6 +146,84 @@ nonisolated public struct SupabaseProcessedItem: Codable, Sendable, Identifiable
     /// Extracted structured data (OpenGraph, JSON-LD, Twitter Card)
     public let structuredData: SupabaseAnyCodable?
 
+    // MARK: - Public Init
+
+    public init(
+        id: String,
+        url: String,
+        sourceTitle: String,
+        author: String?,
+        publishDate: String?,
+        cleanedText: String,
+        summary: String,
+        fmExcerpt: String?,
+        entitiesJson: String,
+        topics: [String],
+        sentimentLabel: String,
+        sentimentScore: Double,
+        language: String,
+        isRelevantToUtah: Bool,
+        relevanceScore: Double,
+        utahLocations: [String],
+        relevanceMethod: String?,
+        promotionCandidate: Bool,
+        promotedToSource: Bool,
+        sourceId: String?,
+        identifiedContentType: String,
+        confidenceScores: [String: Double]?,
+        pageRole: String?,
+        discoveryScope: String?,
+        classificationConfidence: Double?,
+        assignedScanFrequency: String?,
+        extractedUrlCount: Int?,
+        keywords: [String]?,
+        processingTimestamp: String,
+        cityName: String?,
+        sourceDomain: String?,
+        processingStage: String? = nil,
+        enrichedBy: String? = nil,
+        enrichedAt: String? = nil,
+        editorialSignals: SupabaseAnyCodable?,
+        structuredData: SupabaseAnyCodable?
+    ) {
+        self.id = id
+        self.url = url
+        self.sourceTitle = sourceTitle
+        self.author = author
+        self.publishDate = publishDate
+        self.cleanedText = cleanedText
+        self.summary = summary
+        self.fmExcerpt = fmExcerpt
+        self.entitiesJson = entitiesJson
+        self.topics = topics
+        self.sentimentLabel = sentimentLabel
+        self.sentimentScore = sentimentScore
+        self.language = language
+        self.isRelevantToUtah = isRelevantToUtah
+        self.relevanceScore = relevanceScore
+        self.utahLocations = utahLocations
+        self.relevanceMethod = relevanceMethod
+        self.promotionCandidate = promotionCandidate
+        self.promotedToSource = promotedToSource
+        self.sourceId = sourceId
+        self.identifiedContentType = identifiedContentType
+        self.confidenceScores = confidenceScores
+        self.pageRole = pageRole
+        self.discoveryScope = discoveryScope
+        self.classificationConfidence = classificationConfidence
+        self.assignedScanFrequency = assignedScanFrequency
+        self.extractedUrlCount = extractedUrlCount
+        self.keywords = keywords
+        self.processingTimestamp = processingTimestamp
+        self.cityName = cityName
+        self.sourceDomain = sourceDomain
+        self.processingStage = processingStage
+        self.enrichedBy = enrichedBy
+        self.enrichedAt = enrichedAt
+        self.editorialSignals = editorialSignals
+        self.structuredData = structuredData
+    }
+
     // MARK: - CodingKeys
 
     enum CodingKeys: String, CodingKey {
