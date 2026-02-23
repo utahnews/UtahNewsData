@@ -196,4 +196,24 @@ extension SupabaseProcessedItem {
     public var displayTitle: String {
         sourceTitle.isEmpty ? domain : sourceTitle
     }
+
+    /// Processing timestamp as Date
+    public var processingDate: Date? {
+        ISO8601DateFormatter().date(from: processingTimestamp)
+    }
+
+    /// Whether this item has been enriched by V2 with FM analysis
+    public var isEnriched: Bool {
+        processingStage == "enriched"
+    }
+
+    // MARK: - Hashable (identity-based)
+
+    public func hash(into hasher: inout Hasher) {
+        hasher.combine(id)
+    }
+
+    public static func == (lhs: SupabaseProcessedItem, rhs: SupabaseProcessedItem) -> Bool {
+        lhs.id == rhs.id
+    }
 }
