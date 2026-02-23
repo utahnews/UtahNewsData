@@ -16,7 +16,7 @@ import Foundation
 ///
 /// This is the V2 pipeline output containing fully analyzed content:
 /// extracted text, entity analysis, sentiment, Utah relevance, and editorial signals.
-public struct SupabaseProcessedItem: Codable, Sendable, Identifiable {
+nonisolated public struct SupabaseProcessedItem: Codable, Sendable, Identifiable, Hashable {
 
     // MARK: - Identity
 
