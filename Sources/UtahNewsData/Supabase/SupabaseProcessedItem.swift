@@ -34,8 +34,26 @@ nonisolated public struct SupabaseProcessedItem: Codable, Sendable, Identifiable
     /// Content author (if detected)
     public let author: String?
 
-    /// Original publish date (ISO 8601 string)
+    /// Original publish date fallback (legacy)
     public let publishDate: String?
+
+    /// Canonical parsed publish date (ISO 8601 string)
+    public let publishedAt: String?
+
+    /// How canonical publish date was derived
+    public let publishedAtSource: String?
+
+    /// Confidence in canonical publish date
+    public let publishedAtConfidence: String?
+
+    /// True for evergreen content that lacks a conclusive publish date
+    public let isEvergreen: Bool?
+
+    /// Discovered timestamp (ISO 8601 string)
+    public let discoveredAt: String?
+
+    /// Ingested/enriched timestamp (ISO 8601 string)
+    public let ingestedAt: String?
 
     // MARK: - Content
 
@@ -154,6 +172,12 @@ nonisolated public struct SupabaseProcessedItem: Codable, Sendable, Identifiable
         sourceTitle: String,
         author: String?,
         publishDate: String?,
+        publishedAt: String? = nil,
+        publishedAtSource: String? = nil,
+        publishedAtConfidence: String? = nil,
+        isEvergreen: Bool? = nil,
+        discoveredAt: String? = nil,
+        ingestedAt: String? = nil,
         cleanedText: String,
         summary: String,
         fmExcerpt: String?,
@@ -191,6 +215,12 @@ nonisolated public struct SupabaseProcessedItem: Codable, Sendable, Identifiable
         self.sourceTitle = sourceTitle
         self.author = author
         self.publishDate = publishDate
+        self.publishedAt = publishedAt
+        self.publishedAtSource = publishedAtSource
+        self.publishedAtConfidence = publishedAtConfidence
+        self.isEvergreen = isEvergreen
+        self.discoveredAt = discoveredAt
+        self.ingestedAt = ingestedAt
         self.cleanedText = cleanedText
         self.summary = summary
         self.fmExcerpt = fmExcerpt
@@ -230,6 +260,12 @@ nonisolated public struct SupabaseProcessedItem: Codable, Sendable, Identifiable
         case id, url, summary, author, language, topics, keywords
         case sourceTitle = "source_title"
         case publishDate = "publish_date"
+        case publishedAt = "published_at"
+        case publishedAtSource = "published_at_source"
+        case publishedAtConfidence = "published_at_confidence"
+        case isEvergreen = "is_evergreen"
+        case discoveredAt = "discovered_at"
+        case ingestedAt = "ingested_at"
         case cleanedText = "cleaned_text"
         case fmExcerpt = "fm_excerpt"
         case entitiesJson = "entities_json"
@@ -275,9 +311,73 @@ extension SupabaseProcessedItem {
         sourceTitle.isEmpty ? domain : sourceTitle
     }
 
+    /// Canonical publish date as Date (preferred if present)
+    public var publishedDate: Date? {
+        if let publishedAt, let date = ISO8601DateFormatter().date(from: publishedAt) {
+            return date
+        }
+        return ISO8601DateFormatter().date(from: publishDate ?? "")
+    }
+
+    public var discoveredDate: Date? {
+        ISO8601DateFormatter().date(from: discoveredAt ?? "")
+    }
+
+    public var ingestedDate: Date? {
+        ISO8601DateFormatter().date(from: ingestedAt ?? "")
+    }
+
     /// Processing timestamp as Date
     public var processingDate: Date? {
         ISO8601DateFormatter().date(from: processingTimestamp)
+    }
+
+    /// Numeric confidence score derived from the published_at_confidence string.
+    /// Maps: high → 0.95, medium → 0.75, low → 0.40, nil/unrecognised → 0.0
+    public var publishedAtConfidenceScore: Double {
+        switch publishedAtConfidence?.lowercased() {
+        case "high": return 0.95
+        case "medium": return 0.75
+        case "low": return 0.40
+        default: return 0.0
+        }
+    }
+
+    /// Whether this item has a conclusive publish date for drafting (WS-B: >= 0.93 confidence)
+    public var hasConclusivePublishDate: Bool {
+        guard let source = publishedAtSource else { return false }
+        return publishedDate != nil
+            && source != "unknown"
+            && publishedAtConfidenceScore >= 0.93
+    }
+
+    /// Whether the canonical publishedAt is just a copy of discoveredAt or ingestedAt
+    /// (WS-B: ingestion timestamps must NOT be reused as canonical publish date)
+    public var publishDateMatchesIngestTimestamp: Bool {
+        guard let pubStr = publishedAt else { return false }
+        return pubStr == discoveredAt || pubStr == ingestedAt || pubStr == processingTimestamp
+    }
+
+    /// Whether this item appears to be evergreen and should stay out of draft queue
+    public var isEvergreenItem: Bool {
+        (isEvergreen ?? false) || !hasConclusivePublishDate
+    }
+
+    /// Whether this item is draft-eligible (WS-B guardrail enforced)
+    public var isDraftEligible: Bool {
+        !isEvergreenItem && !publishDateMatchesIngestTimestamp
+    }
+
+    /// Structured guardrail evaluation for audit logging (WS-B)
+    public var dateGuardrailResult: DateGuardrailResult {
+        DateGuardrailResult.evaluate(
+            itemId: id,
+            publishedAt: publishedDate,
+            publishedAtSourceRaw: publishedAtSource,
+            publishedAtConfidenceScore: publishedAtConfidenceScore,
+            isEvergreen: isEvergreen ?? false,
+            publishDateMatchesIngestTimestamp: publishDateMatchesIngestTimestamp
+        )
     }
 
     /// Whether this item has been enriched by V2 with FM analysis

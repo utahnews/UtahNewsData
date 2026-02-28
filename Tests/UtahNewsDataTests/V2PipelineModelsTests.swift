@@ -407,4 +407,139 @@ final class V2PipelineModelsTests: XCTestCase {
         
         XCTAssertThrowsError(try JSONDecoder().decode(V2FinalDataPayload.self, from: incompleteJSON))
     }
+
+    func testFinalDataPayloadV2DraftEligibilityFromSourceDate() {
+        let payload = FinalDataPayloadV2(
+            url: "https://example.com/article",
+            sourceTitle: "Example",
+            cleanedText: "Body",
+            summary: "Summary",
+            author: nil,
+            publishDate: Date(),
+            entitiesJson: "[]",
+            topics: [],
+            sentimentLabel: .neutral,
+            sentimentScore: 0.0,
+            language: "en",
+            isRelevantToUtah: true,
+            relevanceScore: 0.9,
+            utahLocations: [],
+            relevanceMethod: nil,
+            promotionCandidate: false,
+            promotedToSource: false,
+            sourceId: nil,
+            processingTimestamp: Date(),
+            identifiedContentType: .article,
+            confidenceScores: [:],
+            structuredData: nil,
+            fmExcerpt: nil,
+            keywords: nil,
+            pageRole: nil,
+            discoveryScope: nil,
+            classificationConfidence: nil,
+            assignedScanFrequency: nil,
+            extractedURLCount: nil,
+            publishedAt: nil,
+            publishedAtSource: .rawContent,
+            publishedAtConfidence: .high,
+            isEvergreen: false,
+            discoveredAt: Date(),
+            ingestedAt: Date()
+        )
+
+        XCTAssertTrue(payload.hasConclusivePublishedAt)
+        XCTAssertTrue(payload.isDraftEligible)
+    }
+
+    func testFinalDataPayloadV2RejectsMissingPublishedDateAsEvergreen() {
+        let payload = FinalDataPayloadV2(
+            url: "https://example.com/article",
+            sourceTitle: "Example",
+            cleanedText: "Body",
+            summary: "Summary",
+            author: nil,
+            publishDate: nil,
+            entitiesJson: "[]",
+            topics: [],
+            sentimentLabel: .neutral,
+            sentimentScore: 0.0,
+            language: "en",
+            isRelevantToUtah: true,
+            relevanceScore: 0.9,
+            utahLocations: [],
+            relevanceMethod: nil,
+            promotionCandidate: false,
+            promotedToSource: false,
+            sourceId: nil,
+            processingTimestamp: Date(),
+            identifiedContentType: .article,
+            confidenceScores: [:],
+            structuredData: nil,
+            fmExcerpt: nil,
+            keywords: nil,
+            pageRole: nil,
+            discoveryScope: nil,
+            classificationConfidence: nil,
+            assignedScanFrequency: nil,
+            extractedURLCount: nil,
+            publishedAt: nil,
+            publishedAtSource: .unknown,
+            publishedAtConfidence: .low,
+            isEvergreen: true,
+            discoveredAt: Date(),
+            ingestedAt: Date()
+        )
+
+        XCTAssertFalse(payload.hasConclusivePublishedAt)
+        XCTAssertFalse(payload.isDraftEligible)
+        XCTAssertTrue(payload.isEvergreen)
+    }
+
+    func testSupabaseProcessedItemDraftEligibility() {
+        let item = SupabaseProcessedItem(
+            id: "abc",
+            url: "https://example.com",
+            sourceTitle: "Example",
+            author: nil,
+            publishDate: "2024-08-11T00:00:00Z",
+            publishedAt: nil,
+            publishedAtSource: "raw_content",
+            publishedAtConfidence: "low",
+            isEvergreen: false,
+            discoveredAt: nil,
+            ingestedAt: nil,
+            cleanedText: "Body",
+            summary: "Summary",
+            fmExcerpt: nil,
+            entitiesJson: "[]",
+            topics: [],
+            sentimentLabel: "neutral",
+            sentimentScore: 0,
+            language: "en",
+            isRelevantToUtah: true,
+            relevanceScore: 0.7,
+            utahLocations: [],
+            relevanceMethod: nil,
+            promotionCandidate: false,
+            promotedToSource: false,
+            sourceId: nil,
+            identifiedContentType: "article",
+            confidenceScores: nil,
+            pageRole: nil,
+            discoveryScope: nil,
+            classificationConfidence: nil,
+            assignedScanFrequency: nil,
+            extractedUrlCount: nil,
+            keywords: nil,
+            processingTimestamp: "2024-08-11T00:00:01Z",
+            cityName: nil,
+            sourceDomain: nil,
+            editorialSignals: nil,
+            structuredData: nil
+        )
+
+        XCTAssertFalse(item.hasConclusivePublishDate)
+        XCTAssertTrue(item.isEvergreenItem)
+        XCTAssertFalse(item.isDraftEligible)
+    }
 }

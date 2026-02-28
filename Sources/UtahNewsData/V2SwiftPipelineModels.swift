@@ -130,6 +130,49 @@ public enum ProcessingStatus: String, Codable, Sendable {
     }
 }
 
+// MARK: - Publish-Date Provenance
+
+/// Source used to infer `publishedAt`
+public enum PublishedAtSource: String, Codable, Sendable {
+    case rawContent = "raw_content"
+    case pageRescan = "page_rescan"
+    case aiFoundation = "ai_foundation"
+    case aiLocalLmstudio = "ai_local_lmstudio"
+    case aiCloud = "ai_cloud"
+    case unknown
+
+    public var isAI: Bool {
+        switch self {
+        case .aiFoundation, .aiLocalLmstudio, .aiCloud:
+            return true
+        default:
+            return false
+        }
+    }
+}
+
+/// Confidence level for publish-date determination
+public enum PublishedAtConfidence: String, Codable, Sendable {
+    case high
+    case medium
+    case low
+
+    /// Numeric score for threshold comparisons (WS-B guardrail).
+    /// high = 0.95, medium = 0.75, low = 0.40
+    public var numericScore: Double {
+        switch self {
+        case .high: return 0.95
+        case .medium: return 0.75
+        case .low: return 0.40
+        }
+    }
+
+    /// Whether this confidence meets the WS-B drafting threshold (>= 0.93).
+    public var meetsDraftingThreshold: Bool {
+        numericScore >= 0.93
+    }
+}
+
 // MARK: - Entity Models
 
 /// Entity extracted by Foundation Models
@@ -426,6 +469,24 @@ public struct FinalDataPayloadV2: Codable, Identifiable, Hashable, Sendable {
     public let identifiedContentType: ContentType
     public let confidenceScores: [String: Double]
 
+    /// Canonical publish date parsed from source (nullable)
+    public let publishedAt: Date?
+
+    /// How `publishedAt` was derived
+    public let publishedAtSource: PublishedAtSource
+
+    /// Confidence in `publishedAt` inference
+    public let publishedAtConfidence: PublishedAtConfidence
+
+    /// True when content is evergreen/undated (no conclusive publish date)
+    public let isEvergreen: Bool
+
+    /// Discovered timestamp for this item
+    public let discoveredAt: Date
+
+    /// Ingested/enriched timestamp (separate from publish date)
+    public let ingestedAt: Date
+
     // Optional enrichment
     nonisolated(unsafe) public let structuredData: [String: AnyCodable]?
 
@@ -476,10 +537,16 @@ public struct FinalDataPayloadV2: Codable, Identifiable, Hashable, Sendable {
         case relevanceMethod = "relevance_method"              // LEGACY snake_case
         case promotionCandidate = "promotion_candidate"        // LEGACY snake_case
         case promotedToSource = "promoted_to_source"           // LEGACY snake_case
-        case sourceId = "source_id"                            // LEGACY snake_case
+        case sourceId = "source_id"                           // LEGACY snake_case
         case processingTimestamp = "processing_timestamp"      // LEGACY snake_case
         case identifiedContentType = "identified_content_type" // LEGACY snake_case
         case confidenceScores = "confidence_scores"            // LEGACY snake_case
+        case publishedAt = "published_at"                      // Canonical publish date
+        case publishedAtSource = "published_at_source"          // Canonical publish source
+        case publishedAtConfidence = "published_at_confidence"  // Canonical publish confidence
+        case isEvergreen = "is_evergreen"                      // Canonical evergreen flag
+        case discoveredAt = "discovered_at"                    // Canonical discovered time
+        case ingestedAt = "ingested_at"                       // Canonical ingest time
         case structuredData = "structured_data"                // LEGACY snake_case
         // NEW 2025 fields - camelCase per policy (no custom rawValue needed)
         case fmExcerpt
@@ -528,10 +595,18 @@ public struct FinalDataPayloadV2: Codable, Identifiable, Hashable, Sendable {
         classificationConfidence: Double? = nil,
         assignedScanFrequency: String? = nil,
         extractedURLCount: Int? = nil,
+        // Canonical publish metadata / editorial guardrails
+        publishedAt: Date? = nil,
+        publishedAtSource: PublishedAtSource = .unknown,
+        publishedAtConfidence: PublishedAtConfidence = .low,
+        isEvergreen: Bool? = nil,
+        discoveredAt: Date? = nil,
+        ingestedAt: Date? = nil,
         // Editorial Signals
         editorialSignals: EditorialSignals? = nil
     ) {
         self._id = DocumentID(wrappedValue: id)
+        let resolvedPublishedAt = publishedAt ?? publishDate
         self.url = url
         self.sourceTitle = sourceTitle
         self.cleanedText = cleanedText
@@ -553,6 +628,26 @@ public struct FinalDataPayloadV2: Codable, Identifiable, Hashable, Sendable {
         self.processingTimestamp = processingTimestamp
         self.identifiedContentType = identifiedContentType
         self.confidenceScores = confidenceScores
+        self.publishedAt = resolvedPublishedAt
+
+        let inferredSource: PublishedAtSource
+        let inferredConfidence: PublishedAtConfidence
+        if let source = (publishDate != nil ? (publishedAtSource == .unknown ? .rawContent : publishedAtSource) : nil) {
+            inferredSource = source
+            inferredConfidence = publishedAtConfidence
+        } else if resolvedPublishedAt != nil {
+            inferredSource = .rawContent
+            inferredConfidence = .high
+        } else {
+            inferredSource = .unknown
+            inferredConfidence = .low
+        }
+
+        self.publishedAtSource = inferredSource
+        self.publishedAtConfidence = inferredConfidence
+        self.isEvergreen = isEvergreen ?? (resolvedPublishedAt == nil)
+        self.discoveredAt = discoveredAt ?? processingTimestamp
+        self.ingestedAt = ingestedAt ?? processingTimestamp
         self.structuredData = structuredData
         self.fmExcerpt = fmExcerpt
         self.keywords = keywords
@@ -582,6 +677,20 @@ public struct FinalDataPayloadV2: Codable, Identifiable, Hashable, Sendable {
         // Decode dates (handle Firestore Timestamp format)
         publishDate = try? Self.decodeFirestoreDate(from: container, forKey: .publishDate)
         processingTimestamp = (try? Self.decodeFirestoreDate(from: container, forKey: .processingTimestamp)) ?? Date()
+        publishedAt = try? Self.decodeFirestoreDate(from: container, forKey: .publishedAt)
+
+        var inferredSource = (try? container.decode(PublishedAtSource.self, forKey: .publishedAtSource)) ?? .unknown
+        var inferredConfidence = (try? container.decode(PublishedAtConfidence.self, forKey: .publishedAtConfidence)) ?? .low
+        if publishedAt != nil && inferredSource == .unknown && inferredConfidence == .low {
+            inferredSource = .rawContent
+            inferredConfidence = .medium
+        }
+
+        publishedAtSource = inferredSource
+        publishedAtConfidence = inferredConfidence
+        isEvergreen = (try? container.decode(Bool.self, forKey: .isEvergreen)) ?? (publishedAt == nil)
+        discoveredAt = (try? Self.decodeFirestoreDate(from: container, forKey: .discoveredAt)) ?? processingTimestamp
+        ingestedAt = (try? Self.decodeFirestoreDate(from: container, forKey: .ingestedAt)) ?? processingTimestamp
 
         // Analysis fields
         entitiesJson = try container.decode(String.self, forKey: .entitiesJson)
@@ -637,6 +746,31 @@ public struct FinalDataPayloadV2: Codable, Identifiable, Hashable, Sendable {
     }
 
     // MARK: - Computed Properties
+
+    /// Canonical conclusive publish date indicator (WS-B: requires >= 0.93 confidence)
+    public var hasConclusivePublishedAt: Bool {
+        let hasDate = publishedAt != nil
+        let hasStrongSource = publishedAtSource != .unknown
+        let meetsThreshold = publishedAtConfidence.meetsDraftingThreshold
+        return hasDate && hasStrongSource && meetsThreshold
+    }
+
+    /// Draft eligibility from this payload (WS-B guardrail enforced)
+    public var isDraftEligible: Bool {
+        return hasConclusivePublishedAt && !isEvergreen
+    }
+
+    /// Structured guardrail evaluation for audit logging (WS-B)
+    public var dateGuardrailResult: DateGuardrailResult {
+        DateGuardrailResult.evaluate(
+            publishedAt: publishedAt,
+            publishedAtSource: publishedAtSource,
+            publishedAtConfidence: publishedAtConfidence,
+            isEvergreen: isEvergreen,
+            discoveredAt: discoveredAt,
+            ingestedAt: ingestedAt
+        )
+    }
 
     /// Parse entities from JSON string
     public var entities: [IntelligenceEntity] {
