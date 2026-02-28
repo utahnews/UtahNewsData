@@ -65,15 +65,26 @@ public actor CloudKitWebService {
     // API token for client access (configured in CloudKit Dashboard)
     private var apiToken: String?
 
+    // Configured URLSession for reliable streaming on all network types
+    private let session: URLSession
+
     public init(containerID: String = CloudKitStreamingConfig.containerID) {
         self.containerID = containerID
 
-        // Use production environment for release, development for debug
-        #if DEBUG
-        self.environment = "development"
-        #else
+        // Always use production for the public database via Web Services API.
+        // Read-only API token access works across environments.
+        // Videos uploaded from the UtahNewsUploader (via native CKContainer SDK)
+        // go to the production public database regardless of build config.
         self.environment = "production"
-        #endif
+
+        // Configure URLSession to work reliably on cellular/constrained networks
+        let config = URLSessionConfiguration.default
+        config.allowsConstrainedNetworkAccess = true
+        config.allowsExpensiveNetworkAccess = true
+        config.timeoutIntervalForRequest = 30
+        config.timeoutIntervalForResource = 60
+        config.waitsForConnectivity = true
+        self.session = URLSession(configuration: config)
 
         logger.info("CloudKitWebService initialized for \(self.environment) environment")
     }
@@ -121,7 +132,7 @@ public actor CloudKitWebService {
         logger.debug("Fetching download URLs for \(recordNames.count) records")
 
         // Execute request
-        let (data, response) = try await URLSession.shared.data(for: request)
+        let (data, response) = try await session.data(for: request)
 
         guard let httpResponse = response as? HTTPURLResponse else {
             throw CloudKitWebServiceError.invalidResponse
@@ -230,7 +241,7 @@ public actor CloudKitWebService {
             request.setValue("application/json", forHTTPHeaderField: "Content-Type")
             request.httpBody = bodyData
 
-            let (data, response) = try await URLSession.shared.data(for: request)
+            let (data, response) = try await session.data(for: request)
 
             guard let httpResponse = response as? HTTPURLResponse else {
                 throw CloudKitWebServiceError.invalidResponse

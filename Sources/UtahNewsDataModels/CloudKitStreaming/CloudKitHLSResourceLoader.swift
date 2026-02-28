@@ -37,6 +37,17 @@ public final class CloudKitHLSResourceLoader: NSObject, AVAssetResourceLoaderDel
     /// Whether HTTPS streaming is enabled (API token configured)
     nonisolated(unsafe) private var httpsStreamingEnabled = false
 
+    /// Configured URLSession for reliable segment downloads on cellular/constrained networks
+    private let downloadSession: URLSession = {
+        let config = URLSessionConfiguration.default
+        config.allowsConstrainedNetworkAccess = true
+        config.allowsExpensiveNetworkAccess = true
+        config.timeoutIntervalForRequest = 30
+        config.timeoutIntervalForResource = 60
+        config.waitsForConnectivity = true
+        return URLSession(configuration: config)
+    }()
+
     public override init() {
         // Initialize streaming components - share single webService instance
         let sharedWebService = CloudKitWebService()
@@ -197,22 +208,31 @@ public final class CloudKitHLSResourceLoader: NSObject, AVAssetResourceLoaderDel
             return
         }
 
-        // Handle media segments - redirect to HTTPS URL
-        if let cachedURL = await urlCache.getURL(for: decodedPath, videoSlug: videoSlug) {
-            resourceLogger.debug("[\(requestID)] Redirecting to HTTPS: \(cachedURL.absoluteString.prefix(80))...")
-            redirectToURL(loadingRequest, url: cachedURL)
-            return
-        }
+        // Handle media segments - redirect to HTTPS URL with retry for network resilience
+        let maxAttempts = 3
+        for attempt in 1...maxAttempts {
+            // Try cached URL first
+            if let cachedURL = await urlCache.getURL(for: decodedPath, videoSlug: videoSlug) {
+                resourceLogger.debug("[\(requestID)] Redirecting to HTTPS: \(cachedURL.absoluteString.prefix(80))...")
+                redirectToURL(loadingRequest, url: cachedURL)
+                return
+            }
 
-        // URL not cached - try to refresh
-        do {
-            let freshURL = try await urlCache.refreshURL(for: decodedPath, videoSlug: videoSlug)
-            resourceLogger.debug("[\(requestID)] Refreshed URL, redirecting to HTTPS")
-            redirectToURL(loadingRequest, url: freshURL)
-        } catch {
-            // Web Services failed - cannot fall back to native SDK (doesn't work in UtahNews)
-            resourceLogger.error("[\(requestID)] Failed to get HTTPS URL for segment: \(error.localizedDescription)")
-            throw CloudKitHLSError.downloadFailed("Failed to get streaming URL: \(error.localizedDescription)")
+            // URL not cached - try to refresh from CloudKit Web Services
+            do {
+                let freshURL = try await urlCache.refreshURL(for: decodedPath, videoSlug: videoSlug)
+                resourceLogger.debug("[\(requestID)] Refreshed URL, redirecting to HTTPS")
+                redirectToURL(loadingRequest, url: freshURL)
+                return
+            } catch {
+                if attempt < maxAttempts {
+                    resourceLogger.warning("[\(requestID)] Attempt \(attempt)/\(maxAttempts) failed for \(decodedPath), retrying...")
+                    try? await Task.sleep(for: .milliseconds(500 * attempt))
+                } else {
+                    resourceLogger.error("[\(requestID)] Failed to get HTTPS URL after \(maxAttempts) attempts: \(error.localizedDescription)")
+                    throw CloudKitHLSError.downloadFailed("Failed to get streaming URL after \(maxAttempts) attempts: \(error.localizedDescription)")
+                }
+            }
         }
     }
 
@@ -257,40 +277,56 @@ public final class CloudKitHLSResourceLoader: NSObject, AVAssetResourceLoaderDel
     }
 
     /// Fetch segment data via Web Services API (for variant manifests)
+    /// Uses configured downloadSession for reliable cellular/constrained network access
     private func fetchSegmentData(videoSlug: String, relativePath: String, requestID: String) async throws -> Data {
         resourceLogger.debug("[\(requestID)] Fetching segment data via Web Services: \(relativePath)")
 
-        // Use URL cache to get the download URL, then fetch content
-        // First try to get from cache
-        if let cachedURL = await urlCache.getURL(for: relativePath, videoSlug: videoSlug) {
-            resourceLogger.debug("[\(requestID)] Got cached URL for segment, downloading content")
-            let (data, response) = try await URLSession.shared.data(from: cachedURL)
+        let maxAttempts = 3
+        for attempt in 1...maxAttempts {
+            // Try cached URL first
+            if let cachedURL = await urlCache.getURL(for: relativePath, videoSlug: videoSlug) {
+                resourceLogger.debug("[\(requestID)] Got cached URL for segment, downloading content")
+                let (data, response) = try await downloadSession.data(from: cachedURL)
 
-            guard let httpResponse = response as? HTTPURLResponse,
-                  httpResponse.statusCode == 200 else {
-                throw CloudKitHLSError.downloadFailed("HTTP error downloading segment")
+                guard let httpResponse = response as? HTTPURLResponse,
+                      httpResponse.statusCode == 200 else {
+                    // Cached URL may be expired (403) — invalidate and retry
+                    if attempt < maxAttempts {
+                        resourceLogger.warning("[\(requestID)] Cached URL returned non-200, retrying with refresh (attempt \(attempt)/\(maxAttempts))")
+                        continue
+                    }
+                    throw CloudKitHLSError.downloadFailed("HTTP error downloading segment")
+                }
+
+                return data
             }
 
-            return data
-        }
+            // URL not cached - try to refresh/fetch
+            do {
+                let freshURL = try await urlCache.refreshURL(for: relativePath, videoSlug: videoSlug)
+                resourceLogger.debug("[\(requestID)] Got fresh URL for segment, downloading content")
 
-        // Try to refresh/fetch the URL
-        do {
-            let freshURL = try await urlCache.refreshURL(for: relativePath, videoSlug: videoSlug)
-            resourceLogger.debug("[\(requestID)] Got fresh URL for segment, downloading content")
+                let (data, response) = try await downloadSession.data(from: freshURL)
 
-            let (data, response) = try await URLSession.shared.data(from: freshURL)
+                guard let httpResponse = response as? HTTPURLResponse,
+                      httpResponse.statusCode == 200 else {
+                    throw CloudKitHLSError.downloadFailed("HTTP error downloading segment")
+                }
 
-            guard let httpResponse = response as? HTTPURLResponse,
-                  httpResponse.statusCode == 200 else {
-                throw CloudKitHLSError.downloadFailed("HTTP error downloading segment")
+                return data
+            } catch {
+                if attempt < maxAttempts {
+                    resourceLogger.warning("[\(requestID)] Attempt \(attempt)/\(maxAttempts) failed for segment \(relativePath), retrying...")
+                    try? await Task.sleep(for: .milliseconds(500 * attempt))
+                } else {
+                    resourceLogger.error("[\(requestID)] Failed to fetch segment after \(maxAttempts) attempts: \(error.localizedDescription)")
+                    throw CloudKitHLSError.segmentNotFound(relativePath)
+                }
             }
-
-            return data
-        } catch {
-            resourceLogger.error("[\(requestID)] Failed to fetch segment via Web Services: \(error.localizedDescription)")
-            throw CloudKitHLSError.segmentNotFound(relativePath)
         }
+
+        // Should not reach here due to throw in final attempt, but satisfy compiler
+        throw CloudKitHLSError.segmentNotFound(relativePath)
     }
 
     // MARK: - URL Parsing
