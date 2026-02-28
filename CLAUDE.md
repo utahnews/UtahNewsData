@@ -66,6 +66,45 @@ All models use **String IDs** (not UUID) for Firebase compatibility:
 
 - `ImportSources` - Tool for importing news sources
 
+## Dependency Workflow (CRITICAL - READ FIRST)
+
+UtahNewsData is the shared foundation of the entire Utah News Platform. **All consumer apps reference it as a remote SPM dependency from GitHub**, not as a local package.
+
+### After Making Changes to UtahNewsData
+
+Every time you modify UtahNewsData, you MUST follow this workflow:
+
+1. **Build and test locally:** `swift build && swift test`
+2. **Commit and push to GitHub:** `git push origin main`
+3. **Update each consuming project** to pull the new version:
+   - UtahNews, NewsCapture, V2PipelineTester, UTNewsDashboard
+   - In each project: `xcodebuild -resolvePackageDependencies` (or Xcode > File > Packages > Update)
+   - **Build each project** to verify no compilation errors
+   - Commit the updated `Package.resolved` in each project
+
+### Why This Matters
+
+Each project's `Package.resolved` pins UtahNewsData to a specific Git commit. If you add a new property or method to a model here but don't push to GitHub and update each project, they will still compile against the OLD version and get "has no member" errors.
+
+### Consuming Projects
+
+| Project | GitHub Repo | Package.resolved Location |
+|---------|-------------|---------------------------|
+| UtahNews | utahnews/UtahNews | `UtahNews.xcodeproj/.../swiftpm/Package.resolved` |
+| NewsCapture | utahnews/NewsCapture | `NewsCapture.xcodeproj/.../swiftpm/Package.resolved` |
+| V2PipelineTester | utahnews/V2PipelineTester | `V2PipelineTester.xcodeproj/.../swiftpm/Package.resolved` |
+| UTNewsDashboard | utahnews/UTNewsDashboard | `UTNewsDashboard.xcodeproj/.../swiftpm/Package.resolved` |
+
+### Quick Verification
+
+```bash
+# Check which commit a project is using
+grep -A 3 "utahnewsdata" <Project>/<Project>.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved
+
+# Compare against latest UtahNewsData commit
+cd UtahNewsData/ && git log --oneline -1
+```
+
 ## Model Conventions
 
 ### Required for All Models
