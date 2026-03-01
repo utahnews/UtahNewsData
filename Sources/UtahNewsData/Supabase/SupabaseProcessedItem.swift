@@ -134,6 +134,11 @@ nonisolated public struct SupabaseProcessedItem: Codable, Sendable, Identifiable
     /// Extracted keywords
     public let keywords: [String]?
 
+    // MARK: - Deduplication
+
+    /// MD5 hash of normalized content for duplicate detection
+    public let contentHash: String?
+
     // MARK: - Metadata
 
     /// When this item was processed (ISO 8601 string)
@@ -201,6 +206,7 @@ nonisolated public struct SupabaseProcessedItem: Codable, Sendable, Identifiable
         assignedScanFrequency: String?,
         extractedUrlCount: Int?,
         keywords: [String]?,
+        contentHash: String? = nil,
         processingTimestamp: String,
         cityName: String?,
         sourceDomain: String?,
@@ -244,6 +250,7 @@ nonisolated public struct SupabaseProcessedItem: Codable, Sendable, Identifiable
         self.assignedScanFrequency = assignedScanFrequency
         self.extractedUrlCount = extractedUrlCount
         self.keywords = keywords
+        self.contentHash = contentHash
         self.processingTimestamp = processingTimestamp
         self.cityName = cityName
         self.sourceDomain = sourceDomain
@@ -285,6 +292,7 @@ nonisolated public struct SupabaseProcessedItem: Codable, Sendable, Identifiable
         case classificationConfidence = "classification_confidence"
         case assignedScanFrequency = "assigned_scan_frequency"
         case extractedUrlCount = "extracted_url_count"
+        case contentHash = "content_hash"
         case processingTimestamp = "processing_timestamp"
         case cityName = "city_name"
         case sourceDomain = "source_domain"

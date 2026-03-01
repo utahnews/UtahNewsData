@@ -120,4 +120,87 @@ public enum SupabaseTable: String, CaseIterable, Sendable {
 
     /// Audio/podcast content metadata
     case audios = "audios"
+
+    // MARK: - Observability & Audit
+
+    /// Pipeline execution audit trail with AI cost tracking
+    case pipelineRuns = "pipeline_runs"
+
+    // MARK: - Knowledge Graph Extensions
+
+    /// Relationships between entities (people ↔ orgs ↔ locations)
+    case entityRelationships = "entity_relationships"
+
+    // MARK: - Citation & Legal
+
+    /// Source domain license and fair-use metadata
+    case sourceLicenses = "source_licenses"
+
+    // MARK: - Ad System
+
+    /// Ad campaign management with budget tracking
+    case adCampaigns = "ad_campaigns"
+
+    /// Category and city-based ad targeting rules
+    case adTargeting = "ad_targeting"
+
+    /// Creative assets with moderation workflow
+    case adCreatives = "ad_creatives"
+
+    /// Unified impression/click event tracking
+    case adEvents = "ad_events"
+
+    // MARK: - Community
+
+    /// Discussion forum categories
+    case discussionCategories = "discussion_categories"
+
+    /// Discussion conversation threads
+    case discussionThreads = "discussion_threads"
+
+    /// Individual discussion posts
+    case discussionPosts = "discussion_posts"
+
+    /// User reactions to posts
+    case discussionReactions = "discussion_reactions"
+
+    /// Community user profiles
+    case discussionUsers = "discussion_users"
+
+    // MARK: - Editorial Extensions
+
+    /// Geographic jurisdiction reference data
+    case jurisdictions = "jurisdictions"
+
+    /// Editorial story assignments
+    case storyAssignments = "story_assignments"
+
+    /// Story version history
+    case storyVersions = "story_versions"
+
+    /// News alert configurations
+    case newsAlerts = "news_alerts"
+
+    /// Citizen journalism submissions
+    case userContributions = "user_contributions"
+
+    /// Review tracking for submissions
+    case submissionReviews = "submission_reviews"
+
+    /// Contributor profiles
+    case contributorProfiles = "contributor_profiles"
+
+    /// Extracted claims from submissions
+    case extractedClaims = "extracted_claims"
+
+    /// Contribution trend analytics
+    case contributionTrends = "contribution_trends"
+
+    // MARK: - Device Health
+
+    /// Device-level pipeline health metrics
+    case devicePipelineHealth = "device_pipeline_health"
+
+    /// Device generation health tracking
+    case deviceGenerationHealth = "device_generation_health"
 }
