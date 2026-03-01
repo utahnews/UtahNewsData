@@ -94,6 +94,15 @@ public enum SupabaseTable: String, CaseIterable, Sendable {
     /// Content stream for new/changed items with 7-day TTL
     case freshContent = "fresh_content"
 
+    /// Domain-level Utah relevance cache
+    case domainRelevance = "domain_relevance"
+
+    /// Per-domain intelligence (sitemaps, robots.txt, discovery pages)
+    case domainIntelligence = "domain_intelligence"
+
+    /// User URL submission tracking (from URLCapture app)
+    case urlSubmissions = "url_submissions"
+
     // MARK: - Scan Coordination
 
     /// Source scan value scoring for prioritization
@@ -203,4 +212,7 @@ public enum SupabaseTable: String, CaseIterable, Sendable {
 
     /// Device generation health tracking
     case deviceGenerationHealth = "device_generation_health"
+
+    /// Key-value system configuration store
+    case systemConfig = "system_config"
 }

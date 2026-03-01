@@ -1,48 +1,50 @@
 import Foundation
+import os
 import UtahNewsData
 
 /// A demo application to test the ConvertedSources functionality
 struct DemoConvertedSources {
+        private static let logger = Logger(subsystem: "com.utahnews.data", category: "DemoConvertedSources")
         static func main() {
-                print("Testing ConvertedSources...")
+                logger.info("Testing ConvertedSources...")
 
                 // Access the static array of sources
                 let sources = ConvertedSources.allSources
-                print("Total sources: \(sources.count)")
+                logger.info("Total sources: \(sources.count, privacy: .public)")
 
                 // Get sources by category
                 let educationSources = ConvertedSources.sources(withCategory: "education")
-                print("Education sources: \(educationSources.count)")
+                logger.info("Education sources: \(educationSources.count, privacy: .public)")
 
                 let governmentSources = ConvertedSources.sources(
                         withCategory: "localGovernmentAndPolitics")
-                print("Government sources: \(governmentSources.count)")
+                logger.info("Government sources: \(governmentSources.count, privacy: .public)")
 
                 // Get a specific source by ID
                 if let source = ConvertedSources.source(
                         withID: "005AEAD3-397C-4BCA-B02B-D5D49A755BEA")
                 {
-                        print("\nFound source by ID:")
-                        print("Name: \(source.name)")
-                        print("URL: \(source.url)")
-                        print("Category: \(source.category ?? "None")")
+                        logger.info("Found source by ID:")
+                        logger.info("Name: \(source.name, privacy: .public)")
+                        logger.info("URL: \(source.url, privacy: .public)")
+                        logger.info("Category: \(source.category ?? "None", privacy: .public)")
                 }
 
                 // Print the first few sources in different categories
                 if !educationSources.isEmpty {
                         let sample = educationSources[0]
-                        print("\nSample Education Source:")
-                        print("Name: \(sample.name)")
-                        print("URL: \(sample.url)")
+                        logger.info("Sample Education Source:")
+                        logger.info("Name: \(sample.name, privacy: .public)")
+                        logger.info("URL: \(sample.url, privacy: .public)")
                 }
 
                 if !governmentSources.isEmpty {
                         let sample = governmentSources[0]
-                        print("\nSample Government Source:")
-                        print("Name: \(sample.name)")
-                        print("URL: \(sample.url)")
+                        logger.info("Sample Government Source:")
+                        logger.info("Name: \(sample.name, privacy: .public)")
+                        logger.info("URL: \(sample.url, privacy: .public)")
                 }
 
-                print("\nTest complete!")
+                logger.info("Test complete!")
         }
 }

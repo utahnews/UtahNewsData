@@ -1,19 +1,21 @@
 import Foundation
+import os
 import UtahNewsData
 
 /// A script to import sources from the sourcesUpdated.json file
 /// This demonstrates loading the sources and using them in the application
 @main
 struct ImportSources {
+        private static let logger = Logger(subsystem: "com.utahnews.data", category: "ImportSources")
         static func main() {
-                print("Starting source import...")
+                logger.info("Starting source import...")
 
                 // Demo converting JSON to array of Source objects
-                print("\n=== PART 1: Direct JSON Conversion ===\n")
+                logger.info("=== PART 1: Direct JSON Conversion ===")
                 convertJSONToSources()
 
                 // Demo using the ConvertedSources static variable
-                print("\n=== PART 2: Using ConvertedSources ===\n")
+                logger.info("=== PART 2: Using ConvertedSources ===")
                 DemoConvertedSources.main()
         }
 
@@ -23,7 +25,7 @@ struct ImportSources {
 
                 // Create the full path to the JSON file
                 let jsonFilePath = "\(currentDirectoryPath)/sourcesUpdated.json"
-                print("Looking for JSON file at: \(jsonFilePath)")
+                logger.debug("Looking for JSON file at: \(jsonFilePath, privacy: .public)")
 
                 // Check if the file exists
                 guard FileManager.default.fileExists(atPath: jsonFilePath) else {
@@ -38,27 +40,27 @@ struct ImportSources {
                         fatalError("Error: Failed to convert JSON to sources")
                 }
 
-                // Print information about the imported sources
-                print("Successfully imported \(sources.count) sources")
+                // Log information about the imported sources
+                logger.info("Successfully imported \(sources.count, privacy: .public) sources")
 
-                // Print sample of the first 5 sources
+                // Log sample of the first 5 sources
                 for (index, source) in sources.prefix(5).enumerated() {
-                        print("\n--- Source \(index + 1) ---")
-                        print("ID: \(source.id)")
-                        print("Name: \(source.name)")
-                        print("URL: \(source.url)")
-                        print("Category: \(source.category ?? "None")")
+                        logger.info("--- Source \(index + 1, privacy: .public) ---")
+                        logger.info("ID: \(source.id, privacy: .public)")
+                        logger.info("Name: \(source.name, privacy: .public)")
+                        logger.info("URL: \(source.url, privacy: .public)")
+                        logger.info("Category: \(source.category ?? "None", privacy: .public)")
 
                         if !source.relationships.isEmpty {
-                                print("Relationships:")
+                                logger.info("Relationships:")
                                 for relationship in source.relationships {
-                                        print(
-                                                "  - \(relationship.displayName ?? "Unnamed") (\(relationship.type.rawValue)) - \(relationship.targetId)"
+                                        logger.info(
+                                                "  - \(relationship.displayName ?? "Unnamed", privacy: .public) (\(relationship.type.rawValue, privacy: .public)) - \(relationship.targetId, privacy: .public)"
                                         )
                                 }
                         }
                 }
 
-                print("\nDirect import complete!")
+                logger.info("Direct import complete!")
         }
 }

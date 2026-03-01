@@ -1,4 +1,5 @@
 import Foundation
+import os
 import UtahNewsData
 
 /// This struct represents the JSON structure in sourcesUpdated.json
@@ -27,6 +28,7 @@ struct RelationshipJSON: Codable {
 
 /// A class to handle the conversion from JSON to Source objects
 class SourcesConverter {
+        private static let logger = Logger(subsystem: "com.utahnews.data", category: "SourcesConverter")
         /// Converts the JSON file content into an array of Source objects
         /// - Parameter jsonData: The JSON data from sourcesUpdated.json
         /// - Returns: An array of Source objects
@@ -80,7 +82,7 @@ class SourcesConverter {
                         let sources = try convertJSONToSources(jsonData: data)
                         return sources
                 } catch {
-                        print("Error converting JSON to sources: \(error)")
+                        Self.logger.error("Error converting JSON to sources: \(error, privacy: .public)")
                         return nil
                 }
         }
