@@ -215,4 +215,29 @@ public enum SupabaseTable: String, CaseIterable, Sendable {
 
     /// Key-value system configuration store
     case systemConfig = "system_config"
+
+    // MARK: - Institutional Coverage
+
+    /// Enumerable institution categories for coverage tracking
+    case institutionTypes = "institution_types"
+
+    /// Per-city institution tracking for coverage measurement
+    case cityInstitutions = "city_institutions"
+
+    // MARK: - FM Adapter Training
+
+    /// Canonical FoundationModels adapter definitions
+    case adapterRegistry = "adapter_registry"
+
+    /// Trained adapter artifacts with OS version compatibility
+    case adapterVersions = "adapter_versions"
+
+    /// Adapter training run audit trail
+    case adapterTrainingRuns = "adapter_training_runs"
+
+    /// JSONL training data export history
+    case adapterTrainingDataExports = "adapter_training_data_exports"
+
+    /// Maps adapters to consuming apps for Background Assets delivery
+    case adapterAppCompatibility = "adapter_app_compatibility"
 }
