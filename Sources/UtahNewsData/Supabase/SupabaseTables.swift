@@ -224,6 +224,12 @@ public enum SupabaseTable: String, CaseIterable, Sendable {
     /// Per-city institution tracking for coverage measurement
     case cityInstitutions = "city_institutions"
 
+    /// Content type catalog: what pages to look for per institution type
+    case institutionContentTypes = "institution_content_types"
+
+    /// Discovered content page URLs for each institution
+    case institutionContentPages = "institution_content_pages"
+
     // MARK: - FM Adapter Training
 
     /// Canonical FoundationModels adapter definitions
