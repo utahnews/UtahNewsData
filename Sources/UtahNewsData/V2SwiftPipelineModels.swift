@@ -513,6 +513,10 @@ public struct FinalDataPayloadV2: Codable, Identifiable, Hashable, Sendable {
     /// V2 outputs signals; NewsCapture makes editorial decisions.
     public let editorialSignals: EditorialSignals?
 
+    // ===== Analyzer Routing (NEW 2026 - camelCase per policy) =====
+    /// Which analyzer produced the analysis: "fm", "fm_chunked", "lm_studio", "lm_studio_direct"
+    public let analysisProvider: String?
+
     // LEGACY: All snake_case fields below are from retired Python V2 pipeline
     // DO NOT change to camelCase - breaks other dependent systems (web dashboards, analytics, backend services)
     // See FIRESTORE_SCHEMA.md for complete legacy field reference
@@ -558,6 +562,8 @@ public struct FinalDataPayloadV2: Codable, Identifiable, Hashable, Sendable {
         case extractedURLCount
         // NEW 2026 field - editorial signals for NewsCapture
         case editorialSignals
+        // NEW 2026 field - which analyzer produced results
+        case analysisProvider
     }
 
     // MARK: - Initializers
@@ -603,7 +609,9 @@ public struct FinalDataPayloadV2: Codable, Identifiable, Hashable, Sendable {
         discoveredAt: Date? = nil,
         ingestedAt: Date? = nil,
         // Editorial Signals
-        editorialSignals: EditorialSignals? = nil
+        editorialSignals: EditorialSignals? = nil,
+        // Analyzer Routing
+        analysisProvider: String? = nil
     ) {
         self._id = DocumentID(wrappedValue: id)
         let resolvedPublishedAt = publishedAt ?? publishDate
@@ -657,6 +665,7 @@ public struct FinalDataPayloadV2: Codable, Identifiable, Hashable, Sendable {
         self.assignedScanFrequency = assignedScanFrequency
         self.extractedURLCount = extractedURLCount
         self.editorialSignals = editorialSignals
+        self.analysisProvider = analysisProvider
     }
 
     // Custom decoding to handle Firestore Timestamps
@@ -728,6 +737,9 @@ public struct FinalDataPayloadV2: Codable, Identifiable, Hashable, Sendable {
 
         // NEW 2026 field - Editorial Signals for NewsCapture
         editorialSignals = try container.decodeIfPresent(EditorialSignals.self, forKey: .editorialSignals)
+
+        // NEW 2026 field - Analyzer routing tracking
+        analysisProvider = try container.decodeIfPresent(String.self, forKey: .analysisProvider)
     }
 
     // Helper to decode Firestore Timestamp or Date

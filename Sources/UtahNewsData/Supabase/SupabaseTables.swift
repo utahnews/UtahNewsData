@@ -244,6 +244,11 @@ public enum SupabaseTable: String, CaseIterable, Sendable {
     /// JSONL training data export history
     case adapterTrainingDataExports = "adapter_training_data_exports"
 
+    // MARK: - Analyzer Routing
+
+    /// Per-domain analyzer routing preferences (FM vs LM Studio)
+    case domainAnalyzerRouting = "domain_analyzer_routing"
+
     /// Maps adapters to consuming apps for Background Assets delivery
     case adapterAppCompatibility = "adapter_app_compatibility"
 }
