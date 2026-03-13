@@ -161,6 +161,14 @@ nonisolated public struct SupabaseProcessedItem: Codable, Sendable, Identifiable
     /// When enrichment completed (ISO 8601 string)
     public let enrichedAt: String?
 
+    // MARK: - Institutional Attribution
+
+    /// ID of matching institution from city_institutions table
+    public let institutionId: String?
+
+    /// Human-readable institution type name (e.g., "Police Department")
+    public let institutionTypeName: String?
+
     // MARK: - Editorial & Structured Data (JSONB)
 
     /// Editorial signals for NewsCapture consumption
@@ -213,6 +221,8 @@ nonisolated public struct SupabaseProcessedItem: Codable, Sendable, Identifiable
         processingStage: String? = nil,
         enrichedBy: String? = nil,
         enrichedAt: String? = nil,
+        institutionId: String? = nil,
+        institutionTypeName: String? = nil,
         editorialSignals: SupabaseAnyCodable?,
         structuredData: SupabaseAnyCodable?
     ) {
@@ -257,6 +267,8 @@ nonisolated public struct SupabaseProcessedItem: Codable, Sendable, Identifiable
         self.processingStage = processingStage
         self.enrichedBy = enrichedBy
         self.enrichedAt = enrichedAt
+        self.institutionId = institutionId
+        self.institutionTypeName = institutionTypeName
         self.editorialSignals = editorialSignals
         self.structuredData = structuredData
     }
@@ -299,6 +311,8 @@ nonisolated public struct SupabaseProcessedItem: Codable, Sendable, Identifiable
         case processingStage = "processing_stage"
         case enrichedBy = "enriched_by"
         case enrichedAt = "enriched_at"
+        case institutionId = "institution_id"
+        case institutionTypeName = "institution_type_name"
         case editorialSignals = "editorial_signals"
         case structuredData = "structured_data"
     }

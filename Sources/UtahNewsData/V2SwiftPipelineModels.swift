@@ -513,6 +513,12 @@ public struct FinalDataPayloadV2: Codable, Identifiable, Hashable, Sendable {
     /// V2 outputs signals; NewsCapture makes editorial decisions.
     public let editorialSignals: EditorialSignals?
 
+    // ===== Institutional Attribution (NEW 2026 - camelCase per policy) =====
+    /// ID of the matching institution from city_institutions table, if URL matched
+    public let institutionId: String?
+    /// Human-readable institution type name (e.g., "Police Department")
+    public let institutionTypeName: String?
+
     // ===== Analyzer Routing (NEW 2026 - camelCase per policy) =====
     /// Which analyzer produced the analysis: "fm", "fm_chunked", "lm_studio", "lm_studio_direct"
     public let analysisProvider: String?
@@ -562,6 +568,9 @@ public struct FinalDataPayloadV2: Codable, Identifiable, Hashable, Sendable {
         case extractedURLCount
         // NEW 2026 field - editorial signals for NewsCapture
         case editorialSignals
+        // NEW 2026 fields - institutional attribution
+        case institutionId
+        case institutionTypeName
         // NEW 2026 field - which analyzer produced results
         case analysisProvider
     }
@@ -610,6 +619,9 @@ public struct FinalDataPayloadV2: Codable, Identifiable, Hashable, Sendable {
         ingestedAt: Date? = nil,
         // Editorial Signals
         editorialSignals: EditorialSignals? = nil,
+        // Institutional Attribution
+        institutionId: String? = nil,
+        institutionTypeName: String? = nil,
         // Analyzer Routing
         analysisProvider: String? = nil
     ) {
@@ -665,6 +677,8 @@ public struct FinalDataPayloadV2: Codable, Identifiable, Hashable, Sendable {
         self.assignedScanFrequency = assignedScanFrequency
         self.extractedURLCount = extractedURLCount
         self.editorialSignals = editorialSignals
+        self.institutionId = institutionId
+        self.institutionTypeName = institutionTypeName
         self.analysisProvider = analysisProvider
     }
 
@@ -737,6 +751,10 @@ public struct FinalDataPayloadV2: Codable, Identifiable, Hashable, Sendable {
 
         // NEW 2026 field - Editorial Signals for NewsCapture
         editorialSignals = try container.decodeIfPresent(EditorialSignals.self, forKey: .editorialSignals)
+
+        // NEW 2026 fields - Institutional attribution
+        institutionId = try container.decodeIfPresent(String.self, forKey: .institutionId)
+        institutionTypeName = try container.decodeIfPresent(String.self, forKey: .institutionTypeName)
 
         // NEW 2026 field - Analyzer routing tracking
         analysisProvider = try container.decodeIfPresent(String.self, forKey: .analysisProvider)
