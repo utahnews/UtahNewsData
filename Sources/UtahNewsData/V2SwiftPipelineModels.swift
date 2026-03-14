@@ -20,6 +20,7 @@ public enum RelevanceMethod: String, Codable, Sendable {
     case citySourceMatch = "city_source_match"  // LEGACY snake_case
     case govDomainMatch = "gov_domain_match"    // LEGACY snake_case
     case keywordMatch = "keyword_match"         // LEGACY snake_case
+    case institutionMatch = "institution_match" // Institution scan: verified Utah institution
 }
 
 /// Sentiment classification (replaces magic strings)
