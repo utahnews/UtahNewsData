@@ -2,6 +2,10 @@
 
 This file provides guidance to Claude Code when working with the UtahNewsData Swift Package.
 
+**Note:** See global CLAUDE.md at `~/.claude/CLAUDE.md` for coding standards.
+
+---
+
 ## Project Overview
 
 **UtahNewsData** is the shared data models and utilities package for the Utah News Platform. It provides canonical data models used across all iOS/macOS applications in the platform.
