@@ -523,6 +523,14 @@ public struct FinalDataPayloadV2: Codable, Identifiable, Hashable, Sendable {
     /// Which analyzer produced the analysis: "fm", "fm_chunked", "lm_studio", "lm_studio_direct"
     public let analysisProvider: String?
 
+    // ===== LM Enrichment (NEW 2026 - camelCase per policy) =====
+    /// True when FM analysis succeeded but LM Studio stages were skipped (e.g. iPhone off-LAN)
+    public var needsLmEnrichment: Bool
+
+    /// Which LM Studio stages were skipped: token_overflow_analysis, boilerplate_strip,
+    /// institutional_extraction, event_extraction
+    public var lmEnrichmentFields: [String]
+
     // LEGACY: All snake_case fields below are from retired Python V2 pipeline
     // DO NOT change to camelCase - breaks other dependent systems (web dashboards, analytics, backend services)
     // See FIRESTORE_SCHEMA.md for complete legacy field reference
@@ -573,6 +581,9 @@ public struct FinalDataPayloadV2: Codable, Identifiable, Hashable, Sendable {
         case institutionTypeName
         // NEW 2026 field - which analyzer produced results
         case analysisProvider
+        // NEW 2026 fields - LM enrichment tracking
+        case needsLmEnrichment
+        case lmEnrichmentFields
     }
 
     // MARK: - Initializers
@@ -623,7 +634,10 @@ public struct FinalDataPayloadV2: Codable, Identifiable, Hashable, Sendable {
         institutionId: String? = nil,
         institutionTypeName: String? = nil,
         // Analyzer Routing
-        analysisProvider: String? = nil
+        analysisProvider: String? = nil,
+        // LM Enrichment
+        needsLmEnrichment: Bool = false,
+        lmEnrichmentFields: [String] = []
     ) {
         self._id = DocumentID(wrappedValue: id)
         let resolvedPublishedAt = publishedAt ?? publishDate
@@ -680,6 +694,8 @@ public struct FinalDataPayloadV2: Codable, Identifiable, Hashable, Sendable {
         self.institutionId = institutionId
         self.institutionTypeName = institutionTypeName
         self.analysisProvider = analysisProvider
+        self.needsLmEnrichment = needsLmEnrichment
+        self.lmEnrichmentFields = lmEnrichmentFields
     }
 
     // Custom decoding to handle Firestore Timestamps
@@ -758,6 +774,10 @@ public struct FinalDataPayloadV2: Codable, Identifiable, Hashable, Sendable {
 
         // NEW 2026 field - Analyzer routing tracking
         analysisProvider = try container.decodeIfPresent(String.self, forKey: .analysisProvider)
+
+        // NEW 2026 fields - LM enrichment tracking
+        needsLmEnrichment = (try? container.decode(Bool.self, forKey: .needsLmEnrichment)) ?? false
+        lmEnrichmentFields = (try? container.decode([String].self, forKey: .lmEnrichmentFields)) ?? []
     }
 
     // Helper to decode Firestore Timestamp or Date

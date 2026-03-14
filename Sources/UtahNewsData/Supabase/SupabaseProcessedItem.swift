@@ -169,6 +169,15 @@ nonisolated public struct SupabaseProcessedItem: Codable, Sendable, Identifiable
     /// Human-readable institution type name (e.g., "Police Department")
     public let institutionTypeName: String?
 
+    // MARK: - LM Enrichment (deferred structured extraction)
+
+    /// True when FM analysis succeeded but LM Studio stages were skipped (iPhone offline from LAN)
+    public let needsLmEnrichment: Bool?
+
+    /// Which LM Studio stages were skipped: token_overflow_analysis, boilerplate_strip,
+    /// institutional_extraction, event_extraction
+    public let lmEnrichmentFields: [String]?
+
     // MARK: - Editorial & Structured Data (JSONB)
 
     /// Editorial signals for NewsCapture consumption
@@ -223,6 +232,8 @@ nonisolated public struct SupabaseProcessedItem: Codable, Sendable, Identifiable
         enrichedAt: String? = nil,
         institutionId: String? = nil,
         institutionTypeName: String? = nil,
+        needsLmEnrichment: Bool? = nil,
+        lmEnrichmentFields: [String]? = nil,
         editorialSignals: SupabaseAnyCodable?,
         structuredData: SupabaseAnyCodable?
     ) {
@@ -269,6 +280,8 @@ nonisolated public struct SupabaseProcessedItem: Codable, Sendable, Identifiable
         self.enrichedAt = enrichedAt
         self.institutionId = institutionId
         self.institutionTypeName = institutionTypeName
+        self.needsLmEnrichment = needsLmEnrichment
+        self.lmEnrichmentFields = lmEnrichmentFields
         self.editorialSignals = editorialSignals
         self.structuredData = structuredData
     }
@@ -313,6 +326,8 @@ nonisolated public struct SupabaseProcessedItem: Codable, Sendable, Identifiable
         case enrichedAt = "enriched_at"
         case institutionId = "institution_id"
         case institutionTypeName = "institution_type_name"
+        case needsLmEnrichment = "needs_lm_enrichment"
+        case lmEnrichmentFields = "lm_enrichment_fields"
         case editorialSignals = "editorial_signals"
         case structuredData = "structured_data"
     }
