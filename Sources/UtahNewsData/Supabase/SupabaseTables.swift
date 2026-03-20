@@ -244,6 +244,11 @@ public enum SupabaseTable: String, CaseIterable, Sendable {
     /// JSONL training data export history
     case adapterTrainingDataExports = "adapter_training_data_exports"
 
+    // MARK: - Events
+
+    /// Structured calendar/meeting events parsed from iCal feeds
+    case events = "events"
+
     // MARK: - Analyzer Routing
 
     /// Per-domain analyzer routing preferences (FM vs LM Studio)
@@ -251,4 +256,24 @@ public enum SupabaseTable: String, CaseIterable, Sendable {
 
     /// Maps adapters to consuming apps for Background Assets delivery
     case adapterAppCompatibility = "adapter_app_compatibility"
+
+    // MARK: - Live Incidents & Push (Happening Now)
+
+    /// Real-time newsworthy events reported by witnesses or pipeline
+    case liveIncidents = "live_incidents"
+
+    /// Individual eyewitness contributions linked to an incident
+    case witnessReports = "witness_reports"
+
+    /// "What's happening?" questions from curious bystanders
+    case inquiryRequests = "inquiry_requests"
+
+    /// APNs device registration with location for proximity targeting
+    case deviceTokens = "device_tokens"
+
+    /// Audit trail for push notification sends
+    case pushLog = "push_log"
+
+    /// Per-device incident follow-up subscriptions
+    case pushSubscriptions = "push_subscriptions"
 }
