@@ -35,10 +35,13 @@ public enum ArticleTextSanitizer: Sendable {
         // 6. Collapse 3+ consecutive newlines to exactly 2
         result = replacePattern(in: result, pattern: "\\n{3,}", with: "\n\n")
 
-        // 7. Trim trailing whitespace per line
+        // 7. Collapse 2+ consecutive spaces to a single space (within text)
+        result = replacePattern(in: result, pattern: " {2,}", with: " ")
+
+        // 8. Trim trailing whitespace per line
         result = replacePattern(in: result, pattern: "(?m)[ \\t]+$", with: "")
 
-        // 8. Trim leading/trailing whitespace from entire text
+        // 9. Trim leading/trailing whitespace from entire text
         result = result.trimmingCharacters(in: .whitespacesAndNewlines)
 
         return result
