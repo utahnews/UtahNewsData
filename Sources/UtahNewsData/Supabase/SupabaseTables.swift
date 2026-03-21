@@ -276,4 +276,12 @@ public enum SupabaseTable: String, CaseIterable, Sendable {
 
     /// Per-device incident follow-up subscriptions
     case pushSubscriptions = "push_subscriptions"
+
+    // MARK: - Article Audit
+
+    /// Audit run metadata and aggregate statistics
+    case auditRuns = "audit_runs"
+
+    /// Per-article defect findings from quality audits
+    case articleAudits = "article_audits"
 }
