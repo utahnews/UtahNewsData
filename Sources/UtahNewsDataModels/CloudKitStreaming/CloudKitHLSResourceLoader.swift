@@ -145,6 +145,46 @@ public final class CloudKitHLSResourceLoader: NSObject, AVAssetResourceLoaderDel
         return true
     }
 
+    /// Handles renewal of a resource whose prior response (302 redirect URL)
+    /// has expired mid-playback. AVPlayer calls this when a cached CloudKit
+    /// signed URL 403s after the 60-minute validity window; we invalidate
+    /// the cache and re-fetch a fresh URL.
+    ///
+    /// Without implementing this, a renewal failure terminates playback. With
+    /// it, users get seamless recovery across long-form content.
+    ///
+    /// Apple Docs: https://developer.apple.com/documentation/avfoundation/avassetresourceloaderdelegate/1388027-resourceloader
+    public func resourceLoader(
+        _ resourceLoader: AVAssetResourceLoader,
+        shouldWaitForRenewalOfRequestedResource renewalRequest: AVAssetResourceRenewalRequest
+    ) -> Bool {
+        guard let url = renewalRequest.request.url,
+              url.scheme == CloudKitStreamingConfig.urlScheme,
+              let (videoSlug, relativePath) = parseCloudKitURL(url),
+              let decodedPath = relativePath.removingPercentEncoding
+        else { return false }
+
+        let requestID = UUID().uuidString.prefix(8)
+        resourceLogger.info("[\(requestID)] Renewal requested for: \(decodedPath)")
+
+        Task {
+            do {
+                guard httpsStreamingEnabled else {
+                    throw CloudKitHLSError.downloadFailed("HTTPS streaming not enabled")
+                }
+                // Invalidate prior cache entry and get a fresh signed URL.
+                let freshURL = try await self.urlCache.refreshURL(
+                    for: decodedPath, videoSlug: videoSlug
+                )
+                self.redirectToURL(renewalRequest, url: freshURL)
+            } catch {
+                resourceLogger.error("[\(requestID)] Renewal failed: \(error.localizedDescription)")
+                renewalRequest.finishLoading(with: error)
+            }
+        }
+        return true
+    }
+
     // MARK: - HTTPS Streaming Mode
 
     /// Handle request using HTTPS streaming URLs
@@ -208,8 +248,11 @@ public final class CloudKitHLSResourceLoader: NSObject, AVAssetResourceLoaderDel
             return
         }
 
-        // Handle media segments - redirect to HTTPS URL with retry for network resilience
-        let maxAttempts = 3
+        // Handle media segments — redirect to HTTPS URL with exponential
+        // backoff + jitter. On 503/429 responses the upstream error should
+        // carry a Retry-After hint (parsed in `backoffDelay`), otherwise we
+        // fall back to 0.5s * 2^(attempt-1) with ±20% jitter, capped at 8s.
+        let maxAttempts = 4
         for attempt in 1...maxAttempts {
             // Try cached URL first
             if let cachedURL = await urlCache.getURL(for: decodedPath, videoSlug: videoSlug) {
@@ -226,8 +269,11 @@ public final class CloudKitHLSResourceLoader: NSObject, AVAssetResourceLoaderDel
                 return
             } catch {
                 if attempt < maxAttempts {
-                    resourceLogger.warning("[\(requestID)] Attempt \(attempt)/\(maxAttempts) failed for \(decodedPath), retrying...")
-                    try? await Task.sleep(for: .milliseconds(500 * attempt))
+                    let delayMs = Self.backoffDelay(attempt: attempt, error: error)
+                    resourceLogger.warning(
+                        "[\(requestID)] Attempt \(attempt)/\(maxAttempts) failed for \(decodedPath) (\(error.localizedDescription)); retrying in \(delayMs)ms"
+                    )
+                    try? await Task.sleep(for: .milliseconds(delayMs))
                 } else {
                     resourceLogger.error("[\(requestID)] Failed to get HTTPS URL after \(maxAttempts) attempts: \(error.localizedDescription)")
                     throw CloudKitHLSError.downloadFailed("Failed to get streaming URL after \(maxAttempts) attempts: \(error.localizedDescription)")
@@ -277,47 +323,61 @@ public final class CloudKitHLSResourceLoader: NSObject, AVAssetResourceLoaderDel
     }
 
     /// Fetch segment data via Web Services API (for variant manifests)
-    /// Uses configured downloadSession for reliable cellular/constrained network access
+    /// Uses configured downloadSession for reliable cellular/constrained network access.
+    ///
+    /// Responses with 503 / 429 status codes are explicitly retry-able with
+    /// exponential backoff; the `Retry-After` response header (if present) is
+    /// honored verbatim. Other non-200 statuses treat the cached URL as stale,
+    /// invalidate it, and retry with a fresh URL.
     private func fetchSegmentData(videoSlug: String, relativePath: String, requestID: String) async throws -> Data {
         resourceLogger.debug("[\(requestID)] Fetching segment data via Web Services: \(relativePath)")
 
-        let maxAttempts = 3
+        let maxAttempts = 4
         for attempt in 1...maxAttempts {
-            // Try cached URL first
-            if let cachedURL = await urlCache.getURL(for: relativePath, videoSlug: videoSlug) {
-                resourceLogger.debug("[\(requestID)] Got cached URL for segment, downloading content")
-                let (data, response) = try await downloadSession.data(from: cachedURL)
+            do {
+                let url: URL
+                if let cached = await urlCache.getURL(for: relativePath, videoSlug: videoSlug) {
+                    url = cached
+                } else {
+                    url = try await urlCache.refreshURL(for: relativePath, videoSlug: videoSlug)
+                }
 
-                guard let httpResponse = response as? HTTPURLResponse,
-                      httpResponse.statusCode == 200 else {
-                    // Cached URL may be expired (403) — invalidate and retry
+                let (data, response) = try await downloadSession.data(from: url)
+                guard let httpResponse = response as? HTTPURLResponse else {
+                    throw CloudKitHLSError.downloadFailed("Non-HTTP response")
+                }
+
+                switch httpResponse.statusCode {
+                case 200:
+                    return data
+
+                case 429, 503:
+                    // Rate-limited / service overloaded. Respect Retry-After.
+                    let hintMs = Self.retryAfterMilliseconds(from: httpResponse)
                     if attempt < maxAttempts {
-                        resourceLogger.warning("[\(requestID)] Cached URL returned non-200, retrying with refresh (attempt \(attempt)/\(maxAttempts))")
+                        let delayMs = hintMs ?? Self.backoffDelay(attempt: attempt, error: nil)
+                        resourceLogger.warning(
+                            "[\(requestID)] \(httpResponse.statusCode) from CDN for \(relativePath); retrying in \(delayMs)ms"
+                        )
+                        try? await Task.sleep(for: .milliseconds(delayMs))
                         continue
                     }
-                    throw CloudKitHLSError.downloadFailed("HTTP error downloading segment")
+                    throw CloudKitHLSError.downloadFailed("HTTP \(httpResponse.statusCode) after \(maxAttempts) attempts")
+
+                case 403, 410:
+                    // Signed URL expired / gone — force refresh on next loop.
+                    await urlCache.clearCache(for: videoSlug)
+                    if attempt < maxAttempts { continue }
+                    throw CloudKitHLSError.downloadFailed("HTTP \(httpResponse.statusCode) (URL expired)")
+
+                default:
+                    throw CloudKitHLSError.downloadFailed("HTTP \(httpResponse.statusCode)")
                 }
-
-                return data
-            }
-
-            // URL not cached - try to refresh/fetch
-            do {
-                let freshURL = try await urlCache.refreshURL(for: relativePath, videoSlug: videoSlug)
-                resourceLogger.debug("[\(requestID)] Got fresh URL for segment, downloading content")
-
-                let (data, response) = try await downloadSession.data(from: freshURL)
-
-                guard let httpResponse = response as? HTTPURLResponse,
-                      httpResponse.statusCode == 200 else {
-                    throw CloudKitHLSError.downloadFailed("HTTP error downloading segment")
-                }
-
-                return data
             } catch {
                 if attempt < maxAttempts {
-                    resourceLogger.warning("[\(requestID)] Attempt \(attempt)/\(maxAttempts) failed for segment \(relativePath), retrying...")
-                    try? await Task.sleep(for: .milliseconds(500 * attempt))
+                    let delayMs = Self.backoffDelay(attempt: attempt, error: error)
+                    resourceLogger.warning("[\(requestID)] Attempt \(attempt)/\(maxAttempts) failed for segment \(relativePath): \(error.localizedDescription); retrying in \(delayMs)ms")
+                    try? await Task.sleep(for: .milliseconds(delayMs))
                 } else {
                     resourceLogger.error("[\(requestID)] Failed to fetch segment after \(maxAttempts) attempts: \(error.localizedDescription)")
                     throw CloudKitHLSError.segmentNotFound(relativePath)
@@ -327,6 +387,42 @@ public final class CloudKitHLSResourceLoader: NSObject, AVAssetResourceLoaderDel
 
         // Should not reach here due to throw in final attempt, but satisfy compiler
         throw CloudKitHLSError.segmentNotFound(relativePath)
+    }
+
+    // MARK: - Backoff helpers
+
+    /// Compute retry delay in milliseconds using exponential backoff with ±20%
+    /// jitter, capped at 8s. `attempt` is 1-indexed.
+    ///
+    /// 500ms, 1000ms, 2000ms, 4000ms, 8000ms (clamped).
+    nonisolated private static func backoffDelay(attempt: Int, error: Error?) -> Int {
+        let base = 500 << max(0, attempt - 1)                   // 500 * 2^(n-1)
+        let capped = min(base, 8_000)
+        // Jitter ±20%
+        let jitter = Int.random(in: -(capped / 5)...(capped / 5))
+        return max(50, capped + jitter)
+    }
+
+    /// Parse the `Retry-After` header (seconds or HTTP-date) into milliseconds.
+    nonisolated private static func retryAfterMilliseconds(from response: HTTPURLResponse) -> Int? {
+        guard let raw = (response.value(forHTTPHeaderField: "Retry-After")
+            ?? response.value(forHTTPHeaderField: "retry-after"))?.trimmingCharacters(in: .whitespaces)
+        else { return nil }
+
+        if let seconds = Int(raw) {
+            return max(50, seconds * 1000)
+        }
+        // HTTP-date form
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = TimeZone(identifier: "GMT")
+        formatter.dateFormat = "EEE, dd MMM yyyy HH:mm:ss 'GMT'"
+        if let date = formatter.date(from: raw) {
+            let delta = date.timeIntervalSinceNow
+            guard delta > 0 else { return 50 }
+            return Int(delta * 1000)
+        }
+        return nil
     }
 
     // MARK: - URL Parsing
