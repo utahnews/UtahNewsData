@@ -71,11 +71,24 @@ public actor CloudKitWebService {
     public init(containerID: String = CloudKitStreamingConfig.containerID) {
         self.containerID = containerID
 
-        // Always use production for the public database via Web Services API.
-        // Read-only API token access works across environments.
-        // Videos uploaded from the UtahNewsUploader (via native CKContainer SDK)
-        // go to the production public database regardless of build config.
+        // Match UtahNewsUploader's environment selection.
+        //
+        // CloudKit Web Services treats Development and Production as entirely
+        // separate record namespaces — a record written via the /development/
+        // endpoint is NOT visible via /production/ and vice versa. The uploader
+        // (UtahNewsUploader/CloudKitWebService.swift) already uses #if DEBUG to
+        // pick an endpoint matching its build configuration. Consumers must use
+        // the same selection or they'll query the wrong namespace.
+        //
+        // Note: API tokens are also environment-scoped. If you ship Release
+        // builds to TestFlight/App Store, CloudKitStreamingConfig.apiToken
+        // must be a Production-environment token (generated from the
+        // Production tab of the CloudKit Dashboard after deploying schema).
+        #if DEBUG
+        self.environment = "development"
+        #else
         self.environment = "production"
+        #endif
 
         // Configure URLSession to work reliably on cellular/constrained networks
         let config = URLSessionConfiguration.default
