@@ -113,6 +113,7 @@ public nonisolated enum MediaUploadStatus: String, Codable, Hashable, Sendable, 
 public nonisolated enum InquiryType: String, Codable, Hashable, Sendable, CaseIterable {
     case pinDrop = "pin_drop"
     case directionEstimate = "direction_estimate"
+    case arDirection = "ar_direction"
 }
 
 /// Status of an inquiry request
@@ -319,6 +320,7 @@ public nonisolated struct InquiryRequest: Identifiable, Codable, Hashable, Senda
     public let targetLatitude: Double?
     public let targetLongitude: Double?
     public let searchRadiusMeters: Int
+    public let mediaUrls: [WitnessMediaItem]
     public let status: InquiryStatus
     public let matchedIncidentId: String?
     public let responseCount: Int
@@ -336,6 +338,7 @@ public nonisolated struct InquiryRequest: Identifiable, Codable, Hashable, Senda
         targetLatitude: Double? = nil,
         targetLongitude: Double? = nil,
         searchRadiusMeters: Int = 500,
+        mediaUrls: [WitnessMediaItem] = [],
         status: InquiryStatus = .active,
         matchedIncidentId: String? = nil,
         responseCount: Int = 0,
@@ -352,6 +355,7 @@ public nonisolated struct InquiryRequest: Identifiable, Codable, Hashable, Senda
         self.targetLatitude = targetLatitude
         self.targetLongitude = targetLongitude
         self.searchRadiusMeters = searchRadiusMeters
+        self.mediaUrls = mediaUrls
         self.status = status
         self.matchedIncidentId = matchedIncidentId
         self.responseCount = responseCount
@@ -367,6 +371,7 @@ public nonisolated struct InquiryRequest: Identifiable, Codable, Hashable, Senda
         case targetLatitude = "target_latitude"
         case targetLongitude = "target_longitude"
         case searchRadiusMeters = "search_radius_meters"
+        case mediaUrls = "media_urls"
         case matchedIncidentId = "matched_incident_id"
         case responseCount = "response_count"
         case expiresAt = "expires_at"
