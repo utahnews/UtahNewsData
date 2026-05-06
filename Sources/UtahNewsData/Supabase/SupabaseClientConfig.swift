@@ -16,10 +16,12 @@ import Supabase
 
 /// Shared Supabase configuration for the Utah News Platform.
 /// All pipeline and editorial data lives in the `pipeline` schema
-/// on a self-hosted Supabase instance (Mac Studio, 10Gb fiber).
+/// on a self-hosted Supabase instance (Mac Studio, 10Gb fiber)
+/// fronted by Cloudflare Tunnel at api.utah.news for HTTPS termination.
 public enum SupabaseConfig: Sendable {
-    /// Base URL of the self-hosted Supabase instance
-    public static let url = URL(string: "http://204.228.156.15:8000")!
+    /// Base URL of the self-hosted Supabase instance.
+    /// HTTPS via Cloudflare Tunnel → ragstudio Kong gateway on :8000.
+    public static let url = URL(string: "https://api.utah.news")!
 
     /// Anonymous key for Supabase access (service_role bypasses RLS)
     public static let anonKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYW5vbiIsImlzcyI6InN1cGFiYXNlIiwiaWF0IjoxNjQxNzY5MjAwLCJleHAiOjE3OTk1MzU2MDB9.GPTrVW7zhgw81ffqjIKKzpTsBW0vofNyBaSSgrdxnZ8"
