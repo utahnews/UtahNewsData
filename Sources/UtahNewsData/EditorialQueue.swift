@@ -6,16 +6,20 @@
 //  Bridges processed_items_v2 content to NewsCapture for editorial review.
 //
 
-@preconcurrency import FirebaseFirestore
+// Sprint #103 — Firebase decoupled. Per editorial thesis (memory:
+// feedback_no_firestore_anywhere), the platform is 100% Supabase except
+// for Firebase Auth. EditorialQueue items are stored in Supabase
+// (pipeline.editorial_queue table); Date/String replace the
+// Firebase-specific Timestamp / @DocumentID property wrappers.
 import Foundation
 
 // MARK: - Editorial Queue Item
 
-/// Represents an item in the editorial queue for staff review
-/// Stored in Firestore `editorialQueue` collection
+/// Represents an item in the editorial queue for staff review.
+/// Stored in Supabase `pipeline.editorial_queue` table.
 public struct EditorialQueueItem: Identifiable, Codable, Sendable {
-    /// Document ID
-    @DocumentID public var id: String?
+    /// Document ID. Server-assigned (Supabase generates UUIDs by default).
+    public var id: String?
 
     /// Reference to processed_items_v2 document ID
     public let processedItemId: String
@@ -47,8 +51,8 @@ public struct EditorialQueueItem: Identifiable, Codable, Sendable {
     /// Editorial priority level
     public var priority: EditorialPriority
 
-    /// When added to queue - populated by server timestamp on write
-    @ServerTimestamp public var createdAt: Timestamp?
+    /// When added to queue. Set server-side via Supabase `DEFAULT NOW()` on insert.
+    public var createdAt: Date?
 
     /// Who sent to editorial
     public let sentBy: String
@@ -59,8 +63,8 @@ public struct EditorialQueueItem: Identifiable, Codable, Sendable {
     /// If published, link to article document
     public var articleId: String?
 
-    /// When status last changed - populated by server timestamp on update
-    @ServerTimestamp public var lastUpdated: Timestamp?
+    /// When status last changed. Set server-side via Supabase trigger on update.
+    public var lastUpdated: Date?
 
     public init(
         id: String? = nil,
@@ -74,11 +78,11 @@ public struct EditorialQueueItem: Identifiable, Codable, Sendable {
         status: EditorialStatus = .pending,
         assignedTo: String? = nil,
         priority: EditorialPriority = .normal,
-        createdAt: Timestamp? = nil,
+        createdAt: Date? = nil,
         sentBy: String,
         notes: String? = nil,
         articleId: String? = nil,
-        lastUpdated: Timestamp? = nil
+        lastUpdated: Date? = nil
     ) {
         self.id = id
         self.processedItemId = processedItemId
@@ -91,11 +95,11 @@ public struct EditorialQueueItem: Identifiable, Codable, Sendable {
         self.status = status
         self.assignedTo = assignedTo
         self.priority = priority
-        self._createdAt = ServerTimestamp(wrappedValue: createdAt)
+        self.createdAt = createdAt
         self.sentBy = sentBy
         self.notes = notes
         self.articleId = articleId
-        self._lastUpdated = ServerTimestamp(wrappedValue: lastUpdated)
+        self.lastUpdated = lastUpdated
     }
 
     // MARK: - Display Helpers
@@ -105,12 +109,12 @@ public struct EditorialQueueItem: Identifiable, Codable, Sendable {
         guard let timestamp = createdAt else { return "Just now" }
         let formatter = RelativeDateTimeFormatter()
         formatter.unitsStyle = .abbreviated
-        return formatter.localizedString(for: timestamp.dateValue(), relativeTo: Date())
+        return formatter.localizedString(for: timestamp, relativeTo: Date())
     }
 
     /// Created date as Date (for sorting/display)
     public var createdDate: Date {
-        createdAt?.dateValue() ?? Date()
+        createdAt ?? Date()
     }
 
     /// Display-friendly source domain

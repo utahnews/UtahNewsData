@@ -10,7 +10,10 @@
 //
 
 import Foundation
-@preconcurrency import FirebaseFirestore
+// Sprint #103 — Firebase decoupled. Per editorial thesis, the platform is
+// 100% Supabase except for Firebase Auth. FinalDataPayloadV2 is stored in
+// pipeline.processed_items (Postgres). `id` is now a plain Codable String
+// matching the table's PK; date fields use ISO8601 round-trips.
 
 // MARK: - Type-Safe Enums
 
@@ -434,8 +437,8 @@ public struct EditorialSignals: Codable, Hashable, Sendable {
 /// This is the complete output from the Swift V2 Pipeline
 public struct FinalDataPayloadV2: Codable, Identifiable, Hashable, Sendable {
 
-    // Document ID from Firestore
-    @DocumentID public var id: String?
+    // Document ID. Set explicitly by V2 (sha1 of URL) when persisting to Supabase.
+    public var id: String?
 
     // ===== Source Information =====
     public let url: String
@@ -536,9 +539,8 @@ public struct FinalDataPayloadV2: Codable, Identifiable, Hashable, Sendable {
     // DO NOT change to camelCase - breaks other dependent systems (web dashboards, analytics, backend services)
     // See FIRESTORE_SCHEMA.md for complete legacy field reference
     // Policy: All NEW fields added after 2025 MUST use camelCase (no CodingKeys mapping needed)
-    // NOTE: 'id' is NOT included here - @DocumentID is populated automatically by Firebase SDK
     enum CodingKeys: String, CodingKey {
-        // id is intentionally omitted - @DocumentID is set by Firebase from document reference
+        case id
         case url
         case sourceTitle = "source_title"                      // LEGACY snake_case
         case cleanedText = "cleaned_text"                      // LEGACY snake_case
@@ -640,7 +642,7 @@ public struct FinalDataPayloadV2: Codable, Identifiable, Hashable, Sendable {
         needsLmEnrichment: Bool = false,
         lmEnrichmentFields: [String] = []
     ) {
-        self._id = DocumentID(wrappedValue: id)
+        self.id = id
         let resolvedPublishedAt = publishedAt ?? publishDate
         self.url = url
         self.sourceTitle = sourceTitle
@@ -703,9 +705,8 @@ public struct FinalDataPayloadV2: Codable, Identifiable, Hashable, Sendable {
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
 
-        // @DocumentID is NOT decoded from data - Firebase SDK populates it from document reference
-        // Initialize with nil; Firebase's doc.data(as:) and @FirestoreQuery will set it automatically
-        _id = DocumentID(wrappedValue: nil)
+        // Sprint #103: id is a plain optional String. Decode if present in payload.
+        id = try container.decodeIfPresent(String.self, forKey: .id)
 
         // Required fields
         url = try container.decode(String.self, forKey: .url)
@@ -781,18 +782,23 @@ public struct FinalDataPayloadV2: Codable, Identifiable, Hashable, Sendable {
         lmEnrichmentFields = (try? container.decode([String].self, forKey: .lmEnrichmentFields)) ?? []
     }
 
-    // Helper to decode Firestore Timestamp or Date
+    // Helper to decode an ISO-8601 timestamp or epoch number from Supabase /
+    // legacy Firestore-export payloads. Sprint #103: Firebase Timestamp branch
+    // removed (no longer linked); Supabase delivers ISO 8601 strings.
     private static func decodeFirestoreDate(from container: KeyedDecodingContainer<CodingKeys>, forKey key: CodingKeys) throws -> Date? {
-        // Try to decode as Date directly (works if Firebase SDK auto-converts)
+        // Default Codable Date decoding (handles both ISO 8601 strings and
+        // numeric epochs depending on the encoder's strategy).
         if let date = try? container.decode(Date.self, forKey: key) {
             return date
         }
-
-        // Try to decode as Firestore Timestamp dictionary
-        if let timestamp = try? container.decode(Timestamp.self, forKey: key) {
-            return timestamp.dateValue()
+        // Some legacy payloads serialize as ISO strings without a date strategy.
+        if let isoString = try? container.decode(String.self, forKey: key) {
+            let f = ISO8601DateFormatter()
+            f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+            if let d = f.date(from: isoString) { return d }
+            f.formatOptions = [.withInternetDateTime]
+            return f.date(from: isoString)
         }
-
         return nil
     }
 

@@ -23,8 +23,10 @@ let package = Package(
             targets: ["ImportSources"]),
     ],
     dependencies: [
+        // Sprint #103: Firebase decoupled. The platform is 100% Supabase
+        // for data; consumer apps add Firebase Auth dependency directly
+        // when they need it. UtahNewsData has no Firebase dep itself.
         .package(url: "https://github.com/scinfu/SwiftSoup.git", from: "2.8.7"),
-        .package(url: "https://github.com/firebase/firebase-ios-sdk", from: "12.7.0"),
         .package(url: "https://github.com/supabase/supabase-swift.git", from: "2.0.0"),
     ],
     targets: [
@@ -43,7 +45,6 @@ let package = Package(
             dependencies: [
                 "UtahNewsDataModels",
                 "SwiftSoup",
-                .product(name: "FirebaseFirestore", package: "firebase-ios-sdk"),
                 .product(name: "Supabase", package: "supabase-swift"),
             ],
             path: "Sources/UtahNewsData",
