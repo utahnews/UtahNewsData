@@ -186,6 +186,13 @@ nonisolated public struct SupabaseProcessedItem: Codable, Sendable, Identifiable
     /// Extracted structured data (OpenGraph, JSON-LD, Twitter Card)
     public let structuredData: SupabaseAnyCodable?
 
+    /// Which analysis provider produced this row, e.g.
+    /// `"rss_direct_FoundationModels"`, `"rss_signal_FoundationModels"`,
+    /// `"v2_pipeline"`, `"iphone_fleet"`. Threaded from
+    /// `FinalDataPayloadV2.analysisProvider` so we can distinguish
+    /// pipeline paths in analytics and debug.
+    public let analysisProvider: String?
+
     // MARK: - Public Init
 
     public init(
@@ -235,7 +242,8 @@ nonisolated public struct SupabaseProcessedItem: Codable, Sendable, Identifiable
         needsLmEnrichment: Bool? = nil,
         lmEnrichmentFields: [String]? = nil,
         editorialSignals: SupabaseAnyCodable?,
-        structuredData: SupabaseAnyCodable?
+        structuredData: SupabaseAnyCodable?,
+        analysisProvider: String? = nil
     ) {
         self.id = id
         self.url = url
@@ -284,6 +292,7 @@ nonisolated public struct SupabaseProcessedItem: Codable, Sendable, Identifiable
         self.lmEnrichmentFields = lmEnrichmentFields
         self.editorialSignals = editorialSignals
         self.structuredData = structuredData
+        self.analysisProvider = analysisProvider
     }
 
     // MARK: - CodingKeys
@@ -330,6 +339,7 @@ nonisolated public struct SupabaseProcessedItem: Codable, Sendable, Identifiable
         case lmEnrichmentFields = "lm_enrichment_fields"
         case editorialSignals = "editorial_signals"
         case structuredData = "structured_data"
+        case analysisProvider = "analysis_provider"
     }
 }
 
