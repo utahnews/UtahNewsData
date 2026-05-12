@@ -32,6 +32,27 @@ public enum ArticleTextSanitizer: Sendable {
         // 5. Strip backtick code formatting (`code` -> code)
         result = replacePattern(in: result, pattern: "`([^`]+)`", with: "$1")
 
+        // 5b. Sprint 2026-05-12 — Article Quality Guardian.
+        // Strip bracketed template / placeholder tokens that occasionally
+        // leak from the drafter into final article text:
+        //   [Image #15]  [Image 15]  [Figure 3]  [Caption 2]  [Photo 4]
+        //   [Embed: ...] [Video #N]  [Audio #N]  [Sidebar]
+        // These slipped past markdown sanitization because they aren't
+        // markdown — they're prompt-leakage from upstream rendering.
+        // Idempotent: safe to call on text that has none.
+        result = replacePattern(
+            in: result,
+            pattern: "\\[(?:Image|Figure|Caption|Photo|Video|Audio|Embed|Sidebar|Pullquote|Pull Quote|Insert)(?:\\s*[#:]?\\s*\\d*)?\\s*\\]",
+            with: ""
+        )
+        // Also strip any "Image #N" / "Figure N" without surrounding brackets
+        // that snuck through (rarer, but observed in some LLM outputs).
+        result = replacePattern(
+            in: result,
+            pattern: "(?<![A-Za-z])(?:Image|Figure|Caption|Photo)\\s*#\\s*\\d+(?![A-Za-z])",
+            with: ""
+        )
+
         // 6. Collapse 3+ consecutive newlines to exactly 2
         result = replacePattern(in: result, pattern: "\\n{3,}", with: "\n\n")
 
