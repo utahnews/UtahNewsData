@@ -63,6 +63,34 @@ public struct Article: NewsContent, AssociatedData, JSONSchemaProvider, Sendable
     /// Array of related article IDs for cross-referencing
     public var relatedArticleIds: [String]
 
+    // MARK: - Sprint AA: signal-trigger / link-out card support
+
+    /// Type of article: full original-reporting piece or a link-out card
+    /// pointing at a news-outlet signal while our primary-source investigation
+    /// is in progress. nil for legacy articles (treat as fullArticle).
+    public var articleType: ArticleType?
+
+    /// Outlet display name when articleType == .linkOutCard ("KSL", "Park Record").
+    /// Retained after upgrade to fullArticle as an "Also reported by" footer.
+    public var attributionOutletName: String?
+
+    /// Source URL the card links out to. Reader taps the card to open this.
+    /// Same as `url` for cards; may differ post-upgrade.
+    public var attributionUrl: String?
+
+    /// When the outlet originally published the story.
+    public var attributionPublishedAt: Date?
+
+    /// When a link-out card was upgraded to a full article (Sprint AA.4).
+    /// nil for cards still awaiting primaries, or articles created from
+    /// primary sources directly.
+    public var upgradedAt: Date?
+
+    /// Whether this article should be rendered as a card vs full article.
+    public var isLinkOutCard: Bool {
+        articleType == .linkOutCard
+    }
+
     // MARK: - Initializers
 
     /// Creates a new article with the specified properties.
@@ -83,7 +111,12 @@ public struct Article: NewsContent, AssociatedData, JSONSchemaProvider, Sendable
         generated: Bool = false,
         contentType: String = "ingested",
         processingTimestamp: String? = nil,
-        relatedArticleIds: [String] = []
+        relatedArticleIds: [String] = [],
+        articleType: ArticleType? = nil,
+        attributionOutletName: String? = nil,
+        attributionUrl: String? = nil,
+        attributionPublishedAt: Date? = nil,
+        upgradedAt: Date? = nil
     ) {
         self.id = id
         self.title = title
@@ -102,6 +135,11 @@ public struct Article: NewsContent, AssociatedData, JSONSchemaProvider, Sendable
         self.contentType = contentType
         self.processingTimestamp = processingTimestamp
         self.relatedArticleIds = relatedArticleIds
+        self.articleType = articleType
+        self.attributionOutletName = attributionOutletName
+        self.attributionUrl = attributionUrl
+        self.attributionPublishedAt = attributionPublishedAt
+        self.upgradedAt = upgradedAt
     }
 
     // MARK: - Methods
