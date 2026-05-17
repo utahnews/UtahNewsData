@@ -37,6 +37,20 @@ public struct InstitutionContentPage: Identifiable, Codable, Hashable, Sendable 
     public let lastCrawledAt: Date?
     /// When the page was first discovered
     public let discoveredAt: Date?
+    /// Outcome of most recent extraction attempt (Sprint Z.3).
+    /// pending = never attempted, succeeded = got expected data,
+    /// empty = page rendered but no items, partial = some fields missing,
+    /// failed = scan or extraction errored.
+    public let lastExtractionOutcome: ExtractionOutcome?
+    /// Number of items extracted on last attempt, e.g. 7 council members,
+    /// 12 events from an iCal, 25 articles from an RSS feed. nil = never extracted.
+    public let lastExtractedCount: Int?
+    /// Short human-readable summary of last extraction, e.g. "Found 7 council
+    /// members" or "Page redirected to login wall" or "No structured data."
+    public let lastExtractionSummary: String?
+    /// Timestamp of last extraction attempt. Distinct from lastCrawledAt:
+    /// crawl is the HTTP fetch; extraction is the semantic interpretation.
+    public let lastExtractionAt: Date?
 
     public enum MatchMethod: String, Codable, Hashable, Sendable, CaseIterable {
         case urlPattern = "url_pattern"
@@ -53,6 +67,14 @@ public struct InstitutionContentPage: Identifiable, Codable, Hashable, Sendable 
         case stale
     }
 
+    public enum ExtractionOutcome: String, Codable, Hashable, Sendable, CaseIterable {
+        case pending
+        case succeeded
+        case empty
+        case partial
+        case failed
+    }
+
     enum CodingKeys: String, CodingKey {
         case id, url, title, confidence, status
         case institutionId = "institution_id"
@@ -61,6 +83,10 @@ public struct InstitutionContentPage: Identifiable, Codable, Hashable, Sendable 
         case promotedSourceId = "promoted_source_id"
         case lastCrawledAt = "last_crawled_at"
         case discoveredAt = "discovered_at"
+        case lastExtractionOutcome = "last_extraction_outcome"
+        case lastExtractedCount = "last_extracted_count"
+        case lastExtractionSummary = "last_extraction_summary"
+        case lastExtractionAt = "last_extraction_at"
     }
 
     public init(
@@ -74,7 +100,11 @@ public struct InstitutionContentPage: Identifiable, Codable, Hashable, Sendable 
         status: Status = .discovered,
         promotedSourceId: String? = nil,
         lastCrawledAt: Date? = nil,
-        discoveredAt: Date? = nil
+        discoveredAt: Date? = nil,
+        lastExtractionOutcome: ExtractionOutcome? = nil,
+        lastExtractedCount: Int? = nil,
+        lastExtractionSummary: String? = nil,
+        lastExtractionAt: Date? = nil
     ) {
         self.id = id
         self.institutionId = institutionId
@@ -87,5 +117,9 @@ public struct InstitutionContentPage: Identifiable, Codable, Hashable, Sendable 
         self.promotedSourceId = promotedSourceId
         self.lastCrawledAt = lastCrawledAt
         self.discoveredAt = discoveredAt
+        self.lastExtractionOutcome = lastExtractionOutcome
+        self.lastExtractedCount = lastExtractedCount
+        self.lastExtractionSummary = lastExtractionSummary
+        self.lastExtractionAt = lastExtractionAt
     }
 }

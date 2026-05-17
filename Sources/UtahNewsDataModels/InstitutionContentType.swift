@@ -32,6 +32,16 @@ public struct InstitutionContentType: Identifiable, Codable, Hashable, Sendable 
     public let scanFrequency: String
     /// 1=critical, 2=important, 3=nice-to-have
     public let priority: Int
+    /// One-paragraph plain-English description of what data the extraction
+    /// pipeline should expect to find on URLs of this kind (Sprint Z.3).
+    /// Example: "Roster of city council members with name, district, term,
+    /// email, phone, and possibly a photo. Typically lives at /council
+    /// or /elected-officials."
+    public let expectedDataDescription: String?
+    /// Optional structured list of expected output fields, e.g.
+    /// `["name", "position", "term_start", "term_end", "email"]`.
+    /// Drives downstream extraction validation ("did we get all expected fields?")
+    public let extractionSchema: ExtractionSchema?
 
     enum CodingKeys: String, CodingKey {
         case id
@@ -43,6 +53,8 @@ public struct InstitutionContentType: Identifiable, Codable, Hashable, Sendable 
         case negativePatterns = "negative_patterns"
         case scanFrequency = "scan_frequency"
         case priority
+        case expectedDataDescription = "expected_data_description"
+        case extractionSchema = "extraction_schema"
     }
 
     public init(
@@ -54,7 +66,9 @@ public struct InstitutionContentType: Identifiable, Codable, Hashable, Sendable 
         anchorPatterns: [String] = [],
         negativePatterns: [String] = [],
         scanFrequency: String = "weekly",
-        priority: Int = 2
+        priority: Int = 2,
+        expectedDataDescription: String? = nil,
+        extractionSchema: ExtractionSchema? = nil
     ) {
         self.id = id
         self.institutionTypeId = institutionTypeId
@@ -65,5 +79,21 @@ public struct InstitutionContentType: Identifiable, Codable, Hashable, Sendable 
         self.negativePatterns = negativePatterns
         self.scanFrequency = scanFrequency
         self.priority = priority
+        self.expectedDataDescription = expectedDataDescription
+        self.extractionSchema = extractionSchema
+    }
+}
+
+/// Optional structured shape describing the fields we expect to extract
+/// from URLs of a given (institution_type, content_type) pair. Stored as
+/// jsonb in `institution_content_types.extraction_schema`. Only the
+/// `fields` key is used today; the struct is extensible if we add more.
+public struct ExtractionSchema: Codable, Hashable, Sendable {
+    /// List of expected output field names per item (snake_case),
+    /// e.g. `["name", "position", "term_start", "email"]`.
+    public let fields: [String]?
+
+    public init(fields: [String]? = nil) {
+        self.fields = fields
     }
 }
