@@ -121,6 +121,19 @@ public struct Article: NewsContent, AssociatedData, JSONSchemaProvider, Sendable
     /// Array of entity relationships extracted from the content
     public var extractedRelationships: [ExtractedRelationship]
 
+    // MARK: - Sprint AA: signal-trigger / link-out card support
+
+    /// See UtahNewsDataModels.Article documentation. Added in v1.20.0.
+    public var articleType: ArticleType?
+    public var attributionOutletName: String?
+    public var attributionUrl: String?
+    public var attributionPublishedAt: Date?
+    public var upgradedAt: Date?
+
+    /// True when this row should render as a link-out card pointing at the
+    /// originating news outlet, rather than a full primary-sourced article.
+    public var isLinkOutCard: Bool { articleType == .linkOutCard }
+
     // MARK: - Initializers
 
     /// Creates a new article with the specified properties.
@@ -148,7 +161,12 @@ public struct Article: NewsContent, AssociatedData, JSONSchemaProvider, Sendable
         relevanceScore: Double? = nil,
         topics: [String] = [],
         extractedLocations: [ExtractedLocation] = [],
-        extractedRelationships: [ExtractedRelationship] = []
+        extractedRelationships: [ExtractedRelationship] = [],
+        articleType: ArticleType? = nil,
+        attributionOutletName: String? = nil,
+        attributionUrl: String? = nil,
+        attributionPublishedAt: Date? = nil,
+        upgradedAt: Date? = nil
     ) {
         self.id = id
         self.title = title
@@ -174,6 +192,11 @@ public struct Article: NewsContent, AssociatedData, JSONSchemaProvider, Sendable
         self.topics = topics
         self.extractedLocations = extractedLocations
         self.extractedRelationships = extractedRelationships
+        self.articleType = articleType
+        self.attributionOutletName = attributionOutletName
+        self.attributionUrl = attributionUrl
+        self.attributionPublishedAt = attributionPublishedAt
+        self.upgradedAt = upgradedAt
     }
 
     // MARK: - Methods
