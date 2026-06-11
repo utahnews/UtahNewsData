@@ -186,6 +186,11 @@ public enum CityNameNormalizer: Sendable {
     /// Common abbreviations for Utah cities
     nonisolated private static let abbreviations: [String: String] = [
         "slc": "Salt Lake City",
+        // Sprint BT (2026-06-11): "Utah City" is the 700-acre development on
+        // the former Geneva Steel site INSIDE Vineyard — not an incorporated
+        // municipality. As phase-1 coverage ramps up, FM extraction will emit
+        // it as a location token; map it to its actual city.
+        "utah city": "Vineyard",
         "wvc": "West Valley City",
         "af": "American Fork",
         "pg": "Pleasant Grove",
