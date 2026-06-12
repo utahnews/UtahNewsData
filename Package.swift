@@ -26,7 +26,11 @@ let package = Package(
         // Sprint #103: Firebase decoupled. The platform is 100% Supabase
         // for data; consumer apps add Firebase Auth dependency directly
         // when they need it. UtahNewsData has no Firebase dep itself.
-        .package(url: "https://github.com/scinfu/SwiftSoup.git", from: "2.8.7"),
+        // utahnews fork = upstream 2.9.6 + @_optimize(none) on the one
+        // function the Xcode 27 beta compiler crashes on in Release
+        // (broke every consumer archive incl. Xcode Cloud). Revert to
+        // scinfu upstream when the toolchain is fixed.
+        .package(url: "https://github.com/utahnews/SwiftSoup.git", from: "2.13.6"),
         .package(url: "https://github.com/supabase/supabase-swift.git", from: "2.0.0"),
     ],
     targets: [
