@@ -186,6 +186,16 @@ nonisolated public struct SupabaseProcessedItem: Codable, Sendable, Identifiable
     /// Extracted structured data (OpenGraph, JSON-LD, Twitter Card)
     public let structuredData: SupabaseAnyCodable?
 
+    /// Sprint A-1 — verbatim quotes extracted by V2's FM pass. jsonb array of
+    /// `{text, speaker, role?}`. NewsCapture carries this forward into
+    /// `articles.extracted_quotes` (mig 315). Nil/`[]` when none.
+    public let extractedQuotes: SupabaseAnyCodable?
+
+    /// Sprint A-1 — concrete numeric facts extracted by V2's FM pass. jsonb array
+    /// of `{label, value, unit?}` (value is a String). NewsCapture carries this
+    /// forward into `articles.extracted_numerics` (mig 315). Nil/`[]` when none.
+    public let extractedNumerics: SupabaseAnyCodable?
+
     /// Which analysis provider produced this row, e.g.
     /// `"rss_direct_FoundationModels"`, `"rss_signal_FoundationModels"`,
     /// `"v2_pipeline"`, `"iphone_fleet"`. Threaded from
@@ -243,7 +253,9 @@ nonisolated public struct SupabaseProcessedItem: Codable, Sendable, Identifiable
         lmEnrichmentFields: [String]? = nil,
         editorialSignals: SupabaseAnyCodable?,
         structuredData: SupabaseAnyCodable?,
-        analysisProvider: String? = nil
+        analysisProvider: String? = nil,
+        extractedQuotes: SupabaseAnyCodable? = nil,
+        extractedNumerics: SupabaseAnyCodable? = nil
     ) {
         self.id = id
         self.url = url
@@ -293,6 +305,8 @@ nonisolated public struct SupabaseProcessedItem: Codable, Sendable, Identifiable
         self.editorialSignals = editorialSignals
         self.structuredData = structuredData
         self.analysisProvider = analysisProvider
+        self.extractedQuotes = extractedQuotes
+        self.extractedNumerics = extractedNumerics
     }
 
     // MARK: - CodingKeys
@@ -340,6 +354,8 @@ nonisolated public struct SupabaseProcessedItem: Codable, Sendable, Identifiable
         case editorialSignals = "editorial_signals"
         case structuredData = "structured_data"
         case analysisProvider = "analysis_provider"
+        case extractedQuotes = "extracted_quotes"
+        case extractedNumerics = "extracted_numerics"
     }
 }
 
