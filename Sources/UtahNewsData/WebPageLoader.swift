@@ -27,8 +27,9 @@ public final class WebPageLoader: @unchecked Sendable {
     }
     
     public func cleanHTMLContent(_ html: String) throws -> String {
-        // Parse the HTML document
-        let document: Document = try SwiftSoup.parse(html)
+        // Parse the HTML document. Qualify SwiftSoup.Document — iOS 26's WebKit also exports a
+        // `Document` type, so the bare name is ambiguous in this WebKit-importing file.
+        let document: SwiftSoup.Document = try SwiftSoup.parse(html)
         
         // Remove unwanted tags that add noise
         try document.select("script, style, nav, header, footer, aside, noscript, iframe, .ad, .advertisement, .social-share").remove()
