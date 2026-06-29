@@ -387,12 +387,12 @@ extension SupabaseProcessedItem {
     }
 
     public var ingestedDate: Date? {
-        ISO8601DateFormatter().date(from: ingestedAt ?? "")
+        SupabaseDate.parse(ingestedAt)
     }
 
     /// Processing timestamp as Date
     public var processingDate: Date? {
-        ISO8601DateFormatter().date(from: processingTimestamp)
+        SupabaseDate.parse(processingTimestamp)
     }
 
     /// Numeric confidence score derived from the published_at_confidence string.
