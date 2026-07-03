@@ -130,4 +130,33 @@ final class ArticleTextSanitizerTests: XCTestCase {
         XCTAssertEqual(ArticleTextSanitizer.sanitize(""), "")
         XCTAssertEqual(ArticleTextSanitizer.sanitize("   "), "")
     }
+
+    // MARK: - sanitizeBodyPreservingHeaders (Sprint 2026-07-03)
+
+    func test_bodyVariantPreservesH2Headers() {
+        let input = "## Water Restrictions Begin\n\nThe city announced **new** rules.\n\n### stray\n# stray too"
+        let result = ArticleTextSanitizer.sanitizeBodyPreservingHeaders(input)
+        XCTAssertTrue(result.contains("## Water Restrictions Begin"), "H2 section headers must survive")
+        XCTAssertFalse(result.contains("**"), "bold still stripped")
+        XCTAssertFalse(result.contains("###"), "H3 strays still stripped")
+        XCTAssertFalse(result.contains("\n# stray"), "H1 strays still stripped")
+    }
+
+    func test_bodyVariantIdempotentAndCleansEverythingElse() {
+        let input = "## Section One\n\n&amp; entities and [link](http://x) and `code`"
+        let once = ArticleTextSanitizer.sanitizeBodyPreservingHeaders(input)
+        let twice = ArticleTextSanitizer.sanitizeBodyPreservingHeaders(once)
+        XCTAssertEqual(once, twice, "idempotent")
+        XCTAssertTrue(once.contains("## Section One"))
+        XCTAssertTrue(once.contains("& entities"))
+        XCTAssertFalse(once.contains("](http"))
+    }
+
+    func test_bodyVariantOnHeaderlessTextMatchesPlainSanitize() {
+        let input = "Plain paragraph one.\n\nPlain paragraph two with **bold**."
+        XCTAssertEqual(
+            ArticleTextSanitizer.sanitizeBodyPreservingHeaders(input),
+            ArticleTextSanitizer.sanitize(input)
+        )
+    }
 }

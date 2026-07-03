@@ -82,6 +82,27 @@ public enum ArticleTextSanitizer: Sendable {
         return result
     }
 
+    /// Body-variant sanitize that PRESERVES `## ` section headers
+    /// (Sprint 2026-07-03 reader-skimmability).
+    ///
+    /// Article bodies now carry scannable section headers as lines beginning
+    /// with `## ` — the platform's one sanctioned markdown construct,
+    /// produced at save time from the generation schema's structured
+    /// `subheading` field. Everything else (`#`/`###` strays, bold, links,
+    /// bullets, entities, run-ons) is still cleaned exactly as `sanitize`
+    /// does. Use THIS for article bodies; keep `sanitize` for titles,
+    /// summaries, and key points, which must never contain headers.
+    nonisolated public static func sanitizeBodyPreservingHeaders(_ text: String) -> String {
+        guard !text.isEmpty else { return text }
+        // Protect the H2 markers with a private-use-area token that no real
+        // news text contains, run the full standard pipeline, then restore.
+        let token = "\u{E000}UNSECTION\u{E000}"
+        var result = replacePattern(in: text, pattern: "(?m)^##[ \\t]+", with: token)
+        result = sanitize(result)
+        result = result.replacingOccurrences(of: token, with: "## ")
+        return result
+    }
+
     // MARK: - Private
 
     /// Common named HTML entities seen in news text.
