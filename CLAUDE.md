@@ -92,12 +92,18 @@ Each project's `Package.resolved` pins UtahNewsData to a specific Git commit. If
 
 ### Consuming Projects
 
-| Project | GitHub Repo | Package.resolved Location |
+Current published version: **1.25.0** (verified 2026-07-05). Resolved pins differ per consumer —
+that's expected; read each `Package.resolved` for the truth. ⚠️ **Two tag schemes** exist: `v1.x`
+(≤ `v1.19.0`) then bare `1.x` (`1.20.0`+), so `git tag --sort=-v:refname | head -1` returns a
+WRONG `v1.19.0`. Use `git describe --tags HEAD`.
+
+| Project | GitHub Repo | Resolved pin (2026-07-05) |
 |---------|-------------|---------------------------|
-| UtahNews | utahnews/UtahNews | `UtahNews.xcodeproj/.../swiftpm/Package.resolved` |
-| NewsCapture | utahnews/NewsCapture | `NewsCapture.xcodeproj/.../swiftpm/Package.resolved` |
-| V2PipelineTester | utahnews/V2PipelineTester | `V2PipelineTester.xcodeproj/.../swiftpm/Package.resolved` |
-| UTNewsDashboard | utahnews/UTNewsDashboard | `UTNewsDashboard.xcodeproj/.../swiftpm/Package.resolved` |
+| NewsCapture | utahnews/NewsCapture | **1.25.0** |
+| UtahNews | utahnews/UtahNews | **1.24.2** |
+| V2PipelineTester | utahnews/V2PipelineTester | **1.24.1** |
+| UTNewsDashboard | utahnews/UTNewsDashboard | **1.21.0** |
+| **UtahNewsUploader** | utahnews/UtahNewsUploader | **1.18.1 ⚠ MOST STALE** — 7 minors behind; rebuild before its next ship |
 
 ### Quick Verification
 
