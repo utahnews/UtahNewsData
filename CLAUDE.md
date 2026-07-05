@@ -102,8 +102,8 @@ WRONG `v1.19.0`. Use `git describe --tags HEAD`.
 | NewsCapture | utahnews/NewsCapture | **1.25.0** |
 | UtahNews | utahnews/UtahNews | **1.24.2** |
 | V2PipelineTester | utahnews/V2PipelineTester | **1.24.1** |
-| UTNewsDashboard | utahnews/UTNewsDashboard | **1.21.0** |
-| **UtahNewsUploader** | utahnews/UtahNewsUploader | **1.18.1 ⚠ MOST STALE** — 7 minors behind; rebuild before its next ship |
+| **UTNewsDashboard** | utahnews/UTNewsDashboard | **1.21.0 ⚠ now most stale** |
+| UtahNewsUploader | utahnews/UtahNewsUploader | **1.25.0** (upgraded 2026-07-05 — dropped Firebase, restored VideoCatalogEntry) |
 
 ### Quick Verification
 
