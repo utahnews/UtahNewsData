@@ -41,7 +41,7 @@ open Package.swift
 | Product | Description | Dependencies |
 |---------|-------------|--------------|
 | `UtahNewsDataModels` | Lightweight models only | None |
-| `UtahNewsData` | Full package with parsing utilities | SwiftSoup |
+| `UtahNewsData` | Full package with parsing utilities | SwiftSoup, Supabase |
 
 **Import Guidance:**
 ```swift
@@ -54,7 +54,7 @@ import UtahNewsData
 
 ### Key Models
 
-All models use **String IDs** (not UUID) for Firebase compatibility:
+All models use **String IDs** (not UUID) for Supabase/Postgres text-PK + Firebase Auth compatibility:
 
 - `Article` - News article content
 - `Video` - Video content metadata
@@ -121,7 +121,7 @@ cd UtahNewsData/ && git log --oneline -1
 
 ```swift
 struct MyModel: Identifiable, Codable, Sendable {
-    let id: String  // String, NOT UUID (Firebase compatibility)
+    let id: String  // String, NOT UUID (Supabase/Postgres text-PK + Firebase Auth compatibility)
     // ... other properties
 }
 ```
@@ -155,7 +155,7 @@ swift scripts/generate_readme.swift
 |---------|-------|
 | `Sendable` | All models must be Sendable |
 | `Codable` | All models for serialization |
-| String IDs | Firebase compatibility |
+| String IDs | Supabase/Postgres text-PK + Firebase Auth compatibility |
 | Strict concurrency | Package uses Swift 6 strict mode |
 
 ## Prohibited Patterns
@@ -229,7 +229,7 @@ let loader = CloudKitHLSResourceLoader()
 // 2. Enable HTTPS streaming (configures API token)
 await loader.enableHTTPSStreaming()
 
-// 3. Inject master manifest (from Firestore)
+// 3. Inject master manifest (from the Supabase `videos` table — masterManifest field)
 loader.injectMasterManifest(content: manifestContent, for: videoSlug)
 
 // 4. Prefetch segment URLs (optional, improves startup)
@@ -242,6 +242,10 @@ asset.resourceLoader.setDelegate(loader, queue: loaderQueue)
 // 6. Create player
 let player = AVPlayer(playerItem: AVPlayerItem(asset: asset))
 ```
+
+> ⚠️ VERIFY: manifest source — this doc now points to the Supabase `videos` table (masterManifest field),
+> but `CloudKitHLSResourceLoader.swift` doc comments still say "from Firestore". Confirm the caller reads
+> the manifest from Supabase and update the source-file comments to match.
 
 ### Why No Native CKContainer SDK
 
@@ -257,6 +261,7 @@ The native `CKContainer` SDK requires entitlements matching the CloudKit contain
 | Dependency | Purpose | Product |
 |------------|---------|---------|
 | SwiftSoup | HTML parsing | `UtahNewsData` only |
+| supabase-swift (Supabase) | Postgres/PostgREST data access | `UtahNewsData` only |
 
 ## Testing
 
