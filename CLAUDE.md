@@ -243,9 +243,9 @@ asset.resourceLoader.setDelegate(loader, queue: loaderQueue)
 let player = AVPlayer(playerItem: AVPlayerItem(asset: asset))
 ```
 
-> ⚠️ VERIFY: manifest source — this doc now points to the Supabase `videos` table (masterManifest field),
-> but `CloudKitHLSResourceLoader.swift` doc comments still say "from Firestore". Confirm the caller reads
-> the manifest from Supabase and update the source-file comments to match.
+> **Resolved (2026-07-06):** the manifest content lives in the Supabase `videos.masterManifest` field;
+> the caller passes it to the source-agnostic `injectMasterManifest(content:for:)` (which just takes a
+> `String`). The stale "from Firestore" doc comment in `CloudKitHLSResourceLoader.swift` was corrected.
 
 ### Why No Native CKContainer SDK
 

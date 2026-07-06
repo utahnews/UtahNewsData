@@ -6,7 +6,7 @@
 //  Intercepts AVPlayer requests and fetches segments via CloudKit Web Services API.
 //
 //  Usage:
-//  1. Inject master manifest from Firestore via injectMasterManifest(content:for:)
+//  1. Inject master manifest (from the Supabase `videos.masterManifest` field) via injectMasterManifest(content:for:)
 //  2. Enable HTTPS streaming via enableHTTPSStreaming()
 //  3. Create AVURLAsset with cloudkit:// URL and set this as resource loader delegate
 //
