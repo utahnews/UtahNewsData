@@ -92,7 +92,7 @@ Each project's `Package.resolved` pins UtahNewsData to a specific Git commit. If
 
 ### Consuming Projects
 
-Current published version: **1.25.0** (verified 2026-07-05). Resolved pins differ per consumer —
+Current published version: **1.26.0** (2026-07-06 — adds `CityNameNormalizer.slug()`, an additive nonisolated helper that reproduces `pipeline.app_cities.id`; no consumer has bumped to it yet). Resolved pins differ per consumer —
 that's expected; read each `Package.resolved` for the truth. ⚠️ **Two tag schemes** exist: `v1.x`
 (≤ `v1.19.0`) then bare `1.x` (`1.20.0`+), so `git tag --sort=-v:refname | head -1` returns a
 WRONG `v1.19.0`. Use `git describe --tags HEAD`.

@@ -60,6 +60,39 @@ public enum CityNameNormalizer: Sendable {
         return resolveDomainToCity(host)
     }
 
+    /// Produce the canonical **slug id** for a canonical Utah city NAME, reproducing
+    /// `pipeline.app_cities.id` byte-for-byte (migration 292):
+    ///   `lower(regexp_replace(city_name, '[^A-Za-z0-9]+', '-', 'g'))`
+    ///
+    /// Each maximal run of non-`[A-Za-z0-9]` collapses to a single `-`; replace-then-lower,
+    /// and (matching the DB) NO edge trim — every canonical Utah city name slugs clean, so
+    /// no leading/trailing hyphen arises in practice (verified: 0 mismatches across 321 names).
+    ///
+    /// Reproduces the RULE, not catalog membership — pass a *canonical* display name from
+    /// `app_cities` / `CityRegistry`, not arbitrary/messy input. For messy input, run
+    /// ``normalize(_:)`` first, then `slug(_:)` on its result.
+    ///
+    /// - Example: `slug("St. George")` -> `"st-george"`, `slug("Salt Lake City")` -> `"salt-lake-city"`.
+    nonisolated public static func slug(_ name: String) -> String {
+        // Regex-free equivalent of lower(regexp_replace(name, '[^A-Za-z0-9]+', '-', 'g')):
+        // collapse each maximal run of non-ASCII-alphanumeric to a single '-', no edge trim.
+        var out = ""
+        var pendingDash = false
+        for scalar in name.unicodeScalars {
+            let isAlnum = (scalar >= "A" && scalar <= "Z")
+                || (scalar >= "a" && scalar <= "z")
+                || (scalar >= "0" && scalar <= "9")
+            if isAlnum {
+                out.unicodeScalars.append(scalar)
+                pendingDash = false
+            } else if !pendingDash {
+                out.append("-")
+                pendingDash = true
+            }
+        }
+        return out.lowercased()
+    }
+
     // MARK: - Private Helpers
 
     nonisolated private static func extractFromCitySourcePrefix(_ value: String) -> String? {
