@@ -229,7 +229,7 @@ let loader = CloudKitHLSResourceLoader()
 // 2. Enable HTTPS streaming (configures API token)
 await loader.enableHTTPSStreaming()
 
-// 3. Inject master manifest (from the Supabase `videos` table — masterManifest field)
+// 3. Inject master manifest (from the Supabase `videos` table — master_manifest column)
 loader.injectMasterManifest(content: manifestContent, for: videoSlug)
 
 // 4. Prefetch segment URLs (optional, improves startup)
@@ -243,7 +243,7 @@ asset.resourceLoader.setDelegate(loader, queue: loaderQueue)
 let player = AVPlayer(playerItem: AVPlayerItem(asset: asset))
 ```
 
-> **Resolved (2026-07-06):** the manifest content lives in the Supabase `videos.masterManifest` field;
+> **Resolved (2026-07-06):** the manifest content lives in the Supabase `videos.master_manifest` column;
 > the caller passes it to the source-agnostic `injectMasterManifest(content:for:)` (which just takes a
 > `String`). The stale "from Firestore" doc comment in `CloudKitHLSResourceLoader.swift` was corrected.
 

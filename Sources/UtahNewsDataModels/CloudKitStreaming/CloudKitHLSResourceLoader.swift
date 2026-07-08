@@ -98,7 +98,7 @@ public final class CloudKitHLSResourceLoader: NSObject, AVAssetResourceLoaderDel
     }
 
     /// Inject master manifest content to be served when requested.
-    /// Call this before playback with manifest content from Firestore.
+    /// Call this before playback with manifest content from the Supabase `videos.master_manifest` column.
     public func injectMasterManifest(content: String, for videoSlug: String) {
         resourceLogger.debug("Injecting master manifest for slug: \(videoSlug)")
         masterManifests[videoSlug] = content
