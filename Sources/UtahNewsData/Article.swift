@@ -128,6 +128,23 @@ public struct Article: NewsContent, AssociatedData, JSONSchemaProvider, Sendable
     public var attributionOutletName: String?
     public var attributionUrl: String?
     public var attributionPublishedAt: Date?
+
+    /// The reader-facing DATELINE and feed order key (pipeline mig 1031, 2026-08-26):
+    /// the source's publish date when a trusted source date is ≥3 days older than
+    /// our `publishedAt` (news / multi-source articles and link-out cards), else
+    /// `publishedAt`. `nil` for rows the server has not stamped — use `displayDate`.
+    public var datelineAt: Date?
+
+    /// The date to SHOW and SORT by: `datelineAt` when present, else `publishedAt`.
+    public var displayDate: Date { datelineAt ?? publishedAt }
+
+    /// True when the dateline is the source's date rather than ours — the UI says
+    /// "Originally published …" so a story republished from an older source is
+    /// never presented as today's.
+    public var isSourceDateline: Bool {
+        guard let d = datelineAt else { return false }
+        return publishedAt.timeIntervalSince(d) >= 3 * 86_400
+    }
     public var upgradedAt: Date?
 
     /// True when this row should render as a link-out card pointing at the
@@ -166,6 +183,7 @@ public struct Article: NewsContent, AssociatedData, JSONSchemaProvider, Sendable
         attributionOutletName: String? = nil,
         attributionUrl: String? = nil,
         attributionPublishedAt: Date? = nil,
+        datelineAt: Date? = nil,
         upgradedAt: Date? = nil
     ) {
         self.id = id
@@ -196,6 +214,7 @@ public struct Article: NewsContent, AssociatedData, JSONSchemaProvider, Sendable
         self.attributionOutletName = attributionOutletName
         self.attributionUrl = attributionUrl
         self.attributionPublishedAt = attributionPublishedAt
+        self.datelineAt = datelineAt
         self.upgradedAt = upgradedAt
     }
 
