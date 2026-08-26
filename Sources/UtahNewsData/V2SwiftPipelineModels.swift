@@ -56,6 +56,13 @@ public enum ContentType: String, Codable, Sendable, CaseIterable {
     case organizationPage = "organization_page"
     case personnelRoster = "personnel_roster"
 
+    /// Editorial opinion — a page the publisher files under Opinion / Letters to the Editor /
+    /// Columns / Editorial / Commentary / Op-Ed (JSON-LD `articleSection`, parsely-section,
+    /// article:section). Reference, not news: never drafted, never a link-out card, never in
+    /// the feed (DB Rule 33, mig 1034, is the backstop; V2 types it here so no gemma is spent).
+    /// Vocabulary mirrors `pipeline.section_label_is_opinion` (mig 1034) exactly.
+    case opinion
+
     /// Custom decoder for case-insensitive decoding (handles "Article" or "article")
     public init(from decoder: Decoder) throws {
         let container = try decoder.singleValueContainer()
@@ -78,6 +85,7 @@ public enum ContentType: String, Codable, Sendable, CaseIterable {
         case "pressrelease": self = .pressRelease
         case "organizationpage": self = .organizationPage
         case "personnelroster": self = .personnelRoster
+        case "opinion": self = .opinion
         default: self = .unknown
         }
     }
@@ -101,6 +109,7 @@ public enum ContentType: String, Codable, Sendable, CaseIterable {
         case .pressRelease: return "Press Release"
         case .organizationPage: return "Organization Page"
         case .personnelRoster: return "Personnel Roster"
+        case .opinion: return "Opinion"
         }
     }
 
