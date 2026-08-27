@@ -332,45 +332,70 @@ nonisolated public struct SupabaseAdCreativeInsert: Codable, Sendable {
 /// A row from the `pipeline.ad_events` table.
 ///
 /// Unified impression/click event tracking for all ad interactions.
+///
+/// Column names verified against the LIVE table on 2026-08-26 (UX sweep, lane A): the columns are
+/// `id, creative_id, campaign_id, event_type, article_id, placement_key, city_name, device_id,
+/// created_at, advertisement_id`. The previous shape keyed `recorded_at` / `device_type` /
+/// `placement` and required `campaign_id` — none of which exist or are populated on any row the
+/// app writes, so it could not decode a single live row. `cityName` carries the reader city's
+/// DISPLAY name (the `city_sources.city_name` vocabulary), never a slug.
 nonisolated public struct SupabaseAdEvent: Codable, Sendable, Identifiable {
     public let id: String
-    public let campaignId: String
+    /// Nullable in the live table and NULL on every app-written row (UtahNews records the
+    /// `advertisement_id`; campaigns are AdsUtah's vocabulary).
+    public let campaignId: String?
     public let creativeId: String?
+    public let advertisementId: String?
+    public let articleId: String?
     public let eventType: String
+    /// The `placement_key` column — the app's `SponsorSlot` raw value.
     public let placement: String?
     public let cityName: String?
-    public let deviceType: String?
-    public let recordedAt: Date
+    public let deviceId: String?
+    public let createdAt: Date
 
     public init(
         id: String,
-        campaignId: String,
+        campaignId: String? = nil,
         creativeId: String? = nil,
+        advertisementId: String? = nil,
+        articleId: String? = nil,
         eventType: String,
         placement: String? = nil,
         cityName: String? = nil,
-        deviceType: String? = nil,
-        recordedAt: Date = Date()
+        deviceId: String? = nil,
+        createdAt: Date = Date()
     ) {
         self.id = id
         self.campaignId = campaignId
         self.creativeId = creativeId
+        self.advertisementId = advertisementId
+        self.articleId = articleId
         self.eventType = eventType
         self.placement = placement
         self.cityName = cityName
-        self.deviceType = deviceType
-        self.recordedAt = recordedAt
+        self.deviceId = deviceId
+        self.createdAt = createdAt
     }
 
     enum CodingKeys: String, CodingKey {
-        case id, placement
+        case id
         case campaignId = "campaign_id"
         case creativeId = "creative_id"
+        case advertisementId = "advertisement_id"
+        case articleId = "article_id"
         case eventType = "event_type"
+        case placement = "placement_key"
         case cityName = "city_name"
-        case deviceType = "device_type"
-        case recordedAt = "recorded_at"
+        case deviceId = "device_id"
+        case createdAt = "created_at"
     }
+
+    /// Source-compatibility aliases for the pre-1.30 property names (no live column ever matched them).
+    @available(*, deprecated, renamed: "createdAt")
+    public var recordedAt: Date { createdAt }
+    @available(*, deprecated, renamed: "deviceId")
+    public var deviceType: String? { deviceId }
 }
 
 // MARK: - Event Type Constants
