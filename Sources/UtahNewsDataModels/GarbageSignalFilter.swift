@@ -58,6 +58,50 @@ public enum GarbageSignalFilter: Sendable {
         return outletDisplayNames[stripped] ?? stripped
     }
 
+    /// Court DOCKET RECORD pages — the case-management record itself (party
+    /// tables, filing rows, "Docketed:" / "Lower Ct:" fields), never news
+    /// coverage of a case. The FM classifier types them `article`, so pages
+    /// like "Docket for 25-965" (supremecourt.gov) and PACER docket-entry
+    /// headlines ("Rubicon Files Motion to Preserve Worker…") reached readers.
+    ///
+    /// Host match is case-insensitive and covers subdomains; `pathPrefix` is a
+    /// case-insensitive prefix on the path, and an EMPTY prefix means the whole
+    /// host is docket-record space. Keep in sync with `pipeline.is_non_news_page`
+    /// (DB backstop) and `find_unarticled_primary_items` (candidate filter).
+    public static let docketRecordPathMarkers: [(host: String, pathPrefix: String)] = [
+        ("supremecourt.gov", "/docket/docketfiles/"),
+        ("supremecourt.gov", "/docketpdf/"),
+        ("pacermonitor.com", "/public/case/"),
+        ("courtlistener.com", "/docket/"),
+        ("pacer.uscourts.gov", "")
+    ]
+
+    /// Field labels that only occur on a rendered docket record. Two or more
+    /// in the body catches a docket that was RE-HOSTED off the known docket
+    /// domains (a mirror, a translation proxy, a scraped copy).
+    public static let docketFormMarkers: [String] = [
+        "docketed:",
+        "lower ct:",
+        "case numbers:",
+        "decision date:",
+        "rehearing denied:"
+    ]
+
+    /// True when the URL points into known court docket-record space.
+    public static func isDocketRecordURL(_ urlString: String) -> Bool {
+        guard let url = URL(string: urlString), let rawHost = url.host else { return false }
+        var host = rawHost.lowercased()
+        if host.hasPrefix("www.") { host = String(host.dropFirst(4)) }
+        let path = url.path.lowercased()
+        for marker in docketRecordPathMarkers {
+            let markerHost = marker.host.lowercased()
+            guard host == markerHost || host.hasSuffix("." + markerHost) else { continue }
+            let prefix = marker.pathPrefix.lowercased()
+            if prefix.isEmpty || path.hasPrefix(prefix) { return true }
+        }
+        return false
+    }
+
     /// Evaluates a signal-tier title + snippet pair. Returns `nil` if the
     /// content is clean and worth publishing, or a short reason string
     /// describing the failure (logged + persisted for editorial audits).
@@ -79,6 +123,30 @@ public enum GarbageSignalFilter: Sendable {
         ]
         if placeholders.contains(title) {
             return "placeholder title"
+        }
+
+        // Court DOCKET RECORD page (2026-08-26). Three independent signals,
+        // any one of which is decisive — a docket record is a court FILING
+        // LEDGER, not journalism, no matter how well-formed its title reads:
+        //   (a) the URL sits in known docket-record space;
+        //   (b) the title is the bare "Docket for <case no.>" template;
+        //   (c) the body carries >=2 docket form-field labels (re-hosted copy).
+        // Placed ahead of the headline-shaped rules on purpose: PACER titles
+        // ("Habeas Corpus Petition Filed by …") are perfectly well-formed and
+        // would otherwise fall through to `return nil`.
+        if isDocketRecordURL(sourceURL) {
+            return "court docket record page (docket URL)"
+        }
+        if title.range(
+            of: #"^Docket for \d{2}[A-Za-z]?-?\d+\s*$"#,
+            options: [.regularExpression, .caseInsensitive]
+        ) != nil {
+            return "court docket record page (docket title)"
+        }
+        let loweredSnippet = snippet.lowercased()
+        let docketFormHits = docketFormMarkers.filter { loweredSnippet.contains($0) }.count
+        if docketFormHits >= 2 {
+            return "court docket record page (\(docketFormHits) docket form fields)"
         }
 
         // Bare outlet name → homepage hit.

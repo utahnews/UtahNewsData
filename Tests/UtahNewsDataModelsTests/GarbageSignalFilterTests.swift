@@ -41,3 +41,83 @@ struct GarbageSignalFilterTests {
         #expect(reason("Salt Lake City Council weighs a sweeping new affordable-housing ordinance | KSL") == nil)
     }
 }
+
+/// 2026-08-26 — court DOCKET RECORD pages (the filing ledger itself) were being
+/// published as news: "Docket for 25-965" (supremecourt.gov), three sibling
+/// docket files archived by hand, and PACER pages whose titles are docket-entry
+/// headlines. The FM classifier types them `article`, so the rule keys on the
+/// docket URL space, the bare docket-title template, and docket form fields in
+/// the body (a re-hosted docket). Real Utah court COVERAGE must still pass —
+/// "Docket" mid-sentence is not a docket page.
+struct GarbageSignalFilterDocketTests {
+
+    private let docketBody = """
+    No. 25-965   Title: Daniel Grand, Petitioner v. City of University Heights, \
+    Ohio, et al. Docketed: February 17, 2026 Lower Ct: United States Court of \
+    Appeals for the Sixth Circuit Case Numbers: (24-3225)
+    """
+    private let newsBody = String(repeating: "Real reporting about a Utah court case. ", count: 12)
+
+    private func reason(_ title: String, _ url: String, _ body: String) -> String? {
+        GarbageSignalFilter.garbageReason(title: title, snippet: body, sourceURL: url)
+    }
+
+    @Test("The four live docket-record leaks are flagged")
+    func flagsLiveDocketLeaks() {
+        // 1. supremecourt.gov docket file — URL, title AND body all decisive.
+        #expect(reason(
+            "Docket for 25-965",
+            "https://www.supremecourt.gov/docket/docketfiles/html/public/25-965.html",
+            docketBody
+        )?.hasPrefix("court docket record page") == true)
+        // 2-4. The three hand-archived siblings — title template alone, on a
+        // neutral URL, must be enough.
+        for caseNo in ["25-1115", "25-573", "25-332", "26A203", "24-1260"] {
+            #expect(reason("Docket for \(caseNo)", "https://example.org/page", newsBody)
+                == "court docket record page (docket title)")
+        }
+    }
+
+    @Test("PACER docket-entry headlines are flagged by URL")
+    func flagsPacerDocketEntryHeadlines() {
+        // A perfectly well-formed headline — only the URL gives it away.
+        #expect(reason(
+            "Rubicon Files Motion to Preserve Worker Records in Ogden Plant Closure",
+            "https://www.pacermonitor.com/public/case/57231884/Rubicon_v_Acme_Holdings",
+            newsBody
+        ) == "court docket record page (docket URL)")
+        #expect(reason(
+            "Habeas Corpus Petition Filed by Salt Lake County Inmate",
+            "https://www.pacermonitor.com/public/case/12009331/Doe_v_Salt_Lake_County",
+            newsBody
+        ) == "court docket record page (docket URL)")
+    }
+
+    @Test("Other docket URL spaces are flagged (case-insensitive host, subdomains)")
+    func flagsOtherDocketURLSpaces() {
+        #expect(reason("In re Great Salt Lake Water Rights", "https://www.SupremeCourt.gov/DocketPDF/25/25-965/brief.pdf", newsBody) != nil)
+        #expect(reason("Utah v. Environmental Protection Agency", "https://www.courtlistener.com/docket/69123456/utah-v-epa/", newsBody) != nil)
+        #expect(reason("Case summary and filings", "https://ecf.pacer.uscourts.gov/cgi-bin/DktRpt.pl?123456", newsBody) != nil)
+    }
+
+    @Test("A re-hosted docket is caught by its form fields")
+    func flagsRehostedDocketByFormFields() {
+        #expect(reason("Grand v. City of University Heights case record", "https://example.com/mirror/25-965", docketBody)
+            == "court docket record page (3 docket form fields)")  // Docketed: / Lower Ct: / Case Numbers:
+        // ONE marker is not enough — a real story may quote a docket line.
+        #expect(reason(
+            "Attorneys say the case was docketed: February 17, lawyers dispute the timeline",
+            "https://www.sltrib.com/news/2026/02/18/case-timeline/",
+            newsBody
+        ) == nil)
+    }
+
+    @Test("Real Utah court coverage is NOT flagged")
+    func allowsRealCourtCoverage() {
+        #expect(reason("Utah Supreme Court hears arguments in Great Salt Lake case", "https://www.sltrib.com/news/2026/08/26/gsl-arguments/", newsBody) == nil)
+        #expect(reason("Judge dismisses lawsuit over Provo rezoning", "https://www.heraldextra.com/news/2026/08/26/provo-rezoning/", newsBody) == nil)
+        #expect(reason("Court records show Ogden landlord owes $1.2M in back rent", "https://www.standard.net/news/2026/08/26/ogden-landlord/", newsBody) == nil)
+        #expect(reason("Docket sheet leaked in city council dispute", "https://www.deseret.com/utah/2026/08/26/docket-sheet-leak/", newsBody) == nil)
+        #expect(reason("Federal appeals court revives Bears Ears challenge filed by Utah counties", "https://www.ksl.com/article/51234567/bears-ears-appeal", newsBody) == nil)
+    }
+}
