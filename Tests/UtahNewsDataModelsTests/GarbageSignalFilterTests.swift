@@ -112,6 +112,34 @@ struct GarbageSignalFilterDocketTests {
         ) == nil)
     }
 
+    @Test("Tag/category listing index URLs are flagged (migration 1128 twin)")
+    func flagsListingIndexURLs() {
+        #expect(reason("Lehi Free Press Archives Detail Local Arrest and City Plans",
+                       "https://lehifreepress.com/tag/plans", newsBody)
+            == "tag/category listing index page (listing source, not a story)")
+        #expect(reason("Recent Developments and Updates in Lehi Area Education",
+                       "https://lehifreepress.com/category/education/", newsBody) != nil)
+        #expect(reason("Understanding the Kane County School District",
+                       "https://www.sunews.net/blog/categories/community", newsBody) != nil)
+        #expect(reason("Huntsman Cancer Institute Shares Diverse Patient Stories",
+                       "https://healthcare.utah.edu/huntsmancancerinstitute/news/tags/sarcoma", newsBody) != nil)
+    }
+
+    @Test("Real permalinks and near-miss slugs are NOT flagged as listing pages")
+    func allowsPermalinksNearListingShapes() {
+        // Dated permalink on the same outlet.
+        #expect(reason("Relentless defense and raw emotion spark thrilling win",
+                       "https://lehifreepress.com/2026/08/31/relentless-defense-and-raw-emotion/", newsBody) == nil)
+        // Story slug UNDER a category base — path continues past the segment.
+        #expect(reason("School board approves budget",
+                       "https://example.com/category/education/school-board-approves-budget/", newsBody) == nil)
+        // Slugs merely containing the words.
+        #expect(reason("Building tagged for demolition comes down",
+                       "https://example.com/news/tagged-for-demolition-building-comes-down", newsBody) == nil)
+        #expect(reason("Categories of aid announced for flood victims",
+                       "https://example.com/categories-of-aid-announced-for-flood-victims", newsBody) == nil)
+    }
+
     @Test("Real Utah court coverage is NOT flagged")
     func allowsRealCourtCoverage() {
         #expect(reason("Utah Supreme Court hears arguments in Great Salt Lake case", "https://www.sltrib.com/news/2026/08/26/gsl-arguments/", newsBody) == nil)

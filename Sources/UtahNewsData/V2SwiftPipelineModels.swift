@@ -24,6 +24,7 @@ public enum RelevanceMethod: String, Codable, Sendable {
     case govDomainMatch = "gov_domain_match"    // LEGACY snake_case
     case keywordMatch = "keyword_match"         // LEGACY snake_case
     case institutionMatch = "institution_match" // Institution scan: verified Utah institution
+    case llmAdjudicated = "llm_adjudicated"     // 2026-08-31: LLM adjudication of the keyword tier's .uncertain verdict
 }
 
 /// Sentiment classification (replaces magic strings)

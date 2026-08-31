@@ -131,6 +131,22 @@ public enum GarbageSignalFilter: Sendable {
         return false
     }
 
+    /// True when the URL is a CMS TAG/CATEGORY INDEX page — the path ENDS at
+    /// the tag/category slug (migration 1128's twin, 2026-08-31). The mig 957
+    /// law: a LISTING ends the path; a /category/<base>/<story-slug> permalink
+    /// continues past it and never matches. Covers /tag/, /tags/, /category/,
+    /// /categories/. Pagination tails (/tag/x/page/2) are the mig 957 author/
+    /// pagination shapes; query-string tails (/tag/x/?utm=…) are a documented
+    /// miss on both sides. gemma composes "archive digest" mashups from these
+    /// pages (Lehi audit 2026-08-31: 103 of Lehi's August drafts alone).
+    /// Widen this and migration 1128's clauses TOGETHER or they stop being twins.
+    public static func isListingIndexURL(_ urlString: String) -> Bool {
+        guard let url = URL(string: urlString) else { return false }
+        let path = url.path.lowercased()
+        return path.range(of: #"/tags?/[^/]+/?$"#, options: .regularExpression) != nil
+            || path.range(of: #"/categor(y|ies)/[^/]+/?$"#, options: .regularExpression) != nil
+    }
+
     /// True when the URL points into known court docket-record space.
     public static func isDocketRecordURL(_ urlString: String) -> Bool {
         guard let url = URL(string: urlString), let rawHost = url.host else { return false }
@@ -188,6 +204,15 @@ public enum GarbageSignalFilter: Sendable {
         // through every headline-shape rule below to `return nil`.
         if isReferenceBioURL(sourceURL) {
             return "speaker bio index page (reference directory, not an event)"
+        }
+
+        // TAG/CATEGORY LISTING INDEX page (2026-08-31, migration 1128). Placed
+        // beside the docket/bio rules for the same reason: gemma gives the
+        // digest a perfectly news-shaped title ("Lehi Free Press Archives
+        // Detail Local Arrest and City Plans") that falls through every
+        // headline-shape rule below.
+        if isListingIndexURL(sourceURL) {
+            return "tag/category listing index page (listing source, not a story)"
         }
         if title.range(
             of: #"^Docket for \d{2}[A-Za-z]?-?\d+\s*$"#,
