@@ -87,6 +87,50 @@ public enum GarbageSignalFilter: Sendable {
         "rehearing denied:"
     ]
 
+    /// SPEAKER BIO INDEX pages — a directory entry ABOUT A PERSON, never an
+    /// event. The Swift twin of the `speeches.byu.edu/speakers/` clause added to
+    /// `pipeline.is_non_news_source_url` by migration 1118 (3-place sync law:
+    /// DB predicate + this filter + `find_unarticled_primary_items`, which
+    /// inherits it through `_unarticled_primary_band`).
+    ///
+    /// WHY THIS CLASS EXISTS. Reader flag 730a4892, 2026-08-31: the feature
+    /// drafter published "John Hughes serves as editor of the Deseret News" as a
+    /// current local profile, drafted from
+    /// `https://speeches.byu.edu/speakers/john-hughes`. The body itself cites a
+    /// 1998 speech; the role claim is decades stale. A bio index page has no
+    /// event and usually no date, so every DATE gate on the platform sees
+    /// nothing to refuse — the URL is the only honest signal. Same class as the
+    /// roster rule (migration 593) and `congress.gov/member/` (migration 925).
+    ///
+    /// Measured over the live corpus 2026-08-31: 37 such URLs, 20 articles born
+    /// from them, 19 archived / rejected / permanently stuck as drafts.
+    ///
+    /// ⚠️ HOST-ANCHORED, deliberately. The general `/speakers/<slug>` shape is
+    /// clean by content across the whole corpus (48 URLs / 9 hosts, 48/48 the
+    /// class) but costs one legitimate appointment story on `speeches.ensign.edu`
+    /// — widening it is an editorial policy call, filed for the owner, not taken
+    /// here. Widen this list and migration 1118's clause TOGETHER or they stop
+    /// being twins.
+    public static let speakerBioHostPathMarkers: [(host: String, pathPrefix: String)] = [
+        ("speeches.byu.edu", "/speakers/")
+    ]
+
+    /// True when the URL is a speaker-bio index page (see
+    /// `speakerBioHostPathMarkers`).
+    public static func isReferenceBioURL(_ urlString: String) -> Bool {
+        guard let url = URL(string: urlString), let rawHost = url.host else { return false }
+        var host = rawHost.lowercased()
+        if host.hasPrefix("www.") { host = String(host.dropFirst(4)) }
+        let path = url.path.lowercased()
+        for marker in speakerBioHostPathMarkers {
+            let markerHost = marker.host.lowercased()
+            guard host == markerHost || host.hasSuffix("." + markerHost) else { continue }
+            let prefix = marker.pathPrefix.lowercased()
+            if prefix.isEmpty || path.hasPrefix(prefix) { return true }
+        }
+        return false
+    }
+
     /// True when the URL points into known court docket-record space.
     public static func isDocketRecordURL(_ urlString: String) -> Bool {
         guard let url = URL(string: urlString), let rawHost = url.host else { return false }
@@ -136,6 +180,14 @@ public enum GarbageSignalFilter: Sendable {
         // would otherwise fall through to `return nil`.
         if isDocketRecordURL(sourceURL) {
             return "court docket record page (docket URL)"
+        }
+
+        // SPEAKER BIO INDEX page (2026-08-31, migration 1118). Placed beside the
+        // docket rule for the same reason: a bio page's title is a perfectly
+        // well-formed person's name ("John Hughes") and would otherwise fall
+        // through every headline-shape rule below to `return nil`.
+        if isReferenceBioURL(sourceURL) {
+            return "speaker bio index page (reference directory, not an event)"
         }
         if title.range(
             of: #"^Docket for \d{2}[A-Za-z]?-?\d+\s*$"#,
