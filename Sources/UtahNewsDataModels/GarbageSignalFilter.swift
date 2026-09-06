@@ -131,20 +131,68 @@ public enum GarbageSignalFilter: Sendable {
         return false
     }
 
-    /// True when the URL is a CMS TAG/CATEGORY INDEX page — the path ENDS at
-    /// the tag/category slug (migration 1128's twin, 2026-08-31). The mig 957
-    /// law: a LISTING ends the path; a /category/<base>/<story-slug> permalink
-    /// continues past it and never matches. Covers /tag/, /tags/, /category/,
-    /// /categories/. Pagination tails (/tag/x/page/2) are the mig 957 author/
-    /// pagination shapes; query-string tails (/tag/x/?utm=…) are a documented
-    /// miss on both sides. gemma composes "archive digest" mashups from these
-    /// pages (Lehi audit 2026-08-31: 103 of Lehi's August drafts alone).
-    /// Widen this and migration 1128's clauses TOGETHER or they stop being twins.
+    /// True when the URL is a LISTING/INDEX page. The DB home for every listing
+    /// shape is `pipeline.is_listing_page_url` (mig 1325); this is its app-side
+    /// twin, and the two are widened TOGETHER or they stop being twins.
+    ///
+    /// Shapes, in the order `listingIndexReason` reports them:
+    ///  - CMS TAG/CATEGORY INDEX — the path ENDS at the tag/category slug
+    ///    (migration 1128's twin, 2026-08-31). Covers /tag/, /tags/, /category/,
+    ///    /categories/. gemma composes "archive digest" mashups from these pages
+    ///    (Lehi audit 2026-08-31: 103 of Lehi's August drafts alone).
+    ///  - SCHOOL-CALENDAR VIEW pages (/eventsby{day,week,month}/, Finalsite) —
+    ///    migration 1325 (a), 2026-09-05. An ENUMERATOR of events that always
+    ///    renders "today", so every date gate sees a live page.
+    ///  - BARE NEWS-INDEX ROOTS (terminal /news, /latest-news, /news-releases,
+    ///    /newsroom, /press-releases) — migration 1325 (b), 2026-09-05.
+    ///
+    /// The mig 957 law holds throughout: a LISTING ends the path, so a
+    /// /category/<base>/<story-slug> permalink and a dated /news/2026/09/05/slug
+    /// permalink continue past the anchor and never match. Pagination tails
+    /// (/tag/x/page/2) are the mig 957 author/pagination shapes, carried by
+    /// `isNonNewsSourceURL` alone.
+    ///
+    /// DELIBERATE SUPERSET of the DB twin on query-string tails: this predicate
+    /// matches `url.path`, so /tags/x?utm=… and /news?id=123 — the terminal-anchor
+    /// MISS documented on both sides of `pipeline.is_listing_page_url` — are
+    /// refused here. That widening is asserted in NonNewsSourceURLParityTests and
+    /// is why `garbageReason` consults this predicate rather than
+    /// `isNonNewsSourceURL`, which must stay clause-for-clause with the DB.
     public static func isListingIndexURL(_ urlString: String) -> Bool {
-        guard let url = URL(string: urlString) else { return false }
+        listingIndexReason(urlString) != nil
+    }
+
+    /// The editorial audit reason behind `isListingIndexURL`, or `nil` when the
+    /// URL is not a listing/index page. Clause order mirrors the predicate's
+    /// historical OR order on purpose: a URL that already matched before mig 1325
+    /// keeps its original reason string verbatim.
+    ///
+    /// The tag/category literals differ from `RegexClause.tagIndex` /
+    /// `.categoryIndex` by design — those match a whole URL and must exclude
+    /// `?#`; these match an already-parsed `url.path`, which carries neither. The
+    /// mig 1325 shapes carry no such class, so they are reused from `RegexClause`
+    /// directly and cannot drift from the `isNonNewsSourceURL` clauses.
+    private static func listingIndexReason(_ urlString: String) -> String? {
+        guard let url = URL(string: urlString) else { return nil }
         let path = url.path.lowercased()
-        return path.range(of: #"/tags?/[^/]+/?$"#, options: .regularExpression) != nil
-            || path.range(of: #"/categor(y|ies)/[^/]+/?$"#, options: .regularExpression) != nil
+
+        if path.range(of: #"/tags?/[^/]+/?$"#, options: .regularExpression) != nil
+            || path.range(of: #"/categor(y|ies)/[^/]+/?$"#, options: .regularExpression) != nil {
+            return "tag/category listing index page (listing source, not a story)"
+        }
+        if path.range(
+            of: RegexClause.calendarView.rawValue,
+            options: .regularExpression
+        ) != nil {
+            return "school-calendar view page (event enumerator, not a story)"
+        }
+        if path.range(
+            of: RegexClause.newsIndexRoot.rawValue,
+            options: .regularExpression
+        ) != nil {
+            return "bare news-index root (listing source, not a story)"
+        }
+        return nil
     }
 
     /// True when the URL points into known court docket-record space.
@@ -278,6 +326,16 @@ public enum GarbageSignalFilter: Sendable {
             return true
         }
 
+        // NOTE (mig 1325): the DB consolidated EVERY listing/index shape — migs
+        // 957, 1128, 1170, 1207, 1227 plus the two 1325 shapes — into
+        // pipeline.is_listing_page_url, and is_non_news_source_url now carries a
+        // single delegating clause. That function is where the NEXT listing shape
+        // lands on the DB side. Swift keeps the clauses inlined below so this
+        // function stays reviewable clause-by-clause in SQL order against the
+        // parent; the app-side listing grouping is the sibling predicate
+        // `isListingIndexURL` (which parses the URL and is a deliberate superset
+        // on query tails), NOT this function. Add a new listing shape to BOTH.
+
         // mig 957: author-archive + pagination TERMINAL shapes. An
         // /author/<name> index or a /page/<N> archive tail is a LISTING, not
         // a story — gemma composes mashup digests and republishes deep
@@ -365,6 +423,43 @@ public enum GarbageSignalFilter: Sendable {
             return true
         }
 
+        // mig 1325 (a): school-calendar VIEW pages. Finalsite renders a
+        // day/week/month VIEW of a calendar at /eventsbyday/<Y>/<M>/<D>.html,
+        // /eventsbyweek/…, /eventsbymonth/… . It ENUMERATES events, is never a
+        // story, and it always renders "today", so every date gate on the
+        // platform sees a live page while gemma writes a present-tense digest
+        // ("MHS Events Calendar Lists Upcoming Athletic and District
+        // Activities"). Measured (spec, 2026-09-05): 27 items/7 d on
+        // www.ssanpete.org, 8 live published calendar pages; re-verified
+        // db-ro 2026-09-06: 33 processed_items/7 d over 2 hosts (31 of them
+        // ssanpete), 9 published articles. The TRAILING SLASH is load-bearing:
+        // it keeps an /eventsbyday-recap-story slug out of the class. Child
+        // event pages (/events/detail/<id>) are untouched and stay news.
+        if matches(value, .calendarView) {
+            return true
+        }
+
+        // mig 1325 (b): bare news-INDEX roots, TERMINAL-anchored (mig 957 law —
+        // a listing ENDS the path). /news, /latest-news, /news-releases,
+        // /newsroom, /press-releases and their unhyphenated twins are a site's
+        // newsroom INDEX; gemma drafts a mashup digest of whatever the index
+        // happened to list ("Newsroom - West Jordan City", "Press Releases").
+        // Measured (spec, 2026-09-05): 608 bare /news$ items/30 d, 62 live
+        // published index digests; re-verified db-ro 2026-09-06: 609 bare
+        // /news$ items/30 d, 706/30 d over 506 hosts for the whole clause,
+        // 169 published rows. A dated permalink continues past the root
+        // (/news/2026/09/05/slug) and never matches; a query-string tail
+        // (/news?id=123) is the DOCUMENTED terminal-anchor miss, left open on
+        // both sides. Same unanchored-$ direction: the clause can land inside a
+        // query/fragment tail (…/real-story?utm_source=/news) — 0 corpus rows,
+        // and the 1227-style '(\?[^#]*)?(#.*)?$' tail does NOT fix it, so it is
+        // recorded rather than patched. FALSE POSITIVE accepted: category-last
+        // CMS permalinks (…/<id>/<slug>/news), 2 URLs corpus-wide, both
+        // archived and non-Utah.
+        if matches(value, .newsIndexRoot) {
+            return true
+        }
+
         // Docket-record and URL-parsed listing refusal remain sibling predicates;
         // composing either here would make this function a superset of the DB twin.
         return false
@@ -422,6 +517,8 @@ public enum GarbageSignalFilter: Sendable {
         case wordpressTaxonomy = #"^https?://[^/?#]+/(author|tag|category)/[^/]+(/(page/[0-9]+))?/?(\?[^#]*)?(#.*)?$"#
         case wordpressPagination = #"^https?://[^/?#]+(?:/[^/?#]+)*/page/[0-9]+/?(\?[^#]*)?(#.*)?$"#
         case datedPath = #"/(19|20)[0-9]{2}/"#
+        case calendarView = #"/events?by(day|week|month)/"#
+        case newsIndexRoot = #"/(news|latest-?news|news-?releases?|newsroom|press-?releases?)/?$"#
 
         var options: NSRegularExpression.Options {
             switch self {
@@ -585,13 +682,16 @@ public enum GarbageSignalFilter: Sendable {
             return "speaker bio index page (reference directory, not an event)"
         }
 
-        // TAG/CATEGORY LISTING INDEX page (2026-08-31, migration 1128). Placed
-        // beside the docket/bio rules for the same reason: gemma gives the
-        // digest a perfectly news-shaped title ("Lehi Free Press Archives
-        // Detail Local Arrest and City Plans") that falls through every
-        // headline-shape rule below.
-        if isListingIndexURL(sourceURL) {
-            return "tag/category listing index page (listing source, not a story)"
+        // LISTING/INDEX page (2026-08-31, migration 1128's tag/category shapes;
+        // widened 2026-09-05 by migration 1325 with school-calendar VIEW pages
+        // and bare news-INDEX roots). Placed beside the docket/bio rules for the
+        // same reason: gemma gives the digest a perfectly news-shaped title
+        // ("Lehi Free Press Archives Detail Local Arrest and City Plans",
+        // "Newsroom - West Jordan City") that falls through every headline-shape
+        // rule below. The reason string is per-shape so an editorial audit can
+        // tell the three classes apart; the mig 1128 wording is unchanged.
+        if let listingReason = listingIndexReason(sourceURL) {
+            return listingReason
         }
         if title.range(
             of: #"^Docket for \d{2}[A-Za-z]?-?\d+\s*$"#,

@@ -125,6 +125,56 @@ struct GarbageSignalFilterDocketTests {
                        "https://healthcare.utah.edu/huntsmancancerinstitute/news/tags/sarcoma", newsBody) != nil)
     }
 
+    @Test("Calendar VIEW pages and bare news-INDEX roots are flagged (migration 1325 twin)")
+    func flagsMig1325ListingShapes() {
+        // (a) school-calendar VIEW pages — Finalsite day/week/month enumerators.
+        #expect(reason("MHS Events Calendar Lists Upcoming Athletic and District Activities",
+                       "https://www.ssanpete.org/eventsbyday/2026/09/05.html", newsBody)
+            == "school-calendar view page (event enumerator, not a story)")
+        #expect(reason("District Highlights Fall Activities Across Its Schools",
+                       "https://www.ssanpete.org/eventsbymonth/2026/09.html", newsBody) != nil)
+        #expect(reason("Weekly Slate of School Events Announced",
+                       "https://www.ssanpete.org/eventsbyweek/2026/09/01.html", newsBody) != nil)
+
+        // (b) bare news-INDEX roots — terminal-anchored (mig 957 law).
+        #expect(reason("Newsroom - West Jordan City",
+                       "https://www.westjordan.utah.gov/news", newsBody)
+            == "bare news-index root (listing source, not a story)")
+        #expect(reason("City Shares Recent Announcements and Updates",
+                       "https://www.example.gov/newsroom", newsBody) != nil)
+        #expect(reason("Press Releases",
+                       "https://www.example.gov/press-releases/", newsBody) != nil)
+        #expect(reason("Latest News From the Department",
+                       "https://www.example.gov/department/latest-news", newsBody) != nil)
+    }
+
+    @Test("Migration 1325 shapes do NOT swallow real stories or child pages")
+    func allowsPermalinksNearMig1325Shapes() {
+        // A dated permalink continues past the /news root.
+        #expect(reason("Council approves water rate increase",
+                       "https://www.westjordan.utah.gov/news/2026/09/05/water-rates", newsBody) == nil)
+        // Child event pages stay news; only the calendar VIEW is a listing.
+        #expect(reason("Board sets date for new elementary groundbreaking",
+                       "https://www.ssanpete.org/events/detail/48213", newsBody) == nil)
+        // The TRAILING SLASH is load-bearing: a recap slug is not a calendar view.
+        #expect(reason("Eventsbyday recap draws record crowd to county fair",
+                       "https://www.example.org/eventsbyday-recap-story", newsBody) == nil)
+        // A slug merely ending in the word is not an index root.
+        #expect(reason("Residents weigh in on what counts as local news",
+                       "https://www.example.gov/opinion/what-counts-as-local-news", newsBody) == nil)
+    }
+
+    @Test("isListingIndexURL is a deliberate SUPERSET of the DB twin on query tails")
+    func listingIndexURLRefusesQueryTailsTheDBMisses() {
+        // /news?id=123 is the DOCUMENTED terminal-anchor miss on both sides of
+        // pipeline.is_listing_page_url; the URL-parsing sibling still refuses it.
+        let queryRoot = "https://www.example.gov/news?id=123"
+        #expect(!GarbageSignalFilter.isNonNewsSourceURL(queryRoot))
+        #expect(GarbageSignalFilter.isListingIndexURL(queryRoot))
+        #expect(reason("Newsroom", queryRoot, newsBody)
+            == "bare news-index root (listing source, not a story)")
+    }
+
     @Test("Real permalinks and near-miss slugs are NOT flagged as listing pages")
     func allowsPermalinksNearListingShapes() {
         // Dated permalink on the same outlet.

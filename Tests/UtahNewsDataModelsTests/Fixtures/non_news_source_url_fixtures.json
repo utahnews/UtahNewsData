@@ -100,6 +100,17 @@
   { "url": "https://wordpress.example.com/archive/page/7/?utm_source=footer", "expected": true, "clause": "mig1227-wordpress: WordPress LISTING pages" },
   { "url": "http://wordpress.example.com/deep/archive/page/12?output=1#top", "expected": true, "clause": "mig1227-wordpress: WordPress LISTING pages" },
 
+  { "url": "https://www.ssanpete.org/eventsbyday/2026/09/05.html", "expected": true, "clause": "mig 1325 (a): school-calendar VIEW pages" },
+  { "url": "https://www.ssanpete.org/eventsbyweek/2026/09/07.html", "expected": true, "clause": "mig 1325 (a): school-calendar VIEW pages" },
+  { "url": "https://www.ssanpete.org/eventsbymonth/2026/09.html", "expected": true, "clause": "mig 1325 (a): school-calendar VIEW pages" },
+  { "url": "https://schools.example.org/eventbyday/2026/09/05.html", "expected": true, "clause": "mig 1325 (a): school-calendar VIEW pages" },
+
+  { "url": "https://sandy.utah.gov/latest-news", "expected": true, "clause": "mig 1325 (b): bare news-INDEX roots" },
+  { "url": "https://www.westjordan.utah.gov/newsroom", "expected": true, "clause": "mig 1325 (b): bare news-INDEX roots" },
+  { "url": "https://blakemoore.house.gov/media/press-releases", "expected": true, "clause": "mig 1325 (b): bare news-INDEX roots" },
+  { "url": "https://riverdale.wsd.net/news", "expected": true, "clause": "mig 1325 (b): bare news-INDEX roots" },
+  { "url": "https://city.example.gov/news-releases/", "expected": true, "clause": "mig 1325 (b): bare news-INDEX roots" },
+
   { "url": "https://schools.example.org/o/tigers/article/12345", "expected": false, "clause": "real story control: Apptegy article" },
   { "url": "https://example.com/news/2026/09/03/story-slug", "expected": false, "clause": "real story control: dated news" },
   { "url": "https://example.com/blog/post-title", "expected": false, "clause": "real story control: blog permalink" },
@@ -125,5 +136,12 @@
   { "url": "https://schools.example.org/o/tigers/events/detail/456", "expected": false, "clause": "real story control: Apptegy event detail" },
   { "url": "https://provo.gov/tags/public-notice?utm_source=alert", "expected": false, "clause": "real story control: documented tag query miss" },
   { "url": "https://le.utah.gov/DynaBill/svotes.jsp?sessionid=2026&vote=12", "expected": false, "clause": "real story control: current legislative vote" },
-  { "url": "https://wordpress.example.com/2026/council-story/page/2?output=print", "expected": false, "clause": "real story control: dated multipage permalink" }
+  { "url": "https://wordpress.example.com/2026/council-story/page/2?output=print", "expected": false, "clause": "real story control: dated multipage permalink" },
+
+  { "url": "https://x.gov/news?id=123", "expected": false, "clause": "real story control: mig 1325 (b) documented query-string miss" },
+  { "url": "https://city.gov/news/2026/09/05/story-slug", "expected": false, "clause": "real story control: dated news permalink past the index root" },
+  { "url": "https://x.gov/newsroom/press-release-title", "expected": false, "clause": "real story control: story slug past a newsroom root" },
+  { "url": "https://x.org/events/detail/123", "expected": false, "clause": "real story control: child event detail page" },
+  { "url": "https://x.org/eventsbyday-recap-story", "expected": false, "clause": "real story control: eventsbyday slug without the load-bearing slash" },
+  { "url": "https://www.ksl.com/article/51234567/foo", "expected": false, "clause": "real story control: outlet article permalink" }
 ]
