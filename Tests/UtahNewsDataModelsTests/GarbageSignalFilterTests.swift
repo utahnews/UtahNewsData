@@ -175,6 +175,47 @@ struct GarbageSignalFilterDocketTests {
             == "bare news-index root (listing source, not a story)")
     }
 
+    @Test("mig 1330 / 1338 shapes report their own listing reason")
+    func listingIndexReasonCoversTheEditorLaneShapes() {
+        // The four QUERY-BEARING shapes: url.path drops the query, so these prove
+        // listingIndexReason matches the whole URL for them rather than the path.
+        #expect(GarbageSignalFilter.isListingIndexURL("https://www.millcreekut.gov/Blog.asp?IID=1&ARC=1"))
+        #expect(!GarbageSignalFilter.isListingIndexURL("https://www.millcreekut.gov/Blog.aspx?IID=1&BID=8421"))
+        #expect(GarbageSignalFilter.isListingIndexURL("https://www.suu.edu/news/related.html?filter=Outdoors"))
+        #expect(GarbageSignalFilter.isListingIndexURL("https://cityofhurricane.com/Archive.aspx?AMID=38"))
+        #expect(!GarbageSignalFilter.isListingIndexURL("https://kanab.utah.gov/Archive.aspx?ADID=207"))
+        #expect(GarbageSignalFilter.isListingIndexURL(
+            "https://www.ferroncityutah.gov/module/events.htm?pageComponentId=5527477&day=10&month=9&year=2026"))
+        #expect(!GarbageSignalFilter.isListingIndexURL(
+            "https://www.ferroncityutah.gov/module/events.htm?pageComponentId=5527477&year=2026&month=Aug&day=15&eventId=8129528"))
+        // The path-shaped ones.
+        #expect(GarbageSignalFilter.isListingIndexURL("https://www.utah.gov/pmn/sitemap/publicbody/1006.html"))
+        #expect(!GarbageSignalFilter.isListingIndexURL("https://www.utah.gov/pmn/sitemap/notice/1104155.html"))
+        #expect(GarbageSignalFilter.isListingIndexURL(
+            "https://www.espn.com/college-football/game/_/gameId/401636880/byu-baylor"))
+        #expect(GarbageSignalFilter.isListingIndexURL("https://extension.usu.edu/agrability/in-the-news.php"))
+        #expect(!GarbageSignalFilter.isListingIndexURL(
+            "https://business.utah.gov/in-the-news/move-over-silicon-valley-utah-has-arrived/"))
+        // The reason strings are the editorial audit trail; keep them stable.
+        #expect(reason("Millcreek Blog", "https://www.millcreekut.gov/Blog.asp?IID=1&ARC=1", newsBody)
+            == "CivicPlus blog listing view (blog/category/archive index, not a post)")
+        #expect(reason("Public Body", "https://www.utah.gov/pmn/sitemap/publicbody/1006.html", newsBody)
+            == "PMN public-body index (a body's notice list, not a notice)")
+        #expect(reason("Calendar", "https://www.perrycityut.gov/module/events.htm", newsBody)
+            == "CivicPlus calendar view page (event enumerator, not an event)")
+    }
+
+    @Test("The 1338 shapes keep the documented query-tail SUPERSET on the path forms")
+    func inTheNewsQueryTailIsRefusedOnlyBySibling() {
+        // Terminal-anchored on the whole URL in isNonNewsSourceURL (DB parity), but
+        // listingIndexReason matches url.path, so a ?utm= tail is still a listing.
+        let tail = "https://extension.usu.edu/in-the-news?utm_source=alert"
+        #expect(!GarbageSignalFilter.isNonNewsSourceURL(tail))
+        #expect(GarbageSignalFilter.isListingIndexURL(tail))
+        #expect(reason("In the News", tail, newsBody)
+            == "in-the-news section root (listing source, not a story)")
+    }
+
     @Test("Real permalinks and near-miss slugs are NOT flagged as listing pages")
     func allowsPermalinksNearListingShapes() {
         // Dated permalink on the same outlet.

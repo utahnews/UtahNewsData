@@ -323,7 +323,10 @@ final class V2PipelineModelsTests: XCTestCase {
         )
         
         let encoder = JSONEncoder()
-        encoder.outputFormatting = .prettyPrinted
+        // Foundation escapes "/" by default ("https:\/\/test.com"), which made the
+        // substring assertion below fail at 1.35.0; keep slashes literal so the test
+        // reads the URL it wrote.
+        encoder.outputFormatting = [.prettyPrinted, .withoutEscapingSlashes]
         
         let jsonData = try encoder.encode(payload)
         let jsonString = String(data: jsonData, encoding: .utf8)

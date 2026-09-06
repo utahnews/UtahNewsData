@@ -145,6 +145,25 @@ public enum GarbageSignalFilter: Sendable {
     ///    renders "today", so every date gate sees a live page.
     ///  - BARE NEWS-INDEX ROOTS (terminal /news, /latest-news, /news-releases,
     ///    /newsroom, /press-releases) — migration 1325 (b), 2026-09-05.
+    ///  - CivicPlus BLOG LISTING views (Blog.asp[x]?IID=/CID=/ARC=, single-post
+    ///    BID= exempt) — migration 1330 (a), 2026-09-06.
+    ///  - BOXSCORE / GAMECAST placeholder pages (-game-boxscore-<id>,
+    ///    /game/_/gameId/, /gamecast/) — migration 1330 (b), 2026-09-06.
+    ///  - PMN PUBLIC-BODY sitemap indexes (/pmn/sitemap/publicbody/) — migration
+    ///    1338 (1), 2026-09-06. The notice itself stays news.
+    ///  - CMS RELATED-ITEMS filter listings (/related.html?filter=) — 1338 (2).
+    ///  - CivicPlus ARCHIVE MODULE indexes (Archive.asp[x]?AMID=, single-document
+    ///    ADID= exempt) — 1338 (3).
+    ///  - CivicPlus CALENDAR VIEWS (/module/events.htm, single-event eventId=
+    ///    exempt) — 1338 (4).
+    ///  - /in-the-news SECTION ROOTS (terminal) — 1338 (6). The hyphen-prefixed
+    ///    form is a documented miss: story slugs end in the same phrase.
+    ///
+    /// FOUR of those shapes live entirely in the QUERY STRING, which `url.path`
+    /// drops — they are matched against the whole URL inside `listingIndexReason`.
+    /// A shape confined to ONE eTLD+1 is not a shape: the sixth class of the
+    /// 2026-09-06 editor sweep (St. George recreation program catalogs) went into
+    /// `pipeline.junk_park_hosts` as PATH rows instead, and has no clause here.
     ///
     /// The mig 957 law holds throughout: a LISTING ends the path, so a
     /// /category/<base>/<story-slug> permalink and a dated /news/2026/09/05/slug
@@ -175,6 +194,18 @@ public enum GarbageSignalFilter: Sendable {
     private static func listingIndexReason(_ urlString: String) -> String? {
         guard let url = URL(string: urlString) else { return nil }
         let path = url.path.lowercased()
+        // ⚠️ `path` DROPS THE QUERY STRING. Four of the shapes below live entirely
+        // in the query (Blog.aspx?IID=, related.html?filter=, Archive.aspx?AMID=,
+        // module/events.htm?day=), so matching them against `path` would make them
+        // silently invisible here while the DB refuses them. Those clauses match
+        // the whole URL instead; the path-anchored shapes keep matching `path`,
+        // which is what makes this predicate the documented SUPERSET on query tails.
+        let full = urlString.lowercased()
+        // The clauses added by migs 1330/1338 pass `.caseInsensitive` explicitly,
+        // mirroring the DB's `~*`. Lowercasing the subject is NOT enough: a pattern
+        // that carries an uppercase letter (`/game/_/gameId/`) silently matches
+        // nothing against a lowercased subject under a case-SENSITIVE regex — the
+        // exact miss this predicate exists to prevent.
 
         if path.range(of: #"/tags?/[^/]+/?$"#, options: .regularExpression) != nil
             || path.range(of: #"/categor(y|ies)/[^/]+/?$"#, options: .regularExpression) != nil {
@@ -191,6 +222,40 @@ public enum GarbageSignalFilter: Sendable {
             options: .regularExpression
         ) != nil {
             return "bare news-index root (listing source, not a story)"
+        }
+        // mig 1330 (a) — query-bearing, so matched on the whole URL.
+        if full.range(of: RegexClause.blogListingView.rawValue, options: [.regularExpression, .caseInsensitive]) != nil,
+           full.range(of: RegexClause.blogSinglePost.rawValue, options: [.regularExpression, .caseInsensitive]) == nil {
+            return "CivicPlus blog listing view (blog/category/archive index, not a post)"
+        }
+        // mig 1330 (b) — path-shaped.
+        if path.range(of: RegexClause.gameBoxscore.rawValue, options: [.regularExpression, .caseInsensitive]) != nil
+            || path.range(of: RegexClause.gameIdRecord.rawValue, options: [.regularExpression, .caseInsensitive]) != nil
+            || path.range(of: RegexClause.gamecastRecord.rawValue, options: [.regularExpression, .caseInsensitive]) != nil {
+            return "boxscore or gamecast placeholder page (scoreboard record, not a story)"
+        }
+        // mig 1338 (1) — path-shaped.
+        if path.range(of: RegexClause.pmnPublicBodyIndex.rawValue, options: [.regularExpression, .caseInsensitive]) != nil {
+            return "PMN public-body index (a body's notice list, not a notice)"
+        }
+        // mig 1338 (2) — query-bearing.
+        if full.range(of: RegexClause.relatedFilterListing.rawValue, options: [.regularExpression, .caseInsensitive]) != nil {
+            return "CMS related-items filter listing (tag view, not a story)"
+        }
+        // mig 1338 (3) — query-bearing, with the single-document carve-out.
+        if full.range(of: RegexClause.archiveModuleIndex.rawValue, options: [.regularExpression, .caseInsensitive]) != nil,
+           full.range(of: RegexClause.archiveDocumentId.rawValue, options: [.regularExpression, .caseInsensitive]) == nil {
+            return "CivicPlus archive module index (document list, not a document)"
+        }
+        // mig 1338 (4) — query-bearing, with the single-event carve-out.
+        if full.range(of: RegexClause.eventsModuleCalendar.rawValue, options: [.regularExpression, .caseInsensitive]) != nil,
+           full.range(of: RegexClause.eventsModuleSingleEvent.rawValue, options: [.regularExpression, .caseInsensitive]) == nil {
+            return "CivicPlus calendar view page (event enumerator, not an event)"
+        }
+        // mig 1338 (6) — path-anchored, so a ?utm= tail is refused here and not by
+        // the DB twin: the documented superset, same as newsIndexRoot.
+        if path.range(of: RegexClause.inTheNewsRoot.rawValue, options: [.regularExpression, .caseInsensitive]) != nil {
+            return "in-the-news section root (listing source, not a story)"
         }
         return nil
     }
@@ -460,6 +525,92 @@ public enum GarbageSignalFilter: Sendable {
             return true
         }
 
+        // mig 1330 (a): CivicPlus BLOG LISTING views. Blog.asp[x] takes IID=<blog
+        // index>, CID=<category listing> and ARC=<archive page>; a single POST
+        // carries BID=<n>. SIX copies of one Millcreek post were drafted from six
+        // archive views (IID=1&ARC=1/2/3, IID=2&ARC=4, CID=2&ARC=1/2) — the
+        // archived-alert rule [?&]ARC=[0-9]+ is scoped to CivicAlerts.aspx and
+        // never sees Blog.asp[x]. The single-post exemption is evaluated with the
+        // match, exactly as the DB writes it INSIDE one clause, so an edit cannot
+        // keep the match and lose the carve-out. Measured (db-ro 2026-09-06):
+        // 30 Blog.asp[x] URLs / 30 d, 23 listing views, ZERO carrying BID.
+        // DOCUMENTED MISS: the ARC=L archive-INDEX form carries no numeric
+        // parameter and stays FALSE on both sides.
+        if matches(value, .blogListingView) && !matches(value, .blogSinglePost) {
+            return true
+        }
+
+        // mig 1330 (b): BOXSCORE / GAMECAST placeholder pages, host-agnostic and
+        // terminal-or-continuing (a ?tab=boxscore tail still matches). A boxscore
+        // page is the scoreboard RECORD of a fixture, not a story: it renders for a
+        // game that has NOT been played (a Sept 19 2026 fixture was drafted with
+        // invented scores) and identically for a 2020 game. Results belong to an
+        // outlet story. Measured (db-ro 2026-09-06): 55 distinct URLs, 74 articles,
+        // 0 false positives; /gamecast/ matched nothing live and is carried
+        // pre-emptively, unanchored like newsIndexRoot.
+        if matches(value, .gameBoxscore)
+            || matches(value, .gameIdRecord)
+            || matches(value, .gamecastRecord) {
+            return true
+        }
+
+        // mig 1338 (1): PMN PUBLIC-BODY SITEMAP PAGES. Utah's Public Meeting Notice
+        // site publishes, per public body, an INDEX of that body's notices — a LIST
+        // of notices, never a notice. gemma drafts "Heber City Council Lists
+        // Upcoming and Past Meeting Notices" and, off the body's member roster,
+        // BIOS. Measured (db-ro 2026-09-06): 921 distinct URLs / 30 d on one host,
+        // 628 articles (128 open drafts, 31 live published). The NOTICE itself
+        // (/pmn/sitemap/notice/<id>.html, 5,766 / 30 d) and its attachments
+        // (/pmn/files/<id>.pdf) are real primary sources and stay news.
+        if matches(value, .pmnPublicBodyIndex) {
+            return true
+        }
+
+        // mig 1338 (2): CMS RELATED-ITEMS FILTER LISTINGS. related.html?filter=<tag>
+        // is the site's related-content endpoint rendering a TAG VIEW; gemma
+        // composes a mashup digest of whatever the filter returned. Measured
+        // (db-ro 2026-09-06): 361 URLs all-time, ALL on one host (www.suu.edu) —
+        // the clause is written host-agnostically because related.html?filter=
+        // names a CMS endpoint, but there is no second host in the corpus.
+        // filter= is lossless: 0 related.html URLs all-time lack it.
+        if matches(value, .relatedFilterListing) {
+            return true
+        }
+
+        // mig 1338 (3): CivicPlus Archive.asp[x] ARCHIVE MODULE INDEXES. AMID = the
+        // archive MODULE (index of one archive list); ADID = one archived DOCUMENT
+        // and is 3,466 distinct URLs / 30 d of real agenda/minutes landings that
+        // must never be swallowed. Two guards: amid=[0-9]+ cannot match ?ADID=, and
+        // the paired exemption is the belt. DEFENSIVE, NOT FIELD-VALIDATED: zero
+        // URLs all-time carry a numeric AMID and a numeric ADID.
+        if matches(value, .archiveModuleIndex) && !matches(value, .archiveDocumentId) {
+            return true
+        }
+
+        // mig 1338 (4): CivicPlus module/events.htm CALENDAR-DAY VIEWS — the
+        // CivicPlus twin of the Finalsite /events?by(day|week|month)/ rule. Measured
+        // (db-ro 2026-09-06): 82 distinct URLs / 30 d over 4 hosts, split 46
+        // calendar views (bare, or a day=/month=/year= selector; source_title is
+        // literally "Calendar") and 36 SINGLE EVENTS carrying eventId=<n>. The
+        // single-event form is the CivicPlus shape of /events/detail/<id>, kept as
+        // news by mig 1325, so it is exempted with the match.
+        if matches(value, .eventsModuleCalendar) && !matches(value, .eventsModuleSingleEvent) {
+            return true
+        }
+
+        // mig 1338 (6): /in-the-news SECTION ROOTS, TERMINAL-anchored under the mig
+        // 957 law (a listing ENDS the path). Measured (db-ro 2026-09-06): 18 corpus
+        // URLs, 16 of them newly refused, every one a section root. DOCUMENTED MISS
+        // LEFT OPEN ON PURPOSE: the hyphen-prefixed form (cce-in-the-news,
+        // crimson-view-in-the-news/, esa-in-the-news/, …, 7 corpus URLs) is the same
+        // class, but widening to [-/]in-the-news would make FALSE POSITIVES of real
+        // stories whose SLUG ends in the phrase (age-verification-in-the-news,
+        // housing-and-climate-crosswinds-in-the-news.html). The leading slash is the
+        // only discriminator; do not widen it.
+        if matches(value, .inTheNewsRoot) {
+            return true
+        }
+
         // Docket-record and URL-parsed listing refusal remain sibling predicates;
         // composing either here would make this function a superset of the DB twin.
         return false
@@ -519,6 +670,28 @@ public enum GarbageSignalFilter: Sendable {
         case datedPath = #"/(19|20)[0-9]{2}/"#
         case calendarView = #"/events?by(day|week|month)/"#
         case newsIndexRoot = #"/(news|latest-?news|news-?releases?|newsroom|press-?releases?)/?$"#
+        // mig 1330 (a): CivicPlus BLOG LISTING views. IID = blog index, CID =
+        // category listing, ARC = archive page; a single POST carries BID=<n>.
+        case blogListingView = #"/blog\.aspx?\?([^#]*&)?(iid|cid|arc)=[0-9]+"#
+        case blogSinglePost = #"[?&]bid=[0-9]+"#
+        // mig 1330 (b): boxscore / gamecast placeholder pages, host-agnostic.
+        case gameBoxscore = #"-game-boxscore-[0-9]+"#
+        case gameIdRecord = #"/game/_/gameId/"#
+        case gamecastRecord = #"/gamecast/"#
+        // mig 1338 (1): PMN public-body sitemap INDEX pages.
+        case pmnPublicBodyIndex = #"/pmn/sitemap/publicbody/"#
+        // mig 1338 (2): CMS related-items FILTER listings.
+        case relatedFilterListing = #"/related\.html\?([^#]*&)?filter="#
+        // mig 1338 (3): CivicPlus Archive.asp[x] archive MODULE index; the single
+        // archived DOCUMENT (ADID) is exempted by the paired clause.
+        case archiveModuleIndex = #"/archive\.aspx?\?([^#]*&)?amid=[0-9]+"#
+        case archiveDocumentId = #"[?&]adid=[0-9]+"#
+        // mig 1338 (4): CivicPlus module calendar VIEW; a single EVENT (eventId)
+        // is exempted by the paired clause.
+        case eventsModuleCalendar = #"/module/events\.htm(\?|$)"#
+        case eventsModuleSingleEvent = #"[?&]eventid=[0-9]+"#
+        // mig 1338 (6): /in-the-news SECTION ROOTS, terminal-anchored.
+        case inTheNewsRoot = #"/in-the-news(/index)?(\.php|\.html?)?/?$"#
 
         var options: NSRegularExpression.Options {
             switch self {
