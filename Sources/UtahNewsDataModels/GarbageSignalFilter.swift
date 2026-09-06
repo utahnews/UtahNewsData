@@ -158,12 +158,30 @@ public enum GarbageSignalFilter: Sendable {
     ///    exempt) — 1338 (4).
     ///  - /in-the-news SECTION ROOTS (terminal) — 1338 (6). The hyphen-prefixed
     ///    form is a documented miss: story slugs end in the same phrase.
+    ///  - CivicPlus /FormCenter/ FORM PAGES — the form LEAF, the CATEGORY page and
+    ///    the bare /FormCenter root are one class — migration 1342 (1), 2026-09-06.
+    ///    A form is not a source; the decision behind it belongs to the city's news
+    ///    release, agenda or calendar page.
+    ///  - CivicPlus Faq.asp[x] EXPLAINER pages (?QID=, ?TID=, bare index) — 1342 (2).
+    ///    Standing answers, undated, never a dated notice.
+    ///  - GOOGLE DRIVE FOLDER listings (drive.google.com/drive/[u/N/][mobile/]
+    ///    folders/<id>) — 1342 (3). A folder page is a FILE INDEX and the enumerator
+    ///    harvests its contents; the files themselves (/file/d/, /open?id=) are
+    ///    primary sources and stay news.
     ///
-    /// FOUR of those shapes live entirely in the QUERY STRING, which `url.path`
-    /// drops — they are matched against the whole URL inside `listingIndexReason`.
+    /// FOUR shapes live entirely in the QUERY STRING and ONE in the HOST, all five
+    /// of which `url.path` drops — they are matched against the whole URL inside
+    /// `listingIndexReason`.
     /// A shape confined to ONE eTLD+1 is not a shape: the sixth class of the
     /// 2026-09-06 editor sweep (St. George recreation program catalogs) went into
-    /// `pipeline.junk_park_hosts` as PATH rows instead, and has no clause here.
+    /// `pipeline.junk_park_hosts` as PATH rows instead, and has no clause here. The
+    /// Drive FOLDER shape (1342 (3)) is the documented exception, and the reasoning
+    /// is recorded so it is not re-litigated: a folder page literally IS a file
+    /// listing, it is a GLOBAL PLATFORM surface used by 14 distinct Utah cities in
+    /// this corpus, and the `junk_park_hosts` alternative would need the COARSE host
+    /// drive.google.com in `_refused_host_sweep_list()`, whose arm would then flag
+    /// the live published Drive FILE record 2260971a. `docs.google.com/forms` stays
+    /// migration 1333's, refused at INTAKE and not here.
     ///
     /// The mig 957 law holds throughout: a LISTING ends the path, so a
     /// /category/<base>/<story-slug> permalink and a dated /news/2026/09/05/slug
@@ -194,12 +212,14 @@ public enum GarbageSignalFilter: Sendable {
     private static func listingIndexReason(_ urlString: String) -> String? {
         guard let url = URL(string: urlString) else { return nil }
         let path = url.path.lowercased()
-        // ⚠️ `path` DROPS THE QUERY STRING. Four of the shapes below live entirely
-        // in the query (Blog.aspx?IID=, related.html?filter=, Archive.aspx?AMID=,
-        // module/events.htm?day=), so matching them against `path` would make them
-        // silently invisible here while the DB refuses them. Those clauses match
-        // the whole URL instead; the path-anchored shapes keep matching `path`,
-        // which is what makes this predicate the documented SUPERSET on query tails.
+        // ⚠️ `path` DROPS THE QUERY STRING *AND THE HOST*. FIVE of the shapes below
+        // are invisible to it: four live entirely in the query (Blog.aspx?IID=,
+        // related.html?filter=, Archive.aspx?AMID=, module/events.htm?day=) and one
+        // in the HOST (drive.google.com/drive/…/folders/<id>), so matching any of
+        // them against `path` would make them silently invisible here while the DB
+        // refuses them. Those clauses match the whole URL instead; the path-anchored
+        // shapes keep matching `path`, which is what makes this predicate the
+        // documented SUPERSET on query tails.
         let full = urlString.lowercased()
         // The clauses added by migs 1330/1338 pass `.caseInsensitive` explicitly,
         // mirroring the DB's `~*`. Lowercasing the subject is NOT enough: a pattern
@@ -256,6 +276,25 @@ public enum GarbageSignalFilter: Sendable {
         // the DB twin: the documented superset, same as newsIndexRoot.
         if path.range(of: RegexClause.inTheNewsRoot.rawValue, options: [.regularExpression, .caseInsensitive]) != nil {
             return "in-the-news section root (listing source, not a story)"
+        }
+        // mig 1342 (1) — path-shaped. The clause carries its own (\?|#|$) terminator,
+        // so path and whole-URL matching agree; no superset gap here.
+        if path.range(of: RegexClause.civicPlusFormCenter.rawValue,
+                      options: [.regularExpression, .caseInsensitive]) != nil {
+            return "CivicPlus form-center page (a form, not the decision behind it)"
+        }
+        // mig 1342 (2) — path-shaped, same terminator reasoning.
+        if path.range(of: RegexClause.civicPlusFaqPage.rawValue,
+                      options: [.regularExpression, .caseInsensitive]) != nil {
+            return "CivicPlus FAQ explainer page (standing answers, not a dated notice)"
+        }
+        // mig 1342 (3) — HOST-BEARING, so `full`, not `path`. ⚠️ url.path drops the
+        // host: matching this clause against `path` would return nil for every Drive
+        // folder while the DB refuses them — the same trap the four query-bearing
+        // 1330/1338 shapes carry, in its host-shaped form. Pinned by a test.
+        if full.range(of: RegexClause.googleDriveFolder.rawValue,
+                      options: [.regularExpression, .caseInsensitive]) != nil {
+            return "Google Drive folder listing (a file index, not a document)"
         }
         return nil
     }
@@ -611,6 +650,64 @@ public enum GarbageSignalFilter: Sendable {
             return true
         }
 
+        // mig 1342 (1): CivicPlus /FormCenter/ FORM PAGES. A form is not a source —
+        // the event or decision behind it (a pumpkin-walk vendor call, a gingerbread
+        // contest, a tribute collection, a GRAMA request portal) belongs to the city's
+        // news release, agenda or calendar page. The form page is the INSTRUMENT, and
+        // it is undated and standing, so every date gate sees a live page while gemma
+        // writes a present-tense "City Releases 2026 Pumpkin Walk Food Truck
+        // Applications" out of a web form — published TWICE, off the bare-host and www
+        // spellings of one URL. Measured (db-ro 2026-09-06): 313 distinct URLs / 30 d
+        // over 46 CivicPlus civic hosts and zero non-civic hosts, 373 all-time; 54
+        // articles, 6 live published (5 post-928). ONE class, three spellings: the FORM
+        // leaf, the CATEGORY page and the bare /FormCenter root (24 URLs all-time). The
+        // leading slash is the only discriminator — …/news/formcenter-opens-downtown
+        // and /reformcenter/ stay news — and the hyphen-prefixed …-formcenter form is a
+        // DOCUMENTED MISS left open on purpose (0 corpus URLs, so it costs nothing
+        // today). Same law as mig 1338's /in-the-news decision: do not widen to [-/].
+        if matches(value, .civicPlusFormCenter) {
+            return true
+        }
+
+        // mig 1342 (2): CivicPlus Faq.asp[x] EXPLAINER PAGES. A FAQ entry (?QID=<n>), a
+        // FAQ topic view (?TID=<n>) and the bare FAQ index are the same thing: STANDING
+        // ANSWERS, undated, rewritten as news. A Moab COVID-era FAQ answer was
+        // published as a July 2026 story, a bare index became "SL County DA Prosecutes
+        // Arson Charges in Murray", and four near-duplicate Bees-Stadium mashups came
+        // off four FAQ entries of one host. All 18 live published rows were read at
+        // authoring and NOT ONE is a dated notice that merely lives at Faq.aspx, so
+        // nothing was narrowed. Measured (db-ro 2026-09-06): 359 distinct URLs / 30 d
+        // over 53 hosts (QID 245 / TID 96 / bare index 18), 423 all-time; 77 articles,
+        // 18 live published (9 post-928). Anchored on the CivicPlus MODULE file name;
+        // the x? also admits the legacy .asp spelling. The terminator is lossless over
+        // the corpus (0 URLs carry anything after .aspx but ? or the end) and keeps
+        // /faq.aspxyz and …/blog/faq.aspx-explained FALSE. LEFT OPEN ON PURPOSE: the
+        // same editorial class on non-CivicPlus CMSes — terminal /faq|/faqs (126 URLs
+        // / 30 d) and /faq.html|.php (85) — is a ~211-URL blast radius across arbitrary
+        // CMSes and needs its own census and sample read; do not fold it in here.
+        if matches(value, .civicPlusFaqPage) {
+            return true
+        }
+
+        // mig 1342 (3): GOOGLE DRIVE FOLDER LISTINGS. A folder page is a FILE INDEX —
+        // "Folder - Google Drive" is the literal source_title of 34 of the 62 corpus
+        // URLs — and the enumerator harvests EVERY FILE INSIDE IT: the Cache County COG
+        // archive alone produced 13 stale rejects, 2016–2023 documents surfaced with
+        // the crawl date, and every one of them was a /file/d/ or /open?id= FILE
+        // harvested off the folder. Closing the folder page closes the faucet. Measured
+        // (db-ro 2026-09-06): 62 distinct URLs / 30 d across 14 distinct cities and 9
+        // sources, 129 all-time; 1 article (rejected), 0 live published. HOST-ANCHORED,
+        // so a civic site's own /drive/folders/ path and notdrive.google.com.evil.com
+        // are FALSE; id-requiring, so /drive/my-drive is FALSE; the bounded segment
+        // skip covers /drive/folders/, /drive/u/0/folders/ and /drive/mobile/folders/.
+        // THE FILES STAY NEWS: /file/d/ and /open?id= are primary sources — live
+        // published 2260971a (Boulder Town Truth-in-Taxation, 2026-09-05) is one.
+        // docs.google.com has ZERO folder-like listings in the corpus and gets no
+        // clause, and docs.google.com/forms is migration 1333's, refused at INTAKE.
+        if matches(value, .googleDriveFolder) {
+            return true
+        }
+
         // Docket-record and URL-parsed listing refusal remain sibling predicates;
         // composing either here would make this function a superset of the DB twin.
         return false
@@ -692,6 +789,15 @@ public enum GarbageSignalFilter: Sendable {
         case eventsModuleSingleEvent = #"[?&]eventid=[0-9]+"#
         // mig 1338 (6): /in-the-news SECTION ROOTS, terminal-anchored.
         case inTheNewsRoot = #"/in-the-news(/index)?(\.php|\.html?)?/?$"#
+        // mig 1342 (1): CivicPlus /FormCenter/ form pages — a form is not a source.
+        case civicPlusFormCenter = #"/formcenter(/|\?|#|$)"#
+        // mig 1342 (2): CivicPlus Faq.asp[x] explainer pages (?QID=, ?TID=, bare index).
+        case civicPlusFaqPage = #"/faq\.aspx?(\?|#|$)"#
+        // mig 1342 (3): Google Drive FOLDER listings. HOST-BEARING, so
+        // listingIndexReason must match this one against the WHOLE URL — url.path
+        // drops the host. Files (/file/d/, /open?id=) stay news: live published
+        // 2260971a is one.
+        case googleDriveFolder = #"^https?://([a-z0-9-]+\.)*drive\.google\.com/drive/([^/?#]+/){0,3}folders/[^/?#]"#
 
         var options: NSRegularExpression.Options {
             switch self {

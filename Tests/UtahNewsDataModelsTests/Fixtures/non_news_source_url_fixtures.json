@@ -174,5 +174,30 @@
   { "url": "https://www.uvu.edu/ccs/in-the-news/index.html", "expected": true, "clause": "mig 1338 (6): in-the-news section root" },
   { "url": "https://www.beehiveacademy.org/in-the-news/", "expected": true, "clause": "mig 1338 (6): in-the-news section root" },
   { "url": "https://business.utah.gov/in-the-news/move-over-silicon-valley-utah-has-arrived/", "expected": false, "clause": "real story control: story under an in-the-news root" },
-  { "url": "https://www.dot-realty.org/articles/housing-and-climate-crosswinds-in-the-news.html", "expected": false, "clause": "real story control: story slug ending in in-the-news" }
+  { "url": "https://www.dot-realty.org/articles/housing-and-climate-crosswinds-in-the-news.html", "expected": false, "clause": "real story control: story slug ending in in-the-news" },
+
+
+  { "url": "https://www.sjc.utah.gov/FormCenter/Parks-Recreation-5/Gingerbread-Contest-Entry-2026-170", "expected": true, "clause": "mig 1342 (1): CivicPlus FormCenter form page" },
+  { "url": "https://ephraim.gov/FormCenter/Nightmare-on-Main-Vendor-Application-9/Nightmare-on-Main-Street-Registration-59", "expected": true, "clause": "mig 1342 (1): CivicPlus FormCenter form page" },
+  { "url": "https://syracuseut.gov/FormCenter/Parks-Recreation-7", "expected": true, "clause": "mig 1342 (1): CivicPlus FormCenter form page" },
+  { "url": "https://highlandut.gov/FormCenter", "expected": true, "clause": "mig 1342 (1): CivicPlus FormCenter form page" },
+  { "url": "https://www.example.com/news/2026/09/06/formcenter-opens-downtown", "expected": false, "clause": "real story control: story slug containing formcenter" },
+  { "url": "https://www.example.gov/reformcenter/permits", "expected": false, "clause": "real story control: word ending in formcenter" },
+  { "url": "https://lindon.gov/CivicAlerts.aspx?AID=20", "expected": false, "clause": "real story control: CivicPlus news release" },
+  { "url": "https://www.santaquin.gov/Faq.aspx?QID=107", "expected": true, "clause": "mig 1342 (2): CivicPlus Faq.aspx explainer" },
+  { "url": "https://kaysville.gov/Faq.aspx?TID=29", "expected": true, "clause": "mig 1342 (2): CivicPlus Faq.aspx explainer" },
+  { "url": "https://www.murray.utah.gov/faq.aspx", "expected": true, "clause": "mig 1342 (2): CivicPlus Faq.aspx explainer" },
+  { "url": "https://continue.weber.edu/wsuonline/faq.aspx", "expected": true, "clause": "mig 1342 (2): CivicPlus Faq.aspx explainer" },
+  { "url": "https://www.example.gov/faq.aspxyz", "expected": false, "clause": "real story control: faq.aspx terminator" },
+  { "url": "https://www.example.gov/news/our-faq.aspx", "expected": false, "clause": "real story control: slug ending in faq.aspx" },
+  { "url": "https://www.example.gov/faqs/", "expected": false, "clause": "real story control: generic /faqs root is LEFT OPEN, not this clause" },
+  { "url": "https://drive.google.com/drive/folders/10eOBG7Yc-TK14R3OzXEYNXKzBmwhBXCu?usp=sharing", "expected": true, "clause": "mig 1342 (3): Google Drive folder listing" },
+  { "url": "https://drive.google.com/drive/u/0/folders/0B1_5OqGNASZ5Rkxfc2Z3VUZMRXc", "expected": true, "clause": "mig 1342 (3): Google Drive folder listing" },
+  { "url": "https://drive.google.com/drive/mobile/folders/1WnZfL1yTFTzdSGnqn8NQHiU1YbqJ0oym?usp=sharing", "expected": true, "clause": "mig 1342 (3): Google Drive folder listing" },
+  { "url": "https://drive.google.com/file/d/1DREp20n3szUjdiMTdAyYeuw8vsvvbHSH/view?usp=drive_link", "expected": false, "clause": "real story control: Google Drive FILE is a primary source" },
+  { "url": "https://drive.google.com/open?id=1DMvuTKVr2U-x6hnl5osw0QKoHcGM_Akj", "expected": false, "clause": "real story control: Google Drive open?id= file" },
+  { "url": "https://drive.google.com/drive/my-drive", "expected": false, "clause": "real story control: Drive root with no folder id" },
+  { "url": "https://notdrive.google.com.evil.com/drive/folders/ABC", "expected": false, "clause": "real story control: Drive folder host anchor" },
+  { "url": "https://www.example.gov/drive/folders/2026-budget", "expected": false, "clause": "real story control: a civic site's own /drive/folders/ path" },
+  { "url": "https://docs.google.com/forms/d/e/1FAIpQLSc/viewform", "expected": false, "clause": "real story control: docs.google.com forms is mig 1333's, refused at INTAKE" }
 ]

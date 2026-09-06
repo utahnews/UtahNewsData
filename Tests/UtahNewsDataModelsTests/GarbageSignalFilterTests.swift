@@ -216,6 +216,52 @@ struct GarbageSignalFilterDocketTests {
             == "in-the-news section root (listing source, not a story)")
     }
 
+    @Test("mig 1342 shapes report their own listing reason")
+    func listingIndexReasonCoversTheFormFaqDriveShapes() {
+        #expect(GarbageSignalFilter.isListingIndexURL(
+            "https://www.sjc.utah.gov/FormCenter/Parks-Recreation-5/Gingerbread-Contest-Entry-2026-170"))
+        #expect(GarbageSignalFilter.isListingIndexURL("https://highlandut.gov/FormCenter"))
+        #expect(GarbageSignalFilter.isListingIndexURL("https://www.santaquin.gov/Faq.aspx?QID=107"))
+        #expect(GarbageSignalFilter.isListingIndexURL("https://www.murray.utah.gov/faq.aspx"))
+        #expect(!GarbageSignalFilter.isListingIndexURL("https://lindon.gov/CivicAlerts.aspx?AID=20"))
+        #expect(!GarbageSignalFilter.isListingIndexURL(
+            "https://www.example.com/news/2026/09/06/formcenter-opens-downtown"))
+        #expect(reason("Gingerbread Contest Entry",
+                       "https://www.sjc.utah.gov/FormCenter/Parks-Recreation-5/Gingerbread-Contest-Entry-2026-170",
+                       newsBody) == "CivicPlus form-center page (a form, not the decision behind it)")
+        #expect(reason("FAQs", "https://www.murray.utah.gov/faq.aspx", newsBody)
+            == "CivicPlus FAQ explainer page (standing answers, not a dated notice)")
+    }
+
+    /// THE ASYMMETRY THIS PORT EXISTS TO PIN: the Drive clause is HOST-bearing, and
+    /// url.path drops the host — matching it against `path` returns nil for every
+    /// folder while the DB refuses them. Its siblings are PATH-shaped and must not
+    /// swallow a civic site's own /drive/folders/ path.
+    @Test("The Google Drive folder clause is matched on the whole URL, not url.path")
+    func driveFolderClauseIsHostBearing() {
+        let folder = "https://drive.google.com/drive/folders/10eOBG7Yc-TK14R3OzXEYNXKzBmwhBXCu"
+        #expect(GarbageSignalFilter.isNonNewsSourceURL(folder))
+        #expect(GarbageSignalFilter.isListingIndexURL(folder))     // proves `full`, not `path`
+        #expect(reason("Folder - Google Drive", folder, newsBody)
+            == "Google Drive folder listing (a file index, not a document)")
+
+        // Every live spelling of the folder page is one class.
+        #expect(GarbageSignalFilter.isListingIndexURL(
+            "https://drive.google.com/drive/u/0/folders/0B1_5OqGNASZ5Rkxfc2Z3VUZMRXc"))
+        #expect(GarbageSignalFilter.isListingIndexURL(
+            "https://drive.google.com/drive/mobile/folders/1WnZfL1yTFTzdSGnqn8NQHiU1YbqJ0oym?usp=sharing"))
+
+        // A civic site whose own path happens to read /drive/folders/ is untouched.
+        let civicPath = "https://www.example.gov/drive/folders/2026-budget"
+        #expect(!GarbageSignalFilter.isNonNewsSourceURL(civicPath))
+        #expect(!GarbageSignalFilter.isListingIndexURL(civicPath))
+
+        // A Drive FILE is a primary source on BOTH predicates (live published 2260971a).
+        let file = "https://drive.google.com/file/d/1DREp20n3szUjdiMTdAyYeuw8vsvvbHSH/view?usp=drive_link"
+        #expect(!GarbageSignalFilter.isNonNewsSourceURL(file))
+        #expect(!GarbageSignalFilter.isListingIndexURL(file))
+    }
+
     @Test("Real permalinks and near-miss slugs are NOT flagged as listing pages")
     func allowsPermalinksNearListingShapes() {
         // Dated permalink on the same outlet.
