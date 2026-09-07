@@ -92,6 +92,69 @@ struct NonNewsSourceURLParityTests {
             "https://www.sjc.utah.gov/AgendaCenter/ViewFile/Agenda/_09022026-2101"))
     }
 
+    /// mig 1346's four shapes, clause-for-clause with `pipeline.is_listing_page_url`
+    /// as widened on 2026-09-06. The fixtures carry the truth table; this test pins
+    /// what the fixture file cannot express — the carve-outs that keep real primary
+    /// sources publishable, the classes MEASURED AND LEFT OPEN on purpose, and the
+    /// cross-lane verdicts this file must not move.
+    @Test("mig 1346 profile-root and calendar-view shapes keep their DB carve-outs")
+    func mig1346ShapesKeepTheirCarveOuts() {
+        // The four shapes are refused by the DB twin itself, not only by the
+        // deliberately-superset sibling.
+        #expect(GarbageSignalFilter.isNonNewsSourceURL("https://bsky.app/profile/georgiametcalf.bsky.social"))
+        #expect(GarbageSignalFilter.isNonNewsSourceURL(
+            "https://www.ssanpete.org/school-info/calendars/mhs-calendar/monthcalendar/2026/11.html"))
+        #expect(GarbageSignalFilter.isNonNewsSourceURL(
+            "https://www.piutek12.org/calendar/eventsbyyear/2026/-.html"))
+        #expect(GarbageSignalFilter.isNonNewsSourceURL("https://smithfieldutah.gov/calendar/month/2026-09"))
+
+        // CARVE-OUT 1 — a bsky POST is a primary source. The live editor published
+        // d67a378a (an author's own statement about withdrawing from a Weber State
+        // engagement) off exactly this URL, so the END anchor is load-bearing.
+        #expect(!GarbageSignalFilter.isNonNewsSourceURL(
+            "https://bsky.app/profile/did:plc:luf6isxwbbodo7bgkd5arieq/post/3m63shhebac22"))
+        #expect(!GarbageSignalFilter.isNonNewsSourceURL(
+            "https://bsky.app/profile/esqueer.net/post/3mrbpatwcys2s"))
+
+        // CARVE-OUT 2 — a school single-EVENT page stays news; only the VIEW is a
+        // listing. Same law as mig 1338's eventId= exemption, which must not move.
+        #expect(!GarbageSignalFilter.isNonNewsSourceURL(
+            "https://www.ssanpete.org/district-information/district-calendar/3116312/school-board-meeting.html"))
+        #expect(!GarbageSignalFilter.isNonNewsSourceURL(
+            "https://www.ferroncityutah.gov/module/events.htm?startDate=1/1/2026&eventId=8129528"))
+        #expect(!GarbageSignalFilter.isNonNewsSourceURL("https://events.suu.edu/event/fall-convocation-2026"))
+
+        // CARVE-OUT 3 — the trailing slash is the only discriminator against a slug
+        // or a host that merely contains the token.
+        #expect(!GarbageSignalFilter.isNonNewsSourceURL(
+            "https://nationaldaycalendar.com/celebrations/national-hot-dog-day-third-wednesday-in-july"))
+        #expect(!GarbageSignalFilter.isNonNewsSourceURL(
+            "https://kutv.com/news/local/months-after-canvas-cyberattack-experts-warn-families-to-stay-alert-for-scams"))
+        #expect(!GarbageSignalFilter.isNonNewsSourceURL("https://www.piutek12.org/calendar.html"))
+        #expect(!GarbageSignalFilter.isNonNewsSourceURL("https://example.org/calendar/monthly-report-2026.pdf"))
+
+        // MEASURED AND LEFT OPEN ON PURPOSE (mig 1346 sec 2.2 N). provo.edu's a/b
+        // calendar view is ONE district's page slug on ONE eTLD+1 with 0 live
+        // published rows — one CMS slug is not a shape, and it reduces no measured
+        // live harm. Re-read that measurement before widening this.
+        #expect(!GarbageSignalFilter.isNonNewsSourceURL(
+            "https://timpview.provo.edu/school-calendar/a-b-calendar-month-view/"))
+
+        // CROSS-LANE — the OTHER social-profile hosts stay UNDECIDED (mig 1341 (C)).
+        // Institutional feeds live on them, and facebook.com additionally carries the
+        // Tooele attribution problem; a generic /<handle>$ shape would decide all six
+        // by the back door. bsky.app is host-anchored precisely to prevent that.
+        #expect(!GarbageSignalFilter.isNonNewsSourceURL("https://x.com/NWSSaltLakeCity"))
+        #expect(!GarbageSignalFilter.isNonNewsSourceURL("https://twitter.com/UtahDPS"))
+        #expect(!GarbageSignalFilter.isNonNewsSourceURL("https://www.facebook.com/TooeleCityGov"))
+        #expect(!GarbageSignalFilter.isNonNewsSourceURL("https://www.instagram.com/universityofutah"))
+
+        // CROSS-LANE — bsky.app gets NO junk_park_hosts row, so nothing here may
+        // refuse a profile root at INTAKE. mig 1342's Drive verdicts are unmoved too.
+        #expect(!GarbageSignalFilter.isNonNewsSourceURL(
+            "https://drive.google.com/file/d/1DREp20n3szUjdiMTdAyYeuw8vsvvbHSH/view?usp=drive_link"))
+    }
+
     @Test("All non-news URL regex clauses compile")
     func allRegexClausesCompile() {
         #expect(GarbageSignalFilter.nonNewsRegexCompileFailures.isEmpty)

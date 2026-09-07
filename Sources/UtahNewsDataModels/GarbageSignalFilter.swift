@@ -168,10 +168,24 @@ public enum GarbageSignalFilter: Sendable {
     ///    folders/<id>) — 1342 (3). A folder page is a FILE INDEX and the enumerator
     ///    harvests its contents; the files themselves (/file/d/, /open?id=) are
     ///    primary sources and stay news.
+    ///  - BSKY.APP PROFILE ROOTS (bsky.app/profile/<handle>, END-anchored) —
+    ///    migration 1346 (1), 2026-09-06. A profile root is the reverse-chronological
+    ///    INDEX of one account's posts, the social form of mig 957's /author/<name>
+    ///    archive; a /post/<id> permalink continues past it and STAYS NEWS — the live
+    ///    editor published exactly such a post (d67a378a) as a primary source.
+    ///  - FINALSITE month/day/week CALENDAR VIEWS (/(day|week|month)calendar/) —
+    ///    1346 (2a). The second view spelling on the same two hosts mig 1325 measured;
+    ///    it published two calendar DIGESTS before this clause existed.
+    ///  - FINALSITE YEAR view (/events?byyear/) — 1346 (2b). mig 1325's clause covers
+    ///    (day|week|month) only.
+    ///  - CMS-AGNOSTIC calendar day/week/month VIEWS (/calendar/(day|week|month)/) —
+    ///    1346 (2c). 43 corpus URLs over 3 hosts, 0 false positives corpus-wide.
     ///
-    /// FOUR shapes live entirely in the QUERY STRING and ONE in the HOST, all five
+    /// FOUR shapes live entirely in the QUERY STRING and TWO in the HOST, all six
     /// of which `url.path` drops — they are matched against the whole URL inside
-    /// `listingIndexReason`.
+    /// `listingIndexReason`. The bsky profile root (1346 (1)) needs the whole URL
+    /// for a SECOND reason: it is END-ANCHORED, and `path` drops the query, so a
+    /// ?ref= tail would defeat the `$` and the two predicates would disagree.
     /// A shape confined to ONE eTLD+1 is not a shape: the sixth class of the
     /// 2026-09-06 editor sweep (St. George recreation program catalogs) went into
     /// `pipeline.junk_park_hosts` as PATH rows instead, and has no clause here. The
@@ -182,6 +196,18 @@ public enum GarbageSignalFilter: Sendable {
     /// drive.google.com in `_refused_host_sweep_list()`, whose arm would then flag
     /// the live published Drive FILE record 2260971a. `docs.google.com/forms` stays
     /// migration 1333's, refused at INTAKE and not here.
+    ///
+    /// The bsky PROFILE ROOT (1346 (1)) is the second such exception, and it is
+    /// mig 1341 DECISION (C) recorded verbatim rather than a new judgement. It is a
+    /// GLOBAL PLATFORM surface, not one eTLD+1's page slug; and the catalog CANNOT
+    /// express it — `junk_park_hosts`' PATH branch always appends a trailing `%`, so
+    /// `bsky.app/profile/` would match the POST too. A `junk_park_hosts` row would
+    /// therefore refuse, at intake, the very post the live editor published
+    /// (d67a378a). The shape belongs here, closed at the publish/promote gates, and
+    /// bsky.app stays OPEN at intake. It is host-anchored ON PURPOSE: x.com,
+    /// twitter.com, instagram.com, threads.com/.net and facebook.com remain UNDECIDED
+    /// (institutional feeds live there), and a generic /<handle>$ shape would decide
+    /// all six by the back door.
     ///
     /// The mig 957 law holds throughout: a LISTING ends the path, so a
     /// /category/<base>/<story-slug> permalink and a dated /news/2026/09/05/slug
@@ -212,14 +238,18 @@ public enum GarbageSignalFilter: Sendable {
     private static func listingIndexReason(_ urlString: String) -> String? {
         guard let url = URL(string: urlString) else { return nil }
         let path = url.path.lowercased()
-        // ⚠️ `path` DROPS THE QUERY STRING *AND THE HOST*. FIVE of the shapes below
+        // ⚠️ `path` DROPS THE QUERY STRING *AND THE HOST*. SIX of the shapes below
         // are invisible to it: four live entirely in the query (Blog.aspx?IID=,
-        // related.html?filter=, Archive.aspx?AMID=, module/events.htm?day=) and one
-        // in the HOST (drive.google.com/drive/…/folders/<id>), so matching any of
-        // them against `path` would make them silently invisible here while the DB
-        // refuses them. Those clauses match the whole URL instead; the path-anchored
-        // shapes keep matching `path`, which is what makes this predicate the
-        // documented SUPERSET on query tails.
+        // related.html?filter=, Archive.aspx?AMID=, module/events.htm?day=) and two
+        // in the HOST (drive.google.com/drive/…/folders/<id> — mig 1342 (3) — and
+        // bsky.app/profile/<handle> — mig 1346 (1)), so matching any of them against
+        // `path` would make them silently invisible here while the DB refuses them.
+        // Those clauses match the whole URL instead; the path-anchored shapes keep
+        // matching `path`, which is what makes this predicate the documented SUPERSET
+        // on query tails. The bsky clause carries a SECOND reason it cannot use
+        // `path`: it is END-ANCHORED, and `path` drops the query, so a profile root
+        // with a ?ref= tail would match on `path` while the DB's `$` refuses it —
+        // the superset would run the WRONG way and swallow no-longer-root URLs.
         let full = urlString.lowercased()
         // The clauses added by migs 1330/1338 pass `.caseInsensitive` explicitly,
         // mirroring the DB's `~*`. Lowercasing the subject is NOT enough: a pattern
@@ -295,6 +325,32 @@ public enum GarbageSignalFilter: Sendable {
         if full.range(of: RegexClause.googleDriveFolder.rawValue,
                       options: [.regularExpression, .caseInsensitive]) != nil {
             return "Google Drive folder listing (a file index, not a document)"
+        }
+        // mig 1346 (1) — HOST-BEARING **and** END-ANCHORED, so `full`, not `path`.
+        // ⚠️ Two traps in one clause: `url.path` drops the host (the mig 1342 (3)
+        // trap), and it also drops the query, which would silently DEFEAT the `$` —
+        // a /profile/<handle>?ref=x tail is still a ROOT, but a /post/<id> is not,
+        // and only the whole-URL match keeps that distinction. Pinned by a test.
+        if full.range(of: RegexClause.bskyProfileRoot.rawValue,
+                      options: [.regularExpression, .caseInsensitive]) != nil {
+            return "Bluesky profile root (an account's post index, not a post)"
+        }
+        // mig 1346 (2a) — path-shaped. The token must be a whole path SEGMENT tail:
+        // nationaldaycalendar.com carries it in the HOST, which `path` drops anyway.
+        if path.range(of: RegexClause.finalsiteXCalendarView.rawValue,
+                      options: [.regularExpression, .caseInsensitive]) != nil {
+            return "school-calendar view page (an enumerator of events, not a story)"
+        }
+        // mig 1346 (2b) — path-shaped. mig 1325's clause is (day|week|month) only.
+        if path.range(of: RegexClause.finalsiteEventsByYear.rawValue,
+                      options: [.regularExpression, .caseInsensitive]) != nil {
+            return "calendar year view (an enumerator of events, not a story)"
+        }
+        // mig 1346 (2c) — path-shaped. The trailing slash keeps /calendar/monthly-…
+        // and a bare /calendar.html FALSE.
+        if path.range(of: RegexClause.calendarDayWeekMonthView.rawValue,
+                      options: [.regularExpression, .caseInsensitive]) != nil {
+            return "calendar day/week/month view (an enumerator of events, not a story)"
         }
         return nil
     }
@@ -708,6 +764,91 @@ public enum GarbageSignalFilter: Sendable {
             return true
         }
 
+        // mig 1346 (1): bsky.app PROFILE ROOTS — and ONLY roots. A profile root is the
+        // reverse-chronological INDEX of one account's posts: the social-platform form
+        // of mig 957's /author/<name> archive. A /post/<id> permalink CONTINUES past the
+        // handle and stays news, which is why the clause is anchored at the END of the
+        // URL. Measured (db-ro 2026-09-06; for this host 30 d == all-time): 13 distinct
+        // URLs — 11 profile roots, 2 posts. 3 articles: both profile-root articles were
+        // REJECTED by the editor ("Institution's Bluesky profile page — not a dated
+        // story"; and c714d0c9, a profile paraphrasing a Chrony report), while the one
+        // PUBLISHED article is a POST — d67a378a, which the live editor published on
+        // 2026-09-06 as a primary source (an author's own statement about withdrawing
+        // from a Weber State engagement). 0 live published rows are refused, 0 drafts.
+        // WHY THIS IS A SHAPE AND NOT A CATALOG ROW — mig 1341 DECISION (C), recorded
+        // verbatim and implemented here: the `junk_park_hosts` PATH branch ALWAYS
+        // appends a trailing %, so the catalog literally cannot express "profile root
+        // but not /post/". bsky.app therefore gets NO catalog row, which is exactly what
+        // keeps the editor's published POST open at intake. HOST-ANCHORED TO bsky.app ON
+        // PURPOSE: x.com (362 items / 30 d), twitter.com (147), facebook.com (396),
+        // instagram.com (21), threads.com (4) and threads.net (1) are UNDECIDED — mig
+        // 1341 (C) left them open because institutional feeds (NWSSaltLakeCity, police
+        // departments) live there, and facebook.com additionally carries the Tooele
+        // attribution problem. A generic /<handle>$ shape would decide all six hosts by
+        // the back door. DO NOT WIDEN.
+        if matches(value, .bskyProfileRoot) {
+            return true
+        }
+
+        // mig 1346 (2a): Finalsite month/day/week CALENDAR VIEW pages. mig 1325 closed
+        // /events?by(day|week|month)/; the SAME two Finalsite hosts emit a second view
+        // spelling that clause never saw. Measured (db-ro 2026-09-06): 19 distinct URLs
+        // all-time / 8 in the last 30 d on www.ssanpete.org (17) and www.piutek12.org
+        // (2), both spellings live (/monthcalendar/2026/9.html and
+        // /calendar/monthcalendar/2026/8/-.html); 0 already-true. 9 articles: 6 archived
+        // + 1 rejected + 2 LIVE PUBLISHED, and BOTH live rows were read in full — they
+        // are calendar DIGESTS, not stories: 28bce3f5 (post-928, adjudicated by the
+        // migration) opens "An undated events calendar on the South Sanpete School
+        // District website lists several scheduled activities", and 29e76215 (pre-928,
+        // the editor's separate call) is the May 2026 twin. NOTHING WAS NARROWED: both
+        // are the class mig 1325 already refuses one spelling of. `day`/`week` match 0
+        // corpus URLs today and are carried PRE-EMPTIVELY by symmetry with mig 1325's
+        // own (day|week|month) triple on the SAME module — the mig 1330 /gamecast/
+        // precedent. `list` is NOT carried (no evidence, no symmetry). THE TRAILING
+        // SLASH IS LOAD-BEARING and is what keeps three real stories FALSE:
+        // nationaldaycalendar.com/celebrations/national-hot-dog-day-… (the token is in
+        // the HOST, with no preceding slash), a kutv.com slug reading months-after, and
+        // a deseret.com slug reading monthly.
+        if matches(value, .finalsiteXCalendarView) {
+            return true
+        }
+
+        // mig 1346 (2b): Finalsite YEAR view. mig 1325's clause is (day|week|month)
+        // ONLY, so eventsbyyear was never covered. Token census over the whole corpus
+        // (db-ro 2026-09-06): eventsbyday 129 URLs (129 already true), eventsbyweek 28
+        // (28 already true), eventsbyyear 7 (0 already true) — 2 in the last 30 d, 2
+        // hosts, 0 articles EVER. The s? mirrors mig 1325's own events?by spelling.
+        if matches(value, .finalsiteEventsByYear) {
+            return true
+        }
+
+        // mig 1346 (2c): CMS-AGNOSTIC calendar day/week/month VIEW path. Measured
+        // (db-ro 2026-09-06): 43 distinct URLs all-time over 3 hosts — joejencks.com 35
+        // (a touring musician's day views), smithfieldutah.gov 7 (a Utah city's month
+        // views), events.suu.edu 1 (a Localist day view) — 0 already-true, 0 articles
+        // EVER. HONESTY REQUIRED: 42 of the 43 came from a single 2026-02-21 sweep and
+        // only ONE sits inside the 30-day census window, so this clause is carried on
+        // shape rather than on live harm. Its warrant is (i) it is the CMS-agnostic form
+        // of the exact class 2a demonstrably PUBLISHED TWICE, and (ii) it has 0 false
+        // positives corpus-wide — every one of the 43 matches is a calendar view. That
+        // is strictly better evidenced than mig 1330's /gamecast/ arm, which was carried
+        // at zero corpus URLs. The slash AFTER the keyword is load-bearing:
+        // /calendar/monthly-report-2026.pdf and a bare /calendar.html are FALSE.
+        //
+        // MEASURED AND LEFT OPEN ON PURPOSE (do not fold these in without a census):
+        // ?view=(day|week|month) and calendarview have ZERO corpus URLs all-time — a
+        // bare [?&]view=month could match a non-calendar CMS page, so the FP risk is
+        // unbounded and the benefit is zero. provo.edu's …/school-calendar/
+        // a-b-calendar-month-view/ is 4 URLs on 2 hosts of ONE district / ONE eTLD+1,
+        // with 2 articles both archived AND already soft-deleted, 0 live published, and
+        // 1 of the 4 already TRUE via the mig 547 /es/ locale rule — one CMS page slug
+        // is not a shape (mig 1338's law) and it reduces no measured live harm (mig
+        // 1341 (A)'s law). /listcalendar/ is not carried. All three are pinned as FALSE
+        // controls so the next widener re-reads this paragraph.
+        if matches(value, .calendarDayWeekMonthView) {
+            return true
+        }
+
         // Docket-record and URL-parsed listing refusal remain sibling predicates;
         // composing either here would make this function a superset of the DB twin.
         return false
@@ -798,6 +939,20 @@ public enum GarbageSignalFilter: Sendable {
         // drops the host. Files (/file/d/, /open?id=) stay news: live published
         // 2260971a is one.
         case googleDriveFolder = #"^https?://([a-z0-9-]+\.)*drive\.google\.com/drive/([^/?#]+/){0,3}folders/[^/?#]"#
+        // mig 1346 (1): bsky.app PROFILE ROOTS. HOST-BEARING **and** END-ANCHORED, so
+        // listingIndexReason must match this one against the WHOLE URL — url.path drops
+        // the host, and the anchor is the only thing separating a profile INDEX from a
+        // POST. The editor PUBLISHED a bsky POST as a primary source (d67a378a) — that
+        // URL must stay news on both predicates.
+        case bskyProfileRoot = #"^https?://(www\.)?bsky\.app/profile/[^/?#]+/?(\?[^#]*)?(#.*)?$"#
+        // mig 1346 (2a): Finalsite month/day/week calendar VIEW pages — the spellings
+        // mig 1325's /events?by(day|week|month)/ clause never saw. The trailing slash is
+        // load-bearing.
+        case finalsiteXCalendarView = #"/(day|week|month)calendar/"#
+        // mig 1346 (2b): Finalsite YEAR view — mig 1325's clause is (day|week|month) only.
+        case finalsiteEventsByYear = #"/events?byyear/"#
+        // mig 1346 (2c): CMS-agnostic calendar day/week/month VIEW path.
+        case calendarDayWeekMonthView = #"/calendar/(day|week|month)/"#
 
         var options: NSRegularExpression.Options {
             switch self {

@@ -1,3 +1,4 @@
+import Foundation
 import Testing
 @testable import UtahNewsDataModels
 
@@ -260,6 +261,74 @@ struct GarbageSignalFilterDocketTests {
         let file = "https://drive.google.com/file/d/1DREp20n3szUjdiMTdAyYeuw8vsvvbHSH/view?usp=drive_link"
         #expect(!GarbageSignalFilter.isNonNewsSourceURL(file))
         #expect(!GarbageSignalFilter.isListingIndexURL(file))
+    }
+
+    @Test("mig 1346 shapes report their own listing reason")
+    func listingIndexReasonCoversTheProfileAndCalendarShapes() {
+        #expect(GarbageSignalFilter.isListingIndexURL("https://bsky.app/profile/georgiametcalf.bsky.social"))
+        #expect(GarbageSignalFilter.isListingIndexURL(
+            "https://www.ssanpete.org/school-info/calendars/mhs-calendar/monthcalendar/2026/11.html"))
+        #expect(GarbageSignalFilter.isListingIndexURL(
+            "https://www.piutek12.org/calendar/eventsbyyear/2026/-.html"))
+        #expect(GarbageSignalFilter.isListingIndexURL("https://smithfieldutah.gov/calendar/month/2026-09"))
+        // Each of the four clauses reports ITS OWN reason — a shape that fell through
+        // to a sibling's string would mean the clause order drifted from the DB's.
+        #expect(reason("Georgia Metcalf", "https://bsky.app/profile/georgiametcalf.bsky.social", newsBody)
+            == "Bluesky profile root (an account's post index, not a post)")
+        #expect(reason("MHS Calendar",
+                       "https://www.ssanpete.org/school-info/calendars/mhs-calendar/monthcalendar/2026/11.html",
+                       newsBody) == "school-calendar view page (an enumerator of events, not a story)")
+        #expect(reason("Events by year", "https://www.piutek12.org/calendar/eventsbyyear/2026/-.html", newsBody)
+            == "calendar year view (an enumerator of events, not a story)")
+        #expect(reason("September 2026", "https://smithfieldutah.gov/calendar/month/2026-09", newsBody)
+            == "calendar day/week/month view (an enumerator of events, not a story)")
+        // The carve-outs the reason strings must NOT claim.
+        #expect(!GarbageSignalFilter.isListingIndexURL(
+            "https://www.ssanpete.org/district-information/district-calendar/3116312/school-board-meeting.html"))
+        #expect(!GarbageSignalFilter.isListingIndexURL("https://www.piutek12.org/calendar.html"))
+    }
+
+    /// THE ASYMMETRY THIS PORT EXISTS TO PIN, in its sharpest form. The bsky clause
+    /// carries BOTH traps at once: it is HOST-bearing (url.path drops the host, the
+    /// mig 1342 (3) trap) AND END-anchored (url.path drops the query, so a ?ref= tail
+    /// would defeat the `$`). Only a whole-URL match keeps a profile ROOT apart from a
+    /// /post/ permalink — and the live editor PUBLISHED such a post (d67a378a) as a
+    /// primary source, so that URL must stay news on BOTH predicates.
+    @Test("The bsky profile-root clause is matched on the whole URL and anchored at the END")
+    func bskyProfileRootClauseIsHostBearingAndEndAnchored() {
+        let root = "https://bsky.app/profile/georgiametcalf.bsky.social"
+        #expect(GarbageSignalFilter.isNonNewsSourceURL(root))
+        #expect(GarbageSignalFilter.isListingIndexURL(root))     // proves `full`, not `path`
+        #expect(reason("Georgia Metcalf", root, newsBody)
+            == "Bluesky profile root (an account's post index, not a post)")
+
+        // Every live spelling of the root is one class: www, a trailing slash, a query
+        // tail, and a did:plc: handle (colons are legal in a non-first path segment —
+        // URL(string:) parses it, so isListingIndexURL is NOT blind to this spelling).
+        #expect(GarbageSignalFilter.isListingIndexURL("https://www.bsky.app/profile/thechrony.bsky.social"))
+        #expect(GarbageSignalFilter.isListingIndexURL("https://bsky.app/profile/huntsmancancer.bsky.social/"))
+        #expect(GarbageSignalFilter.isListingIndexURL("https://bsky.app/profile/cthorley.bsky.social?ref=x"))
+        let didRoot = "https://bsky.app/profile/did:plc:luf6isxwbbodo7bgkd5arieq"
+        #expect(URL(string: didRoot) != nil)
+        #expect(GarbageSignalFilter.isListingIndexURL(didRoot))
+        #expect(GarbageSignalFilter.isNonNewsSourceURL(didRoot))
+
+        // THE POST THE EDITOR PUBLISHED (d67a378a) — the exact production source_url,
+        // doubly-encoded ref_url and all. FALSE on both predicates or this port has
+        // deleted a primary source the editor accepted.
+        let publishedPost = "https://bsky.app/profile/did:plc:luf6isxwbbodo7bgkd5arieq/post/"
+            + "3m63shhebac22?ref_src=embed&ref_url=https%253A%252F%252Fwww.sltrib.com%252Fnews"
+            + "%252Feducation%252F2025%252F12%252F04%252Findigenous-author-cancels-weber%252F"
+        #expect(!GarbageSignalFilter.isNonNewsSourceURL(publishedPost))
+        #expect(!GarbageSignalFilter.isListingIndexURL(publishedPost))
+
+        // A bare post, a profile SUB-page and the host anchor.
+        for open in ["https://bsky.app/profile/esqueer.net/post/3mrbpatwcys2s",
+                     "https://bsky.app/profile/foo.bsky.social/feed/whats-hot",
+                     "https://notbsky.app.evil.com/profile/foo"] {
+            #expect(!GarbageSignalFilter.isNonNewsSourceURL(open))
+            #expect(!GarbageSignalFilter.isListingIndexURL(open))
+        }
     }
 
     @Test("Real permalinks and near-miss slugs are NOT flagged as listing pages")
