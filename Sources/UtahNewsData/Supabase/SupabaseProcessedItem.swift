@@ -9,6 +9,7 @@
 //
 
 import Foundation
+import UtahNewsDataModels
 
 // MARK: - Processed Item (Read Model)
 
@@ -374,16 +375,34 @@ extension SupabaseProcessedItem {
         sourceTitle.isEmpty ? domain : sourceTitle
     }
 
-    /// Canonical publish date as Date (preferred if present)
+    /// Canonical publish date as Date (preferred if present), falling back to
+    /// the legacy `publish_date` column.
+    ///
+    /// Parsed with `SupabaseDate.parse` — NOT a bare `ISO8601DateFormatter()`.
+    /// 2026-09-09 (verifier Correction B): this property used a bare
+    /// `ISO8601DateFormatter()` for BOTH strings, i.e. default `formatOptions`
+    /// with NO `.withFractionalSeconds`, while `ingestedDate` and
+    /// `processingDate` two lines below already used `SupabaseDate.parse`.
+    /// PostgREST preserves the stored sub-second precision, so
+    /// `pipeline.processed_items.published_at` comes back as
+    /// `"2025-04-19T22:36:33.362+00:00"` for a large minority of rows and this
+    /// property returned `nil` for every one of them. MEASURED live
+    /// 2026-09-09 over 7 days (134,089 rows): 2,374 rows carry a fractional
+    /// `published_at`; 1,329 of those have no `publish_date` fallback (that
+    /// column never carries fractional seconds: 0 rows), so `publishedDate`
+    /// was `nil` on a row that has a real, publisher-asserted date.
     public var publishedDate: Date? {
-        if let publishedAt, let date = ISO8601DateFormatter().date(from: publishedAt) {
-            return date
-        }
-        return ISO8601DateFormatter().date(from: publishDate ?? "")
+        SupabaseDate.parse(publishedAt) ?? SupabaseDate.parse(publishDate)
     }
 
+    /// Discovered timestamp as Date.
+    ///
+    /// Also routed through `SupabaseDate.parse` (2026-09-09) — same defect as
+    /// `publishedDate` above. Inert against the live DB: `pipeline.processed_items`
+    /// has no `discovered_at` column (censused 2026-09-09), so off PostgREST
+    /// `discoveredAt` decodes `nil` and this returns `nil` either way.
     public var discoveredDate: Date? {
-        ISO8601DateFormatter().date(from: discoveredAt ?? "")
+        SupabaseDate.parse(discoveredAt)
     }
 
     public var ingestedDate: Date? {
@@ -406,7 +425,13 @@ extension SupabaseProcessedItem {
         }
     }
 
-    /// Whether this item has a conclusive publish date for drafting (WS-B: >= 0.93 confidence)
+    /// Whether this item has a conclusive publish date under the LEGACY WS-B
+    /// rule (>= 0.93 confidence, i.e. `high` only).
+    ///
+    /// NOT A DRAFT GATE (2026-09-09). This is `UNKNOWN => false`, which is the
+    /// forbidden inversion; `isDraftEligible` stopped reading it on this date.
+    /// Kept as a DISPLAYED fact and for the `DateGuardrailResult` audit line.
+    /// The rule is `DraftEligibilityRule`.
     public var hasConclusivePublishDate: Bool {
         guard let source = publishedAtSource else { return false }
         return publishedDate != nil
@@ -414,24 +439,69 @@ extension SupabaseProcessedItem {
             && publishedAtConfidenceScore >= 0.93
     }
 
-    /// Whether the canonical publishedAt is just a copy of discoveredAt or ingestedAt
-    /// (WS-B: ingestion timestamps must NOT be reused as canonical publish date)
+    /// Whether the canonical publishedAt is just a copy of discoveredAt,
+    /// ingestedAt or processingTimestamp.
+    ///
+    /// NOT A DRAFT GATE (2026-09-09). A date equal to the ingest instant IS the
+    /// crawl clock under another name — the class limb 2 of `DraftEligibilityRule`
+    /// now admits — so refusing on it re-opened the inversion through the back
+    /// door. Kept as a DISPLAYED fact: it tells an editor the date is
+    /// machine-made. NOTE: `pipeline.processed_items` has no `discovered_at` or
+    /// `ingested_at` column (censused live 2026-09-09), so off PostgREST this
+    /// reduces to `publishedAt == processingTimestamp`.
     public var publishDateMatchesIngestTimestamp: Bool {
         guard let pubStr = publishedAt else { return false }
         return pubStr == discoveredAt || pubStr == ingestedAt || pubStr == processingTimestamp
     }
 
-    /// Whether this item appears to be evergreen and should stay out of draft queue
+    /// Legacy WS-B "evergreen" shape: the V2 flag OR any non-conclusive date.
+    ///
+    /// NOT A DRAFT GATE (2026-09-09). The second disjunct calls an UNDATED page
+    /// evergreen, which is the inversion. `DraftEligibilityRule` reads only the V2
+    /// flag (`isEvergreen == true`), and treats `nil` as unknown ⇒ proceed.
+    /// Kept for the audit surfaces that already render it.
     public var isEvergreenItem: Bool {
         (isEvergreen ?? false) || !hasConclusivePublishDate
     }
 
-    /// Whether this item is draft-eligible (WS-B guardrail enforced)
-    public var isDraftEligible: Bool {
-        !isEvergreenItem && !publishDateMatchesIngestTimestamp
+    /// Draft eligibility, from the one definition (`DraftEligibilityRule`).
+    ///
+    /// 2026-09-09 (package follow-up to NewsCapture 9b74575). This USED to be
+    /// `!isEvergreenItem && !publishDateMatchesIngestTimestamp`, which folds in
+    /// `hasConclusivePublishDate`'s `publishedDate != nil && source != "unknown"
+    /// && confidenceScore >= 0.93` — literally UNKNOWN => SKIP, the platform's
+    /// forbidden inversion, and the THIRD copy of it (NewsCapture fixed its two
+    /// on 2026-09-09). Only `high` reaches 0.93 and `inferred` maps to 0.0, so
+    /// the old rule refused every medium/low publisher date AND the entire
+    /// `crawl_at`/`inferred` class. MEASURED live 2026-09-09 over 7 days of
+    /// `pipeline.processed_items` (134,239 rows): old rule 16,515 eligible,
+    /// this rule 76,226 — a 59,711-row protected class.
+    ///
+    /// The law is KNOWN-STALE => SKIP, UNKNOWN => PROCEED. See
+    /// `DraftEligibilityRule` for the four limbs, the evidence and what was dropped.
+    ///
+    /// - Parameter now: injected for tests; defaults to the wall clock.
+    public func draftEligibility(now: Date = Date()) -> DraftEligibilityRule.Verdict {
+        DraftEligibilityRule.evaluate(
+            publishedAt: publishedDate,
+            publishedAtSource: publishedAtSource,
+            publishedAtConfidence: publishedAtConfidence,
+            hasPublishDate: publishDate != nil,
+            isEvergreen: isEvergreen,
+            now: now
+        )
     }
 
-    /// Structured guardrail evaluation for audit logging (WS-B)
+    /// Whether this item is draft-eligible. Boolean face of `draftEligibility()`.
+    public var isDraftEligible: Bool { draftEligibility().isEligible }
+
+    /// Structured guardrail evaluation for audit logging (LEGACY WS-B).
+    ///
+    /// NOT A GATE (2026-09-09). `DateGuardrailResult.evaluate` still carries the
+    /// 0.93 floor and the `source == "unknown"` refusal — the same inversion in
+    /// structured-audit clothing. NewsCapture logs it as a fact and renders it
+    /// labelled "legacy"; nothing takes a verdict from it. Retiring the type is
+    /// a separate, breaking change.
     public var dateGuardrailResult: DateGuardrailResult {
         DateGuardrailResult.evaluate(
             itemId: id,

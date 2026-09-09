@@ -10,6 +10,7 @@
 //
 
 import Foundation
+import UtahNewsDataModels
 // Sprint #103 — Firebase decoupled. Per editorial thesis, the platform is
 // 100% Supabase except for Firebase Auth. FinalDataPayloadV2 is stored in
 // pipeline.processed_items (Postgres). `id` is now a plain Codable String
@@ -814,7 +815,11 @@ public struct FinalDataPayloadV2: Codable, Identifiable, Hashable, Sendable {
 
     // MARK: - Computed Properties
 
-    /// Canonical conclusive publish date indicator (WS-B: requires >= 0.93 confidence)
+    /// Canonical conclusive publish date indicator under the LEGACY WS-B rule
+    /// (>= 0.93 confidence, i.e. `high` only).
+    ///
+    /// NOT A DRAFT GATE (2026-09-09) — `UNKNOWN => false` is the forbidden
+    /// inversion. Kept as a displayed fact and for the audit line.
     public var hasConclusivePublishedAt: Bool {
         let hasDate = publishedAt != nil
         let hasStrongSource = publishedAtSource != .unknown
@@ -822,10 +827,35 @@ public struct FinalDataPayloadV2: Codable, Identifiable, Hashable, Sendable {
         return hasDate && hasStrongSource && meetsThreshold
     }
 
-    /// Draft eligibility from this payload (WS-B guardrail enforced)
-    public var isDraftEligible: Bool {
-        return hasConclusivePublishedAt && !isEvergreen
+    /// Draft eligibility, from the one definition (`DraftEligibilityRule`).
+    ///
+    /// 2026-09-09: this was `hasConclusivePublishedAt && !isEvergreen` — the
+    /// FOURTH copy of the UNKNOWN => SKIP inversion in this package.
+    ///
+    /// ⚠️ LIMB 2 CANNOT FIRE FOR THIS TYPE, BY CONSTRUCTION. `PublishedAtSource`
+    /// has no `crawl_at` case and `PublishedAtConfidence` has no `inferred`
+    /// case (both enums, this file), and both fields are non-optional — so the
+    /// unverified-provenance limb, which needs either that pair or four absent
+    /// fields, is unreachable here. MEASURED live 2026-09-09: `crawl_at`/
+    /// `inferred` is 67,609 of 134,239 `processed_items` rows in 7 days, i.e.
+    /// the single largest live class this type cannot represent. Widening the
+    /// two enums is a separate, breaking change; until then this property is
+    /// limbs 1/3/4 only and must not be treated as the platform rule.
+    ///
+    /// - Parameter now: injected for tests; defaults to the wall clock.
+    public func draftEligibility(now: Date = Date()) -> DraftEligibilityRule.Verdict {
+        DraftEligibilityRule.evaluate(
+            publishedAt: publishedAt,
+            publishedAtSource: publishedAtSource.rawValue,
+            publishedAtConfidence: publishedAtConfidence.rawValue,
+            hasPublishDate: publishDate != nil,
+            isEvergreen: isEvergreen,
+            now: now
+        )
     }
+
+    /// Whether this payload is draft-eligible. Boolean face of `draftEligibility()`.
+    public var isDraftEligible: Bool { draftEligibility().isEligible }
 
     /// Structured guardrail evaluation for audit logging (WS-B)
     public var dateGuardrailResult: DateGuardrailResult {
