@@ -92,18 +92,21 @@ Each project's `Package.resolved` pins UtahNewsData to a specific Git commit. If
 
 ### Consuming Projects
 
-Current published version: **1.26.0** (2026-07-06 — adds `CityNameNormalizer.slug()`, an additive nonisolated helper that reproduces `pipeline.app_cities.id`; no consumer has bumped to it yet). Resolved pins differ per consumer —
-that's expected; read each `Package.resolved` for the truth. ⚠️ **Two tag schemes** exist: `v1.x`
+Current published version: **1.39.0** (2026-09-09 — `DraftEligibilityRule` in UtahNewsDataModels, the
+one draft-eligibility rule mirroring NewsCapture 9b74575 (KNOWN-STALE ⇒ SKIP); `SupabaseProcessedItem.isDraftEligible`
+/ `FinalDataPayloadV2.isDraftEligible` re-pointed at it; `publishedDate`/`discoveredDate` via `SupabaseDate.parse`).
+Resolved pins differ per consumer — that's expected; read each `Package.resolved` for the truth.
+⚠️ **Two tag schemes** exist: `v1.x`
 (≤ `v1.19.0`) then bare `1.x` (`1.20.0`+), so `git tag --sort=-v:refname | head -1` returns a
 WRONG `v1.19.0`. Use `git describe --tags HEAD`.
 
-| Project | GitHub Repo | Resolved pin (2026-07-05) |
+| Project | GitHub Repo | Resolved pin (verified 2026-09-15) |
 |---------|-------------|---------------------------|
-| NewsCapture | utahnews/NewsCapture | **1.25.0** |
-| UTNewsDashboard | utahnews/UTNewsDashboard | **1.25.0** (upgraded 2026-07-05) |
-| UtahNewsUploader | utahnews/UtahNewsUploader | **1.25.0** (upgraded 2026-07-05 — dropped Firebase, restored VideoCatalogEntry) |
-| UtahNews | utahnews/UtahNews | **1.24.2** (~1 minor behind; bumped on its own TestFlight release) |
-| V2PipelineTester | utahnews/V2PipelineTester | **1.24.1** (~1 minor behind; bumped on its own both-studios daemon deploy) |
+| NewsCapture | utahnews/NewsCapture | **1.39.0** |
+| V2PipelineTester | utahnews/V2PipelineTester | **1.39.0** |
+| UtahNews | utahnews/UtahNews | **1.28.1** |
+| UTNewsDashboard | utahnews/UTNewsDashboard | **1.25.0** |
+| UtahNewsUploader | utahnews/UtahNewsUploader | **1.25.0** |
 
 ### Quick Verification
 
