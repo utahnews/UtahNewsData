@@ -355,3 +355,169 @@ struct GarbageSignalFilterDocketTests {
         #expect(reason("Federal appeals court revives Bears Ears challenge filed by Utah counties", "https://www.ksl.com/article/51234567/bears-ears-appeal", newsBody) == nil)
     }
 }
+
+struct IndexTitleReasonTests {
+
+    private let pageURL = "https://example.gov/page"
+
+    @Test("Month-year archive titles return the month-year reason")
+    func recognizesMonthYearArchives() {
+        let fixtures = [
+            ("August 2026 – Tremonton City", "https://tremontoncity.gov/2026/08/"),
+            ("April 2025 – Tremonton City", pageURL),
+            ("June 2026 – Garden City Fire District", pageURL),
+            ("May 2014 – Garden City Fire District", pageURL),
+            ("April 2026 – Town of Hideout, Wasatch County, UT", pageURL),
+            ("March 2026 | Governor Spencer J. Cox", pageURL),
+            ("February, 2026 - Kane County School District", pageURL),
+            ("April 2024 – Salton Sea Program", pageURL),
+            ("June 2025 – Naples City, Uintah County, Utah", pageURL)
+        ]
+        for (title, url) in fixtures {
+            #expect(GarbageSignalFilter.indexTitleReason(title, url: url) == "index-title: month-year archive")
+        }
+    }
+
+    @Test("Day archive titles return the day reason")
+    func recognizesDayArchives() {
+        let fixtures = [
+            ("June 11, 2026 – City of Orem", "https://orem.gov/2026/06/11/"),
+            ("June 25, 2026 – City of Orem", pageURL),
+            ("August 14, 2026 - Utah Film Commission", pageURL)
+        ]
+        for (title, url) in fixtures {
+            #expect(GarbageSignalFilter.indexTitleReason(title, url: url) == "index-title: day archive")
+        }
+    }
+
+    @Test("The first separator exposes bare-month archive titles")
+    func recognizesBareMonths() {
+        let fixtures = [
+            ("September | 2026 | Washington County of Utah", "https://www.washco.utah.gov/2026/09"),
+            ("December | 2025 | Washington County of Utah", pageURL)
+        ]
+        for (title, url) in fixtures {
+            #expect(GarbageSignalFilter.indexTitleReason(title, url: url) == "index-title: bare month")
+        }
+    }
+
+    @Test("Terminal by-year, by-month, and by-date phrases identify indexes")
+    func recognizesByPeriodIndexes() {
+        let fixtures = [
+            ("Press Releases by year", "https://healthcare.utah.edu/press-releases/2010"),
+            ("HMHI stories by year | University of Utah Health", "https://healthcare.utah.edu/hmhi/news/2021"),
+            ("News stories by year", pageURL),
+            ("HealthFeed by year", pageURL),
+            ("Recognition by year", pageURL),
+            ("Stories by month", pageURL),
+            ("Stories by date", pageURL)
+        ]
+        for (title, url) in fixtures {
+            #expect(GarbageSignalFilter.indexTitleReason(title, url: url) == "index-title: by-year index")
+        }
+    }
+
+    @Test("Real headlines and the rejected index vocabulary remain allowed")
+    func allowsRealHeadlinesAndIndexVocabulary() {
+        let titles = [
+            "News Flash Archive - Early Secondary Water Shutoff Begins September 15",
+            "News - Weber County",
+            "News - Washington City Utah",
+            "Press Release: Vehicle Theft",
+            "Press Release 7-27-2026",
+            "Press Releases",
+            "News",
+            "Archives",
+            "Calendar",
+            "Home - Trailside Elementary",
+            "News / Jan 23 meeting",
+            "Orem City Council Enacts Compensation Increases for Specific Officers",
+            "May Day celebration returns to Lehi",
+            "March for Babies walk set for Saturday",
+            "August Miller named principal",
+            "June 2026 budget hearing set for Tremonton",
+            "Sorted by relevance: council agendas",
+            "Standby year",
+            "Crime statistics by year show decline in Provo",
+            "Births by month, 2025: a Utah County report",
+            "",
+            "   "
+        ]
+        for title in titles {
+            #expect(GarbageSignalFilter.indexTitleReason(title, url: pageURL) == nil)
+        }
+    }
+
+    @Test("Document path extensions exempt newsletters regardless of case or URL tails")
+    func exemptsDocumentURLs() {
+        #expect(GarbageSignalFilter.indexTitleReason(
+            "March 2023",
+            url: "https://ivinsutah.gov/wp-content/uploads/2023/03/March-2023-Newsletter-Reduced.pdf"
+        ) == nil)
+        #expect(GarbageSignalFilter.indexTitleReason(
+            "March 2023", url: "https://ivinsutah.gov/2023/03/"
+        ) == "index-title: month-year archive")
+        #expect(GarbageSignalFilter.indexTitleReason(
+            "March 2023",
+            url: "https://ivinsutah.gov/wp-content/uploads/2023/03/March-2023-Newsletter.PDF?dl=1"
+        ) == nil)
+
+        for pathExtension in ["pdf", "doc", "docx", "xls", "xlsx", "ppt", "pptx", "csv"] {
+            for title in ["March 2023", "March 11, 2023", "March", "Stories by year"] {
+                #expect(GarbageSignalFilter.indexTitleReason(
+                    title, url: "https://example.gov/newsletter.\(pathExtension.uppercased())?dl=1#page=2"
+                ) == nil)
+            }
+        }
+    }
+
+    @Test("Normalization trims, uses the first spaced separator, and retains only core characters")
+    func normalizesCoreTitles() {
+        for separator in ["|", "-", "–", "—", ":", "»"] {
+            #expect(GarbageSignalFilter.indexTitleReason(
+                " \nFEBRUARY, 2026\t\(separator)\tPublisher | Later suffix \n", url: pageURL
+            ) == "index-title: month-year archive")
+        }
+        #expect(GarbageSignalFilter.indexTitleReason(
+            "March | April 2026 – Publisher", url: pageURL
+        ) == "index-title: bare month")
+        #expect(GarbageSignalFilter.indexTitleReason(
+            "📅 March, 2023!", url: pageURL
+        ) == "index-title: month-year archive")
+        for title in ["March 2023|Publisher", "March 2023 -Publisher", "March & 2023", "March\t2023"] {
+            #expect(GarbageSignalFilter.indexTitleReason(title, url: pageURL) == nil)
+        }
+    }
+
+    @Test("All full month names match with the specified year and day boundaries")
+    func respectsArchivePatternBoundaries() {
+        for month in ["January", "February", "March", "April", "May", "June",
+                      "July", "August", "September", "October", "November", "December"] {
+            #expect(GarbageSignalFilter.indexTitleReason(month, url: pageURL) == "index-title: bare month")
+            for year in [1900, 2099] {
+                #expect(GarbageSignalFilter.indexTitleReason(
+                    "\(month) \(year)", url: pageURL
+                ) == "index-title: month-year archive")
+                #expect(GarbageSignalFilter.indexTitleReason(
+                    "\(month) 1, \(year)", url: pageURL
+                ) == "index-title: day archive")
+            }
+        }
+        for title in ["March 1899", "March 2100", "Mar 2026", "March 111 2026",
+                      "March 1 2026 hearing", "Stories by  year", "Stories by years"] {
+            #expect(GarbageSignalFilter.indexTitleReason(title, url: pageURL) == nil)
+        }
+    }
+
+    @Test("Unparseable URLs and document names outside the path do not exempt archive titles")
+    nonisolated func keepsArchiveChecksIndependentOfURLParsing() {
+        let malformedURL = "https://[invalid/newsletter.pdf"
+        #expect(URL(string: malformedURL) == nil)
+        for url in [malformedURL, "", "https://example.gov/archive?file=newsletter.pdf",
+                    "https://example.gov/archive#newsletter.pdf", "https://example.gov/archive.html"] {
+            #expect(GarbageSignalFilter.indexTitleReason(
+                "March 2023", url: url
+            ) == "index-title: month-year archive")
+        }
+    }
+}
