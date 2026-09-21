@@ -180,6 +180,12 @@ public enum GarbageSignalFilter: Sendable {
     ///    (day|week|month) only.
     ///  - CMS-AGNOSTIC calendar day/week/month VIEWS (/calendar/(day|week|month)/) —
     ///    1346 (2c). 43 corpus URLs over 3 hosts, 0 false positives corpus-wide.
+    ///  - ROOT AND /blog WORDPRESS DATE ARCHIVES (year/month[/day]) — migration 1561.
+    ///    Only root and /blog archives; dated story permalinks stay news.
+    ///  - CivicPlus NEWS FLASH MODULE indexes (/newsflash, /m/newsflash,
+    ///    /CivicAlerts.aspx) — migration 1566. AID= and numeric ARC= items are
+    ///    exempt; ARC=L is the archive LIST view and remains a listing.
+    ///    Both new clauses match the raw string, even when Foundation rejects the URL.
     ///
     /// FOUR shapes live entirely in the QUERY STRING and TWO in the HOST, all six
     /// of which `url.path` drops — they are matched against the whole URL inside
@@ -216,12 +222,12 @@ public enum GarbageSignalFilter: Sendable {
     /// `isNonNewsSourceURL` alone.
     ///
     /// DELIBERATE SUPERSET of the DB twin on query-string tails: this predicate
-    /// matches `url.path`, so /tags/x?utm=… and /news?id=123 — the terminal-anchor
+    /// matches older path clauses on `url.path`, so /tags/x?utm=… and /news?id=123 — the terminal-anchor
     /// MISS documented on both sides of `pipeline.is_listing_page_url` — are
     /// refused here. That widening is asserted in NonNewsSourceURLParityTests and
     /// is why `garbageReason` consults this predicate rather than
     /// `isNonNewsSourceURL`, which must stay clause-for-clause with the DB.
-    public static func isListingIndexURL(_ urlString: String) -> Bool {
+    public nonisolated static func isListingIndexURL(_ urlString: String) -> Bool {
         listingIndexReason(urlString) != nil
     }
 
@@ -235,7 +241,27 @@ public enum GarbageSignalFilter: Sendable {
     /// `?#`; these match an already-parsed `url.path`, which carries neither. The
     /// mig 1325 shapes carry no such class, so they are reused from `RegexClause`
     /// directly and cannot drift from the `isNonNewsSourceURL` clauses.
-    private static func listingIndexReason(_ urlString: String) -> String? {
+    private nonisolated static func listingIndexReason(_ urlString: String) -> String? {
+        if let reason = olderListingIndexReason(urlString) { return reason }
+
+        // mig 1561 — raw whole-URL match, including query/fragment tails.
+        // No Foundation parsing precondition: the DB regex also accepts malformed hosts.
+        if matches(urlString, .wordpressDateArchiveRoot) {
+            return "WordPress root/blog date archive (listing source, not a story)"
+        }
+        // mig 1566 — raw module indexes, excluding single AID= and numeric ARC= items.
+        // ARC=L is an archive LIST, so it intentionally remains true.
+        if matches(urlString, .civicPlusNewsFlashIndex)
+            && !matches(urlString, .civicPlusNewsFlashItem)
+            && !matches(urlString, .civicPlusNewsFlashArchiveItem) {
+            return "CivicPlus News Flash module index (headline list, not a story)"
+        }
+        return nil
+    }
+
+    /// Keep the older clauses' Foundation guard and reason precedence unchanged.
+    /// A parsing failure here must not prevent the raw mig 1561/1566 checks above.
+    private nonisolated static func olderListingIndexReason(_ urlString: String) -> String? {
         guard let url = URL(string: urlString) else { return nil }
         let path = url.path.lowercased()
         // ⚠️ `path` DROPS THE QUERY STRING *AND THE HOST*. SIX of the shapes below
@@ -356,16 +382,20 @@ public enum GarbageSignalFilter: Sendable {
     }
 
     /// Detects archive indexes from the source page's own title, exempting
-    /// document URLs. Checks the normalized core title in order for a month-year,
-    /// month-day-year, bare month, or a terminal "by year/month/date" phrase.
+    /// document URLs. Only arm e remains: a terminal "by year/month/date" phrase
+    /// in the normalized core title, matching DB migration 1565 (1.41.0).
     ///
-    /// Measured: 35/35 index leaks caught, 0/150 ordinary-article false positives.
-    /// A 30-day replay refused 376 rows, saved 74 syntheses, and prevented 42
-    /// editor/reviewer rejections at the cost of one editor-published row (42:1).
+    /// Measured 2026-09-20: all 22 arm-e live matches were archive indexes.
+    /// Retired arm b (month-year): 11 of 12 matches were root WordPress month
+    /// archives already owned by the URL rule (mig 1561), and one was a real newsletter.
+    /// Retired arm c (month-day-year): two of five matches were URL-refused root
+    /// day archives, while three were real Utah Film Commission press releases.
+    /// Retired arm d (bare month): six of nine matches were URL-refused root
+    /// month archives, while three were real Provo employee-of-the-month items.
     /// NOT the index vocabulary — measured, 11 editor publishes / 30 d.
     /// CivicPlus uses "News Flash Archive - <headline>" for real stories.
     public nonisolated static func indexTitleReason(_ sourceTitle: String, url urlString: String) -> String? {
-        if let pathExtension = URL(string: urlString)?.pathExtension.lowercased(),
+        if let pathExtension = indexTitlePathExtension(urlString),
            ["pdf", "doc", "docx", "xls", "xlsx", "ppt", "pptx", "csv"].contains(pathExtension) {
             return nil
         }
@@ -373,23 +403,42 @@ public enum GarbageSignalFilter: Sendable {
         let core = coreTitle(sourceTitle)
         guard !core.isEmpty else { return nil }
 
-        if matches(core, .indexTitleMonthYear) {
-            return "index-title: month-year archive"
-        }
-        if matches(core, .indexTitleDay) {
-            return "index-title: day archive"
-        }
-        if matches(core, .indexTitleBareMonth) {
-            return "index-title: bare month"
-        }
         if matches(core, .indexTitleByPeriod) {
             return "index-title: by-year index"
         }
         return nil
     }
 
+    /// Mirror mig 1565's explicit HTTP(S) host/path parsing, not Foundation decoding.
+    /// Only %2E is decoded; query/fragment tails and trailing slashes are ignored.
+    private nonisolated static func indexTitlePathExtension(_ urlString: String) -> String? {
+        guard let path = firstCapture(in: urlString, clause: .indexTitleURLPath) else { return nil }
+        let decodedPath = path.replacingOccurrences(of: "%2E", with: ".", options: .caseInsensitive)
+        guard let component = decodedPath.split(separator: "/").last,
+              !component.hasPrefix("."),
+              let dot = component.lastIndex(of: ".") else { return nil }
+        let pathExtension = component[component.index(after: dot)...]
+        guard !pathExtension.isEmpty, pathExtension.unicodeScalars.allSatisfy({
+            switch $0.value {
+            case 65...90, 97...122, 48...57: true
+            default: false
+            }
+        }) else { return nil }
+        return pathExtension.lowercased()
+    }
+
     private nonisolated static func coreTitle(_ sourceTitle: String) -> String {
-        var core = sourceTitle.trimmingCharacters(in: .whitespacesAndNewlines)
+        // mig 1565 maps exactly these Unicode spaces BEFORE trimming or splitting.
+        let spacedScalars = sourceTitle.unicodeScalars.map { scalar -> Unicode.Scalar in
+            switch scalar.value {
+            case 0x00A0, 0x1680, 0x2000...0x200A, 0x2028, 0x2029, 0x202F, 0x205F, 0x3000, 0x0085:
+                " "
+            default:
+                scalar
+            }
+        }
+        var core = String(String.UnicodeScalarView(spacedScalars))
+            .trimmingCharacters(in: .whitespacesAndNewlines)
         if let expression = compiledRegexTable.first(where: { $0.clauseLabel == .indexTitleSeparator })?.0,
            let match = expression.firstMatch(
                in: core,
@@ -1009,11 +1058,18 @@ public enum GarbageSignalFilter: Sendable {
         // mig 1346 (2c): CMS-agnostic calendar day/week/month VIEW path.
         case calendarDayWeekMonthView = #"/calendar/(day|week|month)/"#
 
+        // mig 1561: root and /blog WordPress date archives, never a dated story permalink.
+        case wordpressDateArchiveRoot = #"^https?://[^/?#]+(/blog)?/(19|20)[0-9]{2}/(0?[1-9]|1[0-2])(/(0?[1-9]|[12][0-9]|3[01]))?/?([?#].*)?$"#
+        // mig 1566: CivicPlus News Flash MODULE roots with separate item exclusions.
+        case civicPlusNewsFlashIndex = #"(^https?://[^/?#]+/(m/)?newsflash/?([?#].*)?$)|(^https?://[^/?#]+/civicalerts\.aspx(\?[^#]*)?(#.*)?$)"#
+        case civicPlusNewsFlashItem = #"[?&]aid="#
+        // Only numeric ARC is an item; ARC=L is the archive LIST view.
+        case civicPlusNewsFlashArchiveItem = #"[?&]arc=[0-9]"#
+
         // Source-title archive detection is independent of the URL predicates.
+        // mig 1565: explicit host grammar; capture the path before query/fragment tails.
+        case indexTitleURLPath = #"^https?://[a-z0-9.-]+(?::[0-9]+)?/([^?#]*)"#
         case indexTitleSeparator = #"\s+[|\-–—:»]\s+"#
-        case indexTitleMonthYear = #"^(january|february|march|april|may|june|july|august|september|october|november|december)\s+(19|20)\d{2}$"#
-        case indexTitleDay = #"^(january|february|march|april|may|june|july|august|september|october|november|december)\s+\d{1,2},?\s+(19|20)\d{2}$"#
-        case indexTitleBareMonth = #"^(january|february|march|april|may|june|july|august|september|october|november|december)$"#
         case indexTitleByPeriod = #"\bby (year|month|date)$"#
 
         var options: NSRegularExpression.Options {

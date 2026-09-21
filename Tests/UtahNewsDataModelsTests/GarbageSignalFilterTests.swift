@@ -360,44 +360,44 @@ struct IndexTitleReasonTests {
 
     private let pageURL = "https://example.gov/page"
 
-    @Test("Month-year archive titles return the month-year reason")
-    func recognizesMonthYearArchives() {
+    @Test("Retired month-year arm leaves root month archives to the URL rule")
+    func allowsRetiredMonthYearTitles() {
         let fixtures = [
-            ("August 2026 – Tremonton City", "https://tremontoncity.gov/2026/08/"),
-            ("April 2025 – Tremonton City", pageURL),
-            ("June 2026 – Garden City Fire District", pageURL),
-            ("May 2014 – Garden City Fire District", pageURL),
-            ("April 2026 – Town of Hideout, Wasatch County, UT", pageURL),
-            ("March 2026 | Governor Spencer J. Cox", pageURL),
-            ("February, 2026 - Kane County School District", pageURL),
-            ("April 2024 – Salton Sea Program", pageURL),
-            ("June 2025 – Naples City, Uintah County, Utah", pageURL)
+            ("August 2026 – Tremonton City", "https://tremontoncity.gov/2026/08/"), // retired arm b: URL rule (mig 1561) owns root month archives
+            ("April 2025 – Tremonton City", pageURL), // retired arm b: measured true-positive class is URL-owned (mig 1561): root month archives
+            ("June 2026 – Garden City Fire District", pageURL), // retired arm b: measured true-positive class is URL-owned (mig 1561): root month archives
+            ("May 2014 – Garden City Fire District", pageURL), // retired arm b: measured true-positive class is URL-owned (mig 1561): root month archives
+            ("April 2026 – Town of Hideout, Wasatch County, UT", pageURL), // retired arm b: measured true-positive class is URL-owned (mig 1561): root month archives
+            ("March 2026 | Governor Spencer J. Cox", pageURL), // retired arm b: measured true-positive class is URL-owned (mig 1561): root month archives
+            ("February, 2026 - Kane County School District", pageURL), // retired arm b: measured true-positive class is URL-owned (mig 1561): root month archives
+            ("April 2024 – Salton Sea Program", pageURL), // retired arm b: measured true-positive class is URL-owned (mig 1561): root month archives
+            ("June 2025 – Naples City, Uintah County, Utah", pageURL) // retired arm b: measured true-positive class is URL-owned (mig 1561): root month archives
         ]
         for (title, url) in fixtures {
-            #expect(GarbageSignalFilter.indexTitleReason(title, url: url) == "index-title: month-year archive")
+            #expect(GarbageSignalFilter.indexTitleReason(title, url: url) == nil)
         }
     }
 
-    @Test("Day archive titles return the day reason")
-    func recognizesDayArchives() {
+    @Test("Retired day arm leaves dated press releases eligible")
+    func allowsRetiredDayTitles() {
         let fixtures = [
-            ("June 11, 2026 – City of Orem", "https://orem.gov/2026/06/11/"),
-            ("June 25, 2026 – City of Orem", pageURL),
-            ("August 14, 2026 - Utah Film Commission", pageURL)
+            ("June 11, 2026 – City of Orem", "https://orem.gov/2026/06/11/"), // retired arm c: URL rule (mig 1561) owns root day archives
+            ("June 25, 2026 – City of Orem", pageURL), // retired arm c: measured true-positive class is URL-owned (mig 1561): root day archives
+            ("August 14, 2026 - Utah Film Commission", pageURL) // retired arm c: dated press releases are real stories
         ]
         for (title, url) in fixtures {
-            #expect(GarbageSignalFilter.indexTitleReason(title, url: url) == "index-title: day archive")
+            #expect(GarbageSignalFilter.indexTitleReason(title, url: url) == nil)
         }
     }
 
-    @Test("The first separator exposes bare-month archive titles")
-    func recognizesBareMonths() {
+    @Test("Retired bare-month arm leaves root month archives to the URL rule")
+    func allowsRetiredBareMonthTitles() {
         let fixtures = [
-            ("September | 2026 | Washington County of Utah", "https://www.washco.utah.gov/2026/09"),
-            ("December | 2025 | Washington County of Utah", pageURL)
+            ("September | 2026 | Washington County of Utah", "https://www.washco.utah.gov/2026/09"), // retired arm d: URL rule (mig 1561) owns root month archives
+            ("December | 2025 | Washington County of Utah", pageURL) // retired arm d: measured true-positive class is URL-owned (mig 1561): root month archives
         ]
         for (title, url) in fixtures {
-            #expect(GarbageSignalFilter.indexTitleReason(title, url: url) == "index-title: bare month")
+            #expect(GarbageSignalFilter.indexTitleReason(title, url: url) == nil)
         }
     }
 
@@ -410,7 +410,10 @@ struct IndexTitleReasonTests {
             ("HealthFeed by year", pageURL),
             ("Recognition by year", pageURL),
             ("Stories by month", pageURL),
-            ("Stories by date", pageURL)
+            ("Stories by date", pageURL),
+            ("Supreme Court Opinions By Date - 2019  - Utah Courts", "https://legacy.utcourts.gov/opinions/supopin/index-2019.php"),
+            ("Blog stories by month | College of Nursing", pageURL),
+            ("Utah Legislators by Year", "https://le.utah.gov/asp/roster/roster.asp?year=2020")
         ]
         for (title, url) in fixtures {
             #expect(GarbageSignalFilter.indexTitleReason(title, url: url) == "index-title: by-year index")
@@ -446,6 +449,15 @@ struct IndexTitleReasonTests {
         for title in titles {
             #expect(GarbageSignalFilter.indexTitleReason(title, url: pageURL) == nil)
         }
+        let datedItems = [
+            ("October – Carrie Hill (Fire)", "https://www.provo.gov/CivicAlerts.aspx?AID=274"),
+            ("September 11, 2026 - Utah Film Commission", "https://film.utah.gov/press/09-11-2026"),
+            ("April", "https://www.murray.utah.gov/Archive.aspx?ADID=5734"),
+            ("May 2019", "https://www.paysonutah.gov/Archive.aspx?ADID=108")
+        ]
+        for (title, url) in datedItems {
+            #expect(GarbageSignalFilter.indexTitleReason(title, url: url) == nil)
+        }
     }
 
     @Test("Document path extensions exempt newsletters regardless of case or URL tails")
@@ -456,7 +468,7 @@ struct IndexTitleReasonTests {
         ) == nil)
         #expect(GarbageSignalFilter.indexTitleReason(
             "March 2023", url: "https://ivinsutah.gov/2023/03/"
-        ) == "index-title: month-year archive")
+        ) == nil) // retired arm b: URL rule (mig 1561) owns root month archives
         #expect(GarbageSignalFilter.indexTitleReason(
             "March 2023",
             url: "https://ivinsutah.gov/wp-content/uploads/2023/03/March-2023-Newsletter.PDF?dl=1"
@@ -469,38 +481,51 @@ struct IndexTitleReasonTests {
                 ) == nil)
             }
         }
+        #expect(GarbageSignalFilter.indexTitleReason(
+            "Stories by year", url: "https://ivinsutah.gov/2023/03/"
+        ) == "index-title: by-year index")
     }
 
     @Test("Normalization trims, uses the first spaced separator, and retains only core characters")
     func normalizesCoreTitles() {
         for separator in ["|", "-", "–", "—", ":", "»"] {
             #expect(GarbageSignalFilter.indexTitleReason(
-                " \nFEBRUARY, 2026\t\(separator)\tPublisher | Later suffix \n", url: pageURL
-            ) == "index-title: month-year archive")
+                " \nSTORIES BY YEAR\t\(separator)\tPublisher | Later suffix \n", url: pageURL
+            ) == "index-title: by-year index")
         }
         #expect(GarbageSignalFilter.indexTitleReason(
-            "March | April 2026 – Publisher", url: pageURL
-        ) == "index-title: bare month")
+            "Stories by month | April 2026 – Publisher", url: pageURL
+        ) == "index-title: by-year index")
         #expect(GarbageSignalFilter.indexTitleReason(
-            "📅 March, 2023!", url: pageURL
-        ) == "index-title: month-year archive")
-        for title in ["March 2023|Publisher", "March 2023 -Publisher", "March & 2023", "March\t2023"] {
+            "📅 Stories, by year!", url: pageURL
+        ) == "index-title: by-year index")
+        // Exact mig 1565 smoke edges: map spaces, trim BEFORE splitting, then delete punctuation.
+        for title in ["Stories\u{00A0}by\u{00A0}year",
+                      "Stories by year\u{00A0}\u{2014}\u{00A0}Publisher",
+                      "\t- Reports by year", "Reports b.y year"] {
+            #expect(GarbageSignalFilter.indexTitleReason(
+                title, url: pageURL
+            ) == "index-title: by-year index", "\(title)")
+        }
+        for title in ["March 2023|Publisher", "March 2023 -Publisher", "March & 2023", "March\t2023",
+                      "Stories by year|Publisher", "Stories by year -Publisher", "Stories by & year", "Stories by\tyear",
+                      "Standby year"] {
             #expect(GarbageSignalFilter.indexTitleReason(title, url: pageURL) == nil)
         }
     }
 
-    @Test("All full month names match with the specified year and day boundaries")
-    func respectsArchivePatternBoundaries() {
+    @Test("All full month names and dated titles stay nil after retiring arms b/c/d")
+    func allowsRetiredArchivePatternBoundaries() {
         for month in ["January", "February", "March", "April", "May", "June",
                       "July", "August", "September", "October", "November", "December"] {
-            #expect(GarbageSignalFilter.indexTitleReason(month, url: pageURL) == "index-title: bare month")
+            #expect(GarbageSignalFilter.indexTitleReason(month, url: pageURL) == nil)
             for year in [1900, 2099] {
                 #expect(GarbageSignalFilter.indexTitleReason(
                     "\(month) \(year)", url: pageURL
-                ) == "index-title: month-year archive")
+                ) == nil)
                 #expect(GarbageSignalFilter.indexTitleReason(
                     "\(month) 1, \(year)", url: pageURL
-                ) == "index-title: day archive")
+                ) == nil)
             }
         }
         for title in ["March 1899", "March 2100", "Mar 2026", "March 111 2026",
@@ -516,8 +541,117 @@ struct IndexTitleReasonTests {
         for url in [malformedURL, "", "https://example.gov/archive?file=newsletter.pdf",
                     "https://example.gov/archive#newsletter.pdf", "https://example.gov/archive.html"] {
             #expect(GarbageSignalFilter.indexTitleReason(
-                "March 2023", url: url
-            ) == "index-title: month-year archive")
+                "Stories by year", url: url
+            ) == "index-title: by-year index")
+        }
+    }
+
+    @Test("Every DB Unicode space maps to ASCII without collapsing spaces or weakening word boundaries")
+    func normalizesDBUnicodeSpaces() {
+        let spaces = ["\u{00A0}", "\u{1680}", "\u{2000}", "\u{2001}", "\u{2002}",
+                      "\u{2003}", "\u{2004}", "\u{2005}", "\u{2006}", "\u{2007}",
+                      "\u{2008}", "\u{2009}", "\u{200A}", "\u{2028}", "\u{2029}",
+                      "\u{202F}", "\u{205F}", "\u{3000}", "\u{0085}"]
+        for space in spaces {
+            #expect(GarbageSignalFilter.indexTitleReason(
+                "\(space)Stories\(space)by\(space)year\(space)", url: pageURL
+            ) == "index-title: by-year index")
+            #expect(GarbageSignalFilter.indexTitleReason(
+                "Standby\(space)year", url: pageURL
+            ) == nil)
+            #expect(GarbageSignalFilter.indexTitleReason(
+                "Stories by\(space)\(space)year", url: pageURL
+            ) == nil)
+        }
+    }
+
+    @Test("Document exemptions use the DB host grammar, dot-only decoding, and last path component")
+    func matchesDBDocumentParsing() {
+        let exemptURLs = [
+            "https://x.test/report.pdf/",
+            "https://x.test/report%2Epdf",
+            "https://x.test/report%2epdf",
+            "HTTP://X.TEST:8080/report.PDF///?download=1#top"
+        ]
+        for url in exemptURLs {
+            #expect(GarbageSignalFilter.indexTitleReason("Stories by year", url: url) == nil, "\(url)")
+        }
+        let nonExemptURLs = [
+            "https://x.test/report.%70df",
+            "https://[::1]/report.pdf",
+            "https://x.test/.pdf",
+            "https://x.test/foo.bar/baz",
+            "not a url",
+            "https://x.test/.report.pdf",
+            "https://x.test/foo.pdf/baz/",
+            "https://x.test/report.pdfx",
+            "https://x.test/report.pdf%20",
+            "https://x.test/report.pdf\n",
+            "https://x.test:port/report.pdf",
+            "https://user@x.test/report.pdf",
+            "ftp://x.test/report.pdf"
+        ]
+        for url in nonExemptURLs {
+            #expect(GarbageSignalFilter.indexTitleReason(
+                "Stories by year", url: url
+            ) == "index-title: by-year index", "\(url)")
+        }
+    }
+}
+
+// The shared fixture file's `expected` field still pins isNonNewsSourceURL.
+// These additional expectations cover its deliberately separate listing sibling.
+extension NonNewsSourceURLParityTests {
+
+    private struct ListingFixture: Decodable {
+        let url: String
+        let listingMigration: Int?
+        let listingExpected: Bool?
+    }
+
+    @Test("mig 1561 shared fixtures refuse root/blog date archives and preserve permalinks")
+    nonisolated func rootDateArchiveListingFixtures() throws {
+        try assertListingFixtures(
+            migration: 1561,
+            count: 30,
+            reason: "WordPress root/blog date archive (listing source, not a story)"
+        )
+    }
+
+    @Test("mig 1566 shared fixtures refuse News Flash indexes, including ARC=L, and preserve items")
+    nonisolated func civicPlusNewsFlashListingFixtures() throws {
+        try assertListingFixtures(
+            migration: 1566,
+            count: 37,
+            reason: "CivicPlus News Flash module index (headline list, not a story)"
+        )
+    }
+
+    @Test("Older listing clauses retain the Foundation parsing guard")
+    nonisolated func keepsOlderListingParsingGuard() {
+        let malformedURL = "https://[invalid/news"
+        #expect(URL(string: malformedURL) == nil)
+        #expect(!GarbageSignalFilter.isListingIndexURL(malformedURL))
+        #expect(GarbageSignalFilter.isListingIndexURL("https://x.test/news"))
+    }
+
+    private nonisolated func assertListingFixtures(migration: Int, count: Int, reason: String) throws {
+        let fixtureFile = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .appendingPathComponent("Fixtures/non_news_source_url_fixtures.json")
+        let fixtures = try JSONDecoder().decode(
+            [ListingFixture].self,
+            from: Data(contentsOf: fixtureFile)
+        ).filter { $0.listingMigration == migration }
+        #expect(fixtures.count == count)
+        for fixture in fixtures {
+            let expected = try #require(fixture.listingExpected as Bool?)
+            #expect(GarbageSignalFilter.isListingIndexURL(fixture.url) == expected, "\(fixture.url)")
+            #expect(GarbageSignalFilter.garbageReason(
+                title: "City council approves a new public park",
+                snippet: String(repeating: "x", count: 400),
+                sourceURL: fixture.url
+            ) == (expected ? reason : nil), "\(fixture.url)")
         }
     }
 }

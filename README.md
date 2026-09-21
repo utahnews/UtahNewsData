@@ -12,6 +12,20 @@ UtahNewsData provides a rich set of data models for representing news entities s
 - Generating knowledge graphs
 - Creating rich context for AI systems
 
+## 1.41.0 filter changes
+
+`GarbageSignalFilter.indexTitleReason(_:url:)` now flags only titles ending in
+"by year", "by month", or "by date" after core-title normalization, while preserving
+the document URL exemption. Month-year, day, and bare-month titles remain eligible:
+those title rules also matched newsletters, dated press releases, and employee profiles.
+The public signature is unchanged; the title filter's behavior is narrower.
+
+`isListingIndexURL(_:)` adds root and `/blog` date archives (migration 1561) and
+CivicPlus News Flash module indexes (migration 1566). `garbageReason` uses the same
+listing reason helper, so it also rejects both new URL shapes. Dated story permalinks,
+`AID=` items, mobile `/Detail/` items, and numeric `ARC=` items remain outside these
+listing rules; `ARC=L` remains an archive listing. `isNonNewsSourceURL(_:)` is unchanged.
+
 ## Installation
 
 Add UtahNewsData to your Swift package dependencies:
